@@ -168,7 +168,9 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      Navigator.of(context).pushReplacementNamed('/phone-verify');
+                      Navigator.of(
+                        context,
+                      ).pushReplacementNamed('/phone-verify');
                     },
                     customBorder: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
