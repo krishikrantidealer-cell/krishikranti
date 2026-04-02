@@ -29,7 +29,7 @@ class WavyBackgroundPainter extends CustomPainter {
       ),
     );
     paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
-    paint.color = const Color(0xFFF1FDF1).withValues(alpha: 0.8);
+    paint.color = const Color(0xFFF1FDF1).withOpacity(0.8);
     canvas.drawPath(topPath, paint);
 
     // Bottom Wave - single subtle atmospheric glow
@@ -53,7 +53,7 @@ class WavyBackgroundPainter extends CustomPainter {
     path1.close();
 
     paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 35);
-    paint.color = const Color.fromARGB(255, 206, 238, 206).withValues(alpha: 0.53);
+    paint.color = const Color.fromARGB(255, 206, 238, 206).withOpacity(0.53);
     canvas.drawPath(path1, paint);
 
     paint.maskFilter = null;

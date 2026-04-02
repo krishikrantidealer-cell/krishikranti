@@ -102,7 +102,7 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.3),
+                                  : Colors.white.withOpacity(0.3),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: isSelected
@@ -158,7 +158,7 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+                      color: const Color(0xFF2E7D32).withOpacity(0.3),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -175,7 +175,7 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                     customBorder: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
-                    splashColor: Colors.white.withValues(alpha: 0.2),
+                    splashColor: Colors.white.withOpacity(0.2),
                     highlightColor: Colors.transparent,
                     child: Center(
                       child: Image.asset(

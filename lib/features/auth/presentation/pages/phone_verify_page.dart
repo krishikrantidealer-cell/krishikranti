@@ -91,8 +91,8 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: 0.08,
+                      color: Colors.black.withOpacity(
+                        0.08,
                       ), // Slightly softer shadow for compact look
                       blurRadius: 20,
                       offset: const Offset(0, 8),
@@ -239,7 +239,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           elevation: 4,
-                          shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                          shadowColor: const Color(0xFF2E7D32).withOpacity(0.4),
                         ),
                         child: Text(
                           'Send OTP',
