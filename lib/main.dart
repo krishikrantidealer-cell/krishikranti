@@ -6,6 +6,7 @@ import 'package:krishikranti/features/language/presentation/pages/choose_languag
 import 'package:krishikranti/features/auth/presentation/pages/phone_verify_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/otp_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/register_page.dart';
+import 'package:krishikranti/features/auth/presentation/pages/ekyc_page.dart';
 
 void main() {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
         '/phone-verify': (context) => const PhoneVerifyPage(),
         '/otp': (context) => const OtpPage(),
         '/register': (context) => const RegisterPage(),
+        '/ekyc': (context) => const EkycPage(),
         '/home': (context) => const MyHomePage(title: 'Krishi Dealer Home'),
       },
     );

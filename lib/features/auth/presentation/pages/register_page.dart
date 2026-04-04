@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
@@ -93,7 +92,7 @@ class _RegisterPageState extends State<RegisterPage> {
               clipper: HeaderClipper(),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.only(top: 60, bottom: 100),
+                padding: const EdgeInsets.only(top: 50, bottom: 90),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -109,51 +108,65 @@ class _RegisterPageState extends State<RegisterPage> {
                       children: [
                         Image.asset(
                           'assets/images/logo.png',
-                          width: 60,
-                          height: 60,
+                          width: 50,
+                          fit: BoxFit.cover,
+                          height: 50,
                         ),
-                        const SizedBox(width: 10),
                         RichText(
                           text: TextSpan(
-                            children: [
+                            style: Theme.of(
+                              context,
+                            ).textTheme.headlineMedium?.copyWith(fontSize: 28),
+                            children: const [
                               TextSpan(
                                 text: 'Krishi',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1B5E20),
-                                ),
+                                style: TextStyle(color: Color(0xFF1B5E20)),
                               ),
                               TextSpan(
                                 text: 'Dealer',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFE67E22), // Orange tint
-                                ),
+                                style: TextStyle(color: Color(0xFFE67E22)),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12),
                     Text(
                       'Create Your Account',
-                      style: GoogleFonts.outfit(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF1B5E20),
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 26),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Register your agro business to get started',
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: Colors.black87,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          topRight: Radius.circular(15),
+                        ),
+                      ),
+                      child: Text(
+                        'Step 1 of 2',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontSize: 12,
+                          color: const Color(0xFF2E7D32),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -167,15 +180,15 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(25),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
@@ -184,14 +197,19 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTextField('Shop Name', _shopNameController),
-                        const SizedBox(height: 12),
+                        _buildTextField(
+                          'Shop Name',
+                          _shopNameController,
+                          prefixIcon: Icons.storefront_rounded,
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
                               child: _buildTextField(
                                 'First Name',
                                 _firstNameController,
+                                prefixIcon: Icons.person_outline_rounded,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -199,30 +217,30 @@ class _RegisterPageState extends State<RegisterPage> {
                               child: _buildTextField(
                                 'Last Name',
                                 _lastNameController,
+                                prefixIcon: Icons.person_outline_rounded,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         _buildTextField(
                           'Email',
                           _emailController,
                           hint: 'example@gmail.com',
+                          prefixIcon: Icons.email_outlined,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         // Address Type Selector
                         Text(
                           'Address Type',
-                          style: GoogleFonts.outfit(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(fontSize: 15),
                         ),
                         const SizedBox(height: 8),
                         _buildAddressTypeSelector(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         Row(
                           children: [
@@ -230,6 +248,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               child: _buildTextField(
                                 'Village / Area',
                                 _villageController,
+                                prefixIcon: Icons.map_outlined,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -237,13 +256,18 @@ class _RegisterPageState extends State<RegisterPage> {
                               child: _buildTextField(
                                 'City / Tehsil',
                                 _cityController,
+                                prefixIcon: Icons.location_city_rounded,
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        _buildTextField(
+                          'Pincode',
+                          _pincodeController,
+                          prefixIcon: Icons.pin_drop_outlined,
+                        ),
                         const SizedBox(height: 12),
-                        _buildTextField('Pincode', _pincodeController),
-                        const SizedBox(height: 16),
 
                         // Use Current Location Button
                         InkWell(
@@ -277,43 +301,52 @@ class _RegisterPageState extends State<RegisterPage> {
                                   const SizedBox(width: 8),
                                   Text(
                                     'Use current location to auto-fill PIN',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 13,
-                                      color: const Color(0xFF2E7D32),
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(fontSize: 13),
                                   ),
                                 ],
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 24),
 
                         // Submit Button
-                        SizedBox(
+                        Container(
                           width: double.infinity,
-                          height: 52,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF1B5E20).withOpacity(0.3),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
                           child: ElevatedButton(
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
-                                Navigator.pushNamed(context, '/home');
+                                Navigator.pushNamed(context, '/ekyc');
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2E7D32),
-                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                              elevation: 0,
                             ),
                             child: Text(
-                              'Submit',
-                              style: GoogleFonts.outfit(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              'Submit Details',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(fontSize: 18, color: Colors.white),
                             ),
                           ),
                         ),
@@ -333,92 +366,89 @@ class _RegisterPageState extends State<RegisterPage> {
     String label,
     TextEditingController controller, {
     String? hint,
+    IconData? prefixIcon,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Hidden label if hint is used, or use hint as the default
-        TextFormField(
-          controller: controller,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Required';
-            }
-            if (label == 'Pincode' && value.length != 6) {
-              return 'Invalid Pincode';
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: label,
-            hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: Color(0xFF2E7D32),
-                width: 1.5,
-              ),
-            ),
-          ),
+    return TextFormField(
+      controller: controller,
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Required';
+        if (label == 'Pincode' && value.length != 6) return 'Invalid Pincode';
+        return null;
+      },
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        hintText: label,
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: const Color(0xFF2E7D32), size: 18)
+            : null,
+        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Colors.grey.shade500,
+          fontSize: 13,
         ),
-      ],
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+        ),
+        errorStyle: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontSize: 11),
+      ),
     );
   }
 
   Widget _buildAddressTypeSelector() {
     final types = ['Shop', 'Home', 'Godown', 'Other'];
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: types.map((type) {
-          final isSelected = _selectedAddressType == type;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedAddressType = type),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF2E7D32)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      type,
-                      style: GoogleFonts.outfit(
-                        fontSize: 13,
-                        color: isSelected ? Colors.white : Colors.black54,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
+    return DefaultTabController(
+      length: types.length,
+      initialIndex: types.indexOf(_selectedAddressType),
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: TabBar(
+          onTap: (index) => setState(() => _selectedAddressType = types[index]),
+          labelPadding: EdgeInsets.zero,
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFF2E7D32),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2E7D32).withOpacity(0.2),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
-            ),
-          );
-        }).toList(),
+            ],
+          ),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.black54,
+          labelStyle: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontSize: 12),
+          unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontSize: 12, fontWeight: FontWeight.w500),
+          dividerColor: Colors.transparent,
+          tabs: types.map((type) => Tab(text: type)).toList(),
+        ),
       ),
     );
   }

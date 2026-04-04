@@ -11,7 +11,28 @@ class AppTheme {
         secondary: const Color(0xFF689F38),
         surface: Colors.white,
       ),
-      textTheme: GoogleFonts.outfitTextTheme(),
+      textTheme: GoogleFonts.outfitTextTheme(
+        ThemeData.light().textTheme,
+      ).copyWith(
+        displayLarge: GoogleFonts.outfit(
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF1B5E20),
+        ),
+        headlineMedium: GoogleFonts.outfit(
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF1B5E20),
+        ),
+        titleLarge: GoogleFonts.outfit(
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        bodyLarge: GoogleFonts.outfit(color: Colors.black87),
+        bodyMedium: GoogleFonts.outfit(color: Colors.black54),
+        labelLarge: GoogleFonts.outfit(
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF2E7D32),
+        ),
+      ),
 
       // Modern, elevated app bar
       appBarTheme: const AppBarTheme(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:google_fonts/google_fonts.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,7 +13,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     // Navigate to the next screen after a 3-second delay
-    Timer(const Duration(seconds: 60), () {
+    Timer(const Duration(seconds: 3), () {
       // For now, let's just clear the splash from the stack
       // and go to what was previously the home screen.
       // Assuming MyHomePage is the next screen.
@@ -45,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Center(
               child: Text(
                 'by krishikranti organices',
-                style: GoogleFonts.outfit(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF2E7D32), // Deep green color

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ChooseLanguagePage extends StatefulWidget {
   const ChooseLanguagePage({super.key});
@@ -62,19 +61,12 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                     const SizedBox(height: 24),
                     Text(
                       'Choose Your Language',
-                      style: GoogleFonts.outfit(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF2E7D32),
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 26),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Choose your preferred language.',
-                      style: GoogleFonts.outfit(
-                        fontSize: 15,
-                        color: Colors.black54,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15),
                     ),
                     const SizedBox(height: 24),
 
@@ -121,14 +113,10 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                               child: Center(
                                 child: Text(
                                   language,
-                                  style: GoogleFonts.outfit(
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     fontSize: 16,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.w500,
-                                    color: isSelected
-                                        ? const Color(0xFF2E7D32)
-                                        : Colors.black87,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                    color: isSelected ? const Color(0xFF2E7D32) : Colors.black87,
                                   ),
                                 ),
                               ),

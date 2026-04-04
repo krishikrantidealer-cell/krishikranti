@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'dart:async';
-import 'package:google_fonts/google_fonts.dart';
 import '../widgets/wavy_painter.dart';
 
 class SplashPage extends StatefulWidget {
@@ -62,10 +61,9 @@ class _SplashPageState extends State<SplashPage> {
             child: Center(
               child: Text(
                 'by krishikranti organices',
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF2E7D32), // Using brand color
+                  color: const Color(0xFF2E7D32),
                   letterSpacing: 0.5,
                 ),
               ),

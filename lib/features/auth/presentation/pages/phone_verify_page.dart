@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class PhoneVerifyPage extends StatefulWidget {
   const PhoneVerifyPage({super.key});
@@ -48,20 +47,14 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                       Text(
                         'Welcome to\nKrishiDealer',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.outfit(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1B5E20),
-                          height: 1.1,
-                        ),
+                        style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32, height: 1.1),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "India's trusted platform for\nfarmers & retailers",
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.outfit(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontSize: 15,
-                          color: Colors.black87,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.1,
                         ),
@@ -88,7 +81,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                 ), // More compact padding
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(
@@ -104,11 +97,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                   children: [
                     Text(
                       'Mobile Number',
-                      style: GoogleFonts.outfit(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 17),
                     ),
                     const SizedBox(height: 12),
 
@@ -121,7 +110,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                           ), // Tighter code box
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
@@ -132,10 +121,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                               const SizedBox(width: 4),
                               Text(
                                 '+91',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 15),
                               ),
                             ],
                           ),
@@ -145,10 +131,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                           child: TextField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
                             decoration: InputDecoration(
                               hintText: 'Phone Number',
                               prefixIcon: const Icon(
@@ -157,13 +140,13 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                                 size: 18,
                               ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
                                   color: Colors.grey.shade300,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
                                   color: Colors.grey.shade300,
                                 ),
@@ -198,19 +181,17 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                         Expanded(
                           child: RichText(
                             text: TextSpan(
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                color: Colors.black54,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontSize: 13,
+                                  ),
                               children: [
                                 const TextSpan(text: 'I agree to our '),
                                 TextSpan(
                                   text: 'Terms & Privacy Policy',
-                                  style: GoogleFonts.outfit(
-                                    color: const Color(0xFF2E7D32),
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                  ),
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                        fontSize: 13,
+                                        decoration: TextDecoration.underline,
+                                      ),
                                 ),
                               ],
                             ),
@@ -236,17 +217,14 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                           backgroundColor: const Color(0xFF2E7D32),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(18),
                           ),
                           elevation: 4,
                           shadowColor: const Color(0xFF2E7D32).withOpacity(0.4),
                         ),
                         child: Text(
                           'Send OTP',
-                          style: GoogleFonts.outfit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 18, color: Colors.white),
                         ),
                       ),
                     ),

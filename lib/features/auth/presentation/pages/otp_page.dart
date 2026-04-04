@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:pinput/pinput.dart';
 
 class OtpPage extends StatefulWidget {
@@ -50,16 +49,12 @@ class _OtpPageState extends State<OtpPage> {
     final defaultPinTheme = PinTheme(
       width: 50,
       height: 56,
-      textStyle: GoogleFonts.outfit(
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
-      ),
+      textStyle: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 22),
       decoration: BoxDecoration(
         color: const Color(
           0xFFF5F5F5,
         ), // Subtle grey background for "Flat" look
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
       ),
     );
@@ -107,20 +102,15 @@ class _OtpPageState extends State<OtpPage> {
                       Text(
                         'Welcome to\nKrishiDealer',
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.outfit(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1B5E20),
-                          height: 1.1,
-                        ),
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(fontSize: 30, height: 1.1),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "India's trusted platform for\nfarmers & retailers",
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.outfit(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontSize: 15,
-                          color: Colors.black87,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.1,
                         ),
@@ -146,7 +136,7 @@ class _OtpPageState extends State<OtpPage> {
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.08),
@@ -159,19 +149,16 @@ class _OtpPageState extends State<OtpPage> {
                   children: [
                     Text(
                       'Verify Your Number',
-                      style: GoogleFonts.outfit(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 22),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'Enter the 6-digit code sent to\n+91 $phoneNumber',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.outfit(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
-                        color: Colors.black54,
                         height: 1.5,
                       ),
                     ),
@@ -200,10 +187,11 @@ class _OtpPageState extends State<OtpPage> {
                             if (_secondsRemaining > 0) ...[
                               Text(
                                 'Resend in 00:${_secondsRemaining.toString().padLeft(2, '0')} ',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.black45,
-                                  fontSize: 13,
-                                ),
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Colors.black45,
+                                      fontSize: 13,
+                                    ),
                               ),
                             ] else ...[
                               TextButton(
@@ -219,11 +207,8 @@ class _OtpPageState extends State<OtpPage> {
                                 ),
                                 child: Text(
                                   'Resend OTP',
-                                  style: GoogleFonts.outfit(
-                                    color: const Color(0xFF2E7D32),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
+                                  style: Theme.of(context).textTheme.labelLarge
+                                      ?.copyWith(fontSize: 13),
                                 ),
                               ),
                             ],
@@ -239,11 +224,12 @@ class _OtpPageState extends State<OtpPage> {
                           onPressed: () => Navigator.pop(context),
                           child: Text(
                             'Change Number',
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFF2E7D32),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: const Color(0xFF2E7D32),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                           ),
                         ),
                       ],
@@ -265,16 +251,14 @@ class _OtpPageState extends State<OtpPage> {
                           backgroundColor: const Color(0xFF2E7D32),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(18),
                           ),
                           elevation: 0,
                         ),
                         child: Text(
                           'Verify',
-                          style: GoogleFonts.outfit(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(fontSize: 18, color: Colors.white),
                         ),
                       ),
                     ),
