@@ -16,8 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(const Duration(seconds: 3), () {
       // For now, let's just clear the splash from the stack
       // and go to what was previously the home screen.
-      // Assuming MyHomePage is the next screen.
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacementNamed('/dashboard');
     });
   }
 

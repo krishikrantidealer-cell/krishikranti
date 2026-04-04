@@ -183,7 +183,11 @@ class _EkycPageState extends State<EkycPage> {
                           child: ElevatedButton(
                             onPressed: () {
                               if (_formKey.currentState!.validate()) {
-                                Navigator.pushNamed(context, '/home');
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/dashboard',
+                                  (route) => false,
+                                );
                               }
                             },
                             style: ElevatedButton.styleFrom(

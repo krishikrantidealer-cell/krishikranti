@@ -61,12 +61,16 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                     const SizedBox(height: 24),
                     Text(
                       'Choose Your Language',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 26),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 26),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Choose your preferred language.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(fontSize: 15),
                     ),
                     const SizedBox(height: 24),
 
@@ -113,11 +117,16 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                               child: Center(
                                 child: Text(
                                   language,
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    fontSize: 16,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    color: isSelected ? const Color(0xFF2E7D32) : Colors.black87,
-                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(
+                                        fontSize: 16,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? const Color(0xFF2E7D32)
+                                            : Colors.black87,
+                                      ),
                                 ),
                               ),
                             ),
@@ -156,9 +165,7 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage> {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacementNamed('/phone-verify');
+                      Navigator.of(context).pushReplacementNamed('/dashboard');
                     },
                     customBorder: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
