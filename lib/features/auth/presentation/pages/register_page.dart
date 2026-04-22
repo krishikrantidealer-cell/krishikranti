@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -11,7 +12,6 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  String _selectedAddressType = 'Shop';
   bool _isLoadingLocation = false;
 
   // Controllers for all fields
@@ -36,13 +36,14 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _getLocation() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoadingLocation = true);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enable location services')),
+            SnackBar(content: Text(l10n.enableLocationServices)),
           );
         }
         return;
@@ -57,7 +58,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (permission == LocationPermission.deniedForever) return;
 
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -74,7 +75,7 @@ class _RegisterPageState extends State<RegisterPage> {
         });
       }
     } catch (e) {
-      debugPrint(e.toString());
+      // Removed debugPrint for production
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
     }
@@ -82,6 +83,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF8), // Very light green/white tint
       body: SingleChildScrollView(
@@ -117,14 +119,14 @@ class _RegisterPageState extends State<RegisterPage> {
                             style: Theme.of(
                               context,
                             ).textTheme.headlineMedium?.copyWith(fontSize: 28),
-                            children: const [
+                            children: [
                               TextSpan(
-                                text: 'Krishi',
-                                style: TextStyle(color: Color(0xFF1B5E20)),
+                                text: l10n.krishi,
+                                style: const TextStyle(color: Color(0xFF1B5E20)),
                               ),
                               TextSpan(
-                                text: 'Dealer',
-                                style: TextStyle(color: Color(0xFFE67E22)),
+                                text: l10n.dealer,
+                                style: const TextStyle(color: Color(0xFFE67E22)),
                               ),
                             ],
                           ),
@@ -133,14 +135,14 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Create Your Account',
+                      l10n.createYourAccount,
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(fontSize: 26),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Register your agro business to get started',
+                      l10n.registerSubtitle,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
@@ -153,15 +155,15 @@ class _RegisterPageState extends State<RegisterPage> {
                         horizontal: 16,
                         vertical: 6,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: const BorderRadius.only(
+                        borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(15),
                           topRight: Radius.circular(15),
                         ),
                       ),
                       child: Text(
-                        'Step 1 of 2',
+                        l10n.step1Of2,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontSize: 12,
                           color: const Color(0xFF2E7D32),
@@ -186,7 +188,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     borderRadius: BorderRadius.circular(25),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 30,
                         offset: const Offset(0, 10),
                       ),
@@ -198,7 +200,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildTextField(
-                          'Shop Name',
+                          l10n.shopName,
                           _shopNameController,
                           prefixIcon: Icons.storefront_rounded,
                         ),
@@ -207,7 +209,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                'First Name',
+                                l10n.firstName,
                                 _firstNameController,
                                 prefixIcon: Icons.person_outline_rounded,
                               ),
@@ -215,7 +217,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildTextField(
-                                'Last Name',
+                                l10n.lastName,
                                 _lastNameController,
                                 prefixIcon: Icons.person_outline_rounded,
                               ),
@@ -224,7 +226,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         const SizedBox(height: 8),
                         _buildTextField(
-                          'Email',
+                          l10n.email,
                           _emailController,
                           hint: 'example@gmail.com',
                           prefixIcon: Icons.email_outlined,
@@ -233,7 +235,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                         // Address Type Selector
                         Text(
-                          'Address Type',
+                          l10n.addressType,
                           style: Theme.of(
                             context,
                           ).textTheme.titleLarge?.copyWith(fontSize: 15),
@@ -246,7 +248,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                'Village / Area',
+                                l10n.villageArea,
                                 _villageController,
                                 prefixIcon: Icons.map_outlined,
                               ),
@@ -254,7 +256,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildTextField(
-                                'City / Tehsil',
+                                l10n.cityTehsil,
                                 _cityController,
                                 prefixIcon: Icons.location_city_rounded,
                               ),
@@ -263,7 +265,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         const SizedBox(height: 8),
                         _buildTextField(
-                          'Pincode',
+                          l10n.pincode,
                           _pincodeController,
                           prefixIcon: Icons.pin_drop_outlined,
                         ),
@@ -300,7 +302,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Use current location to auto-fill PIN',
+                                    l10n.useLocationAutofill,
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelLarge
@@ -324,7 +326,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF1B5E20).withOpacity(0.3),
+                                color: const Color(0xFF1B5E20).withValues(alpha: 0.3),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
                               ),
@@ -344,7 +346,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ),
                             child: Text(
-                              'Submit Details',
+                              l10n.submitDetails,
                               style: Theme.of(context).textTheme.labelLarge
                                   ?.copyWith(fontSize: 18, color: Colors.white),
                             ),
@@ -368,11 +370,12 @@ class _RegisterPageState extends State<RegisterPage> {
     String? hint,
     IconData? prefixIcon,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return TextFormField(
       controller: controller,
       validator: (value) {
-        if (value == null || value.isEmpty) return 'Required';
-        if (label == 'Pincode' && value.length != 6) return 'Invalid Pincode';
+        if (value == null || value.isEmpty) return l10n.fieldRequired;
+        if (label == l10n.pincode && value.length != 6) return l10n.invalidPincode;
         return null;
       },
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -414,10 +417,11 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _buildAddressTypeSelector() {
-    final types = ['Shop', 'Home', 'Godown', 'Other'];
+    final l10n = AppLocalizations.of(context)!;
+    final types = [l10n.shop, l10n.home, l10n.godown, l10n.other];
     return DefaultTabController(
       length: types.length,
-      initialIndex: types.indexOf(_selectedAddressType),
+      initialIndex: 0,
       child: Container(
         height: 40,
         decoration: BoxDecoration(
@@ -425,7 +429,9 @@ class _RegisterPageState extends State<RegisterPage> {
           borderRadius: BorderRadius.circular(15),
         ),
         child: TabBar(
-          onTap: (index) => setState(() => _selectedAddressType = types[index]),
+          onTap: (index) {
+            // Address type selection handled by TabController index
+          },
           labelPadding: EdgeInsets.zero,
           indicatorSize: TabBarIndicatorSize.tab,
           indicator: BoxDecoration(
@@ -433,7 +439,7 @@ class _RegisterPageState extends State<RegisterPage> {
             color: const Color(0xFF2E7D32),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2E7D32).withOpacity(0.2),
+                color: const Color(0xFF2E7D32).withValues(alpha: 0.2),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),

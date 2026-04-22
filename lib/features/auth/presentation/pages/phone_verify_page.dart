@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 
 class PhoneVerifyPage extends StatefulWidget {
   const PhoneVerifyPage({super.key});
@@ -13,6 +14,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -45,13 +47,13 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Welcome to\nKrishiDealer',
+                        l10n.welcomeToKrishidealer,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32, height: 1.1),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "India's trusted platform for\nfarmers & retailers",
+                        l10n.indiasTrustedPlatform,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontSize: 15,
@@ -84,8 +86,8 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(
-                        0.08,
+                      color: Colors.black.withValues(
+                        alpha: 0.08,
                       ), // Slightly softer shadow for compact look
                       blurRadius: 20,
                       offset: const Offset(0, 8),
@@ -96,7 +98,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mobile Number',
+                      l10n.mobileNumber,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 17),
                     ),
                     const SizedBox(height: 12),
@@ -133,7 +135,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                             keyboardType: TextInputType.phone,
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
                             decoration: InputDecoration(
-                              hintText: 'Phone Number',
+                              hintText: l10n.phoneNumberHint,
                               prefixIcon: const Icon(
                                 Icons.phone_outlined,
                                 color: Colors.grey,
@@ -185,9 +187,9 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                                     fontSize: 13,
                                   ),
                               children: [
-                                const TextSpan(text: 'I agree to our '),
+                                TextSpan(text: l10n.agreeTo),
                                 TextSpan(
-                                  text: 'Terms & Privacy Policy',
+                                  text: l10n.termsPrivacyPolicy,
                                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                                         fontSize: 13,
                                         decoration: TextDecoration.underline,
@@ -220,10 +222,10 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           elevation: 4,
-                          shadowColor: const Color(0xFF2E7D32).withOpacity(0.4),
+                          shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.4),
                         ),
                         child: Text(
-                          'Send OTP',
+                          l10n.sendOtp,
                           style: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 18, color: Colors.white),
                         ),
                       ),

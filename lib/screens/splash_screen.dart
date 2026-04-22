@@ -89,7 +89,7 @@ class WavyBackgroundPainter extends CustomPainter {
       ),
     );
     paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
-    paint.color = const Color(0xFFF1FDF1).withOpacity(0.8);
+    paint.color = const Color(0xFFF1FDF1).withValues(alpha: 0.8);
     canvas.drawPath(topPath, paint);
 
     // Reset mask filter for main layers
@@ -121,7 +121,7 @@ class WavyBackgroundPainter extends CustomPainter {
       206,
       238,
       206,
-    ).withOpacity(0.53); // Improved visibility
+    ).withValues(alpha: 0.53); // Improved visibility
     canvas.drawPath(path1, paint);
 
     // Clear filters for safety

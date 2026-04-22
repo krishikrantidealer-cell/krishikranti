@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 
 class OtpPage extends StatefulWidget {
   const OtpPage({super.key});
@@ -42,6 +43,7 @@ class _OtpPageState extends State<OtpPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final String phoneNumber =
         ModalRoute.of(context)?.settings.arguments as String? ?? '9876543210';
 
@@ -100,14 +102,14 @@ class _OtpPageState extends State<OtpPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Welcome to\nKrishiDealer',
+                        l10n.welcomeToKrishidealer,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.displayLarge
                             ?.copyWith(fontSize: 30, height: 1.1),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "India's trusted platform for\nfarmers & retailers",
+                        l10n.indiasTrustedPlatform,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontSize: 15,
@@ -139,7 +141,7 @@ class _OtpPageState extends State<OtpPage> {
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -148,14 +150,14 @@ class _OtpPageState extends State<OtpPage> {
                 child: Column(
                   children: [
                     Text(
-                      'Verify Your Number',
+                      l10n.verifyYourNumber,
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(fontSize: 22),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Enter the 6-digit code sent to\n+91 $phoneNumber',
+                      l10n.enterOtpSentTo(phoneNumber),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
@@ -172,7 +174,7 @@ class _OtpPageState extends State<OtpPage> {
                       defaultPinTheme: defaultPinTheme,
                       focusedPinTheme: focusedPinTheme,
                       submittedPinTheme: submittedPinTheme,
-                      onCompleted: (pin) => debugPrint(pin),
+                      onCompleted: (pin) {},
                       hapticFeedbackType: HapticFeedbackType.lightImpact,
                       showCursor: true,
                     ),
@@ -186,7 +188,7 @@ class _OtpPageState extends State<OtpPage> {
                           children: [
                             if (_secondsRemaining > 0) ...[
                               Text(
-                                'Resend in 00:${_secondsRemaining.toString().padLeft(2, '0')} ',
+                                l10n.resendIn(_secondsRemaining.toString().padLeft(2, '0')),
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       color: Colors.black45,
@@ -206,7 +208,7 @@ class _OtpPageState extends State<OtpPage> {
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
-                                  'Resend OTP',
+                                  l10n.resendOtp,
                                   style: Theme.of(context).textTheme.labelLarge
                                       ?.copyWith(fontSize: 13),
                                 ),
@@ -223,7 +225,7 @@ class _OtpPageState extends State<OtpPage> {
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: Text(
-                            'Change Number',
+                            l10n.changeNumber,
                             style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(
                                   color: const Color(0xFF2E7D32),
@@ -256,7 +258,7 @@ class _OtpPageState extends State<OtpPage> {
                           elevation: 0,
                         ),
                         child: Text(
-                          'Verify',
+                          l10n.verify,
                           style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(fontSize: 18, color: Colors.white),
                         ),

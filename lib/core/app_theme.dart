@@ -62,7 +62,7 @@ class AppTheme {
       // Clean, rounded input fields (ERP ready)
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.grey.withOpacity(0.05),
+        fillColor: Colors.grey.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
@@ -80,7 +80,7 @@ class AppTheme {
       // Professional card styling
       cardTheme: CardThemeData(
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Colors.black.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
