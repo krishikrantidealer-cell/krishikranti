@@ -27,7 +27,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -43,7 +43,23 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       ),
       body: Column(
         children: [
-          _buildTabs(primaryGreen),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  _buildStatusChip("All Orders"),
+                  _buildStatusChip("Processing"),
+                  _buildStatusChip("Delivered"),
+                  _buildStatusChip("Cancelled"),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Expanded(
             child: filteredOrders.isEmpty
                 ? _buildEmptyState(context, primaryGreen)
@@ -61,40 +77,34 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     );
   }
 
-  Widget _buildTabs(Color primaryGreen) {
-    return Container(
-      color: Colors.white,
-      height: 50,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _tabs.length,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemBuilder: (context, index) {
-          final isSelected = _selectedTabIndex == index;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedTabIndex = index),
-            child: Container(
-              margin: const EdgeInsets.only(right: 24),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: isSelected ? primaryGreen : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                _tabs[index],
-                style: TextStyle(
-                  color: isSelected ? primaryGreen : Colors.grey,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          );
+  Widget _buildStatusChip(String title) {
+    final isSelected = _tabs[_selectedTabIndex] == title;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedTabIndex = _tabs.indexOf(title);
+          });
         },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 13.5,
+            ),
+          ),
+        ),
       ),
     );
   }

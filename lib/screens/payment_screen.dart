@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
-
-import 'package:krishikranti/screens/complete_payment_screen.dart';
+import 'package:krishikranti/screens/my_orders_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -14,12 +14,14 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   final cartService = CartService();
+  final orderService = OrderService();
   final Color primaryGreen = const Color(0xFF2E7D32);
 
   String? selectedPaymentMethod; // 'online' or 'partial'
   String? selectedCoupon;
   double discountAmount = 0.0;
   int? selectedPartialPercent; // 10, 20, 50
+  bool _isProcessing = false;
 
   final List<Map<String, dynamic>> coupons = [
     {'code': 'SAVE10', 'discount': 10, 'type': 'percent'},
@@ -86,53 +88,140 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  void _processPayment() {
+    setState(() => _isProcessing = true);
+
+    // Simulate network delay
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      
+      // 1. Place Order
+      orderService.placeOrder(cartService.items, finalTotal);
+      
+      // 2. Clear Cart
+      cartService.clear();
+
+      setState(() => _isProcessing = false);
+
+      // 3. Show Success Dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(CupertinoIcons.check_mark_circled_solid, size: 80, color: primaryGreen),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  "Order Confirmed 🎉",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Your order has been placed successfully.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // 4. Navigate to My Orders and clear stack
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
+                        (route) => route.isFirst,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text("Go to My Orders", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: Colors.black, size: 24),
-          onPressed: () => Navigator.pop(context),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(CupertinoIcons.back, color: Colors.black, size: 24),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            "Payment",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          centerTitle: true,
         ),
-        title: const Text(
-          "Payment",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildOrderSummary(),
-            const SizedBox(height: 16),
-            _buildCouponSection(),
-            if (discountAmount > 0) ...[
-              const SizedBox(height: 12),
-              _buildSavingsBanner(),
+        body: SafeArea(
+          minimum: const EdgeInsets.only(bottom: 10),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildOrderSummary(),
+                      const SizedBox(height: 16),
+                      _buildCouponSection(),
+                      if (discountAmount > 0) ...[
+                        const SizedBox(height: 12),
+                        _buildSavingsBanner(),
+                      ],
+                      const SizedBox(height: 16),
+                      _buildTrustBadges(),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "Select Payment Method",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildOnlinePaymentOption(),
+                      const SizedBox(height: 12),
+                      _buildPartialPaymentOption(),
+                      const SizedBox(height: 24),
+                      if (selectedPaymentMethod != null) _buildCalculationSummary(),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+              _buildBottomSection(),
             ],
-            const SizedBox(height: 16),
-            _buildTrustBadges(),
-            const SizedBox(height: 24),
-            const Text(
-              "Select Payment Method",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            _buildOnlinePaymentOption(),
-            const SizedBox(height: 12),
-            _buildPartialPaymentOption(),
-            const SizedBox(height: 24),
-            if (selectedPaymentMethod != null) _buildCalculationSummary(),
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
-      bottomNavigationBar: _buildBottomSection(),
     );
   }
 
@@ -154,6 +243,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 Text("₹${cartTotal.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               ],
             ),
+            if (discountAmount > 0) ...[
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Discount", style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+                  Text("-₹${discountAmount.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.green)),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -407,7 +506,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _summaryRow("Final Total", finalTotal, isBold: true),
+            _summaryRow("Final Total", cartTotal),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Discount",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                Text(
+                  "-₹${discountAmount.toStringAsFixed(0)}",
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(),
+            _summaryRow("New Total", finalTotal, isBold: true),
             if (selectedPaymentMethod == 'partial' && selectedPartialPercent != null) ...[
               const SizedBox(height: 8),
               _summaryRow("Advance Payment ($selectedPartialPercent%)", advanceAmount, color: primaryGreen),
@@ -443,79 +565,83 @@ class _PaymentScreenState extends State<PaymentScreen> {
     bool isEnabled = isOnline || isPartial;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        MediaQuery.of(context).viewPadding.bottom + 10,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isEnabled) ...[
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isEnabled) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isOnline ? "Payable Amount:" : "Pay Now:",
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "₹${(isOnline ? finalTotal : advanceAmount).toStringAsFixed(0)}",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: primaryGreen),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isPartial)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      isOnline ? "Payable Amount:" : "Pay Now:",
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: primaryGreen.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        "₹${(isOnline ? finalTotal : advanceAmount).toStringAsFixed(0)}",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: primaryGreen),
-                      ),
-                    ),
+                    const Text("Remaining Amount:", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    Text("₹${remainingAmount.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87)),
                   ],
                 ),
               ),
-              if (isPartial)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text("Remaining Amount:", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
-                      Text("₹${remainingAmount.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87)),
-                    ],
-                  ),
-                ),
-            ],
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: isEnabled ? () {
-                  Navigator.push(
-                    context, 
-                    MaterialPageRoute(
-                      builder: (context) => CompletePaymentScreen(
-                        finalTotal: finalTotal,
-                        paymentType: selectedPaymentMethod!,
-                        advanceAmount: advanceAmount,
-                      ),
-                    ),
-                  );
-                } : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: const Text("Proceed to Pay", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
           ],
-        ),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: (isEnabled && !_isProcessing) ? _processPayment : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: _isProcessing
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    )
+                  : const Text("Proceed to Pay", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
       ),
     );
   }

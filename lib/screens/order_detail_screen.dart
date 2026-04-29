@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:krishikranti/core/cart_service.dart';
 
 class OrderDetailScreen extends StatelessWidget {
@@ -39,7 +40,7 @@ class OrderDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomSheet: _buildActionButtons(primaryGreen),
+      bottomSheet: _buildActionButtons(primaryGreen, context),
     );
   }
 
@@ -226,7 +227,7 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(Color primaryGreen) {
+  Widget _buildActionButtons(Color primaryGreen, BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
@@ -243,19 +244,42 @@ class OrderDetailScreen extends StatelessWidget {
         children: [
           Expanded(
             child: SizedBox(
-              height: 48,
-              child: OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade50,
-                  side: BorderSide(color: Colors.grey.shade300),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: EdgeInsets.zero,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final cartService = Provider.of<CartService>(context, listen: false);
+                  for (var item in order.items) {
+                    cartService.addItem(
+                      productId: item.productName,
+                      productName: item.productName,
+                      productImage: item.productImage,
+                      technicalName: "Generic",
+                      variant: item.variant,
+                      price: item.price,
+                      qty: item.qty,
+                    );
+                  }
+                  Navigator.pushNamed(context, '/cart');
+                },
+                icon: const Icon(
+                  Icons.refresh,
+                  color: Colors.white,
+                  size: 20,
                 ),
-                child: const Text(
-                  "Download Invoice",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 14),
+                label: const Text(
+                  "Reorder",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
                 ),
               ),
             ),
@@ -263,19 +287,21 @@ class OrderDetailScreen extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: SizedBox(
-              height: 48,
+              height: 50,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () => Navigator.pushNamed(context, '/contact'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
+                  backgroundColor: Colors.grey.shade100,
+                  foregroundColor: Colors.black87,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
+                  side: BorderSide(color: Colors.grey.shade300),
                   padding: EdgeInsets.zero,
                 ),
                 child: const Text(
                   "Contact Support",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                  style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
             ),

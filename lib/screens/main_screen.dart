@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'home_screen.dart';
 import 'catalogue_screen.dart';
@@ -15,6 +16,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  DateTime? _lastBackPressed;
 
   final List<Widget> _pages = [
     const HomeScreen(),
@@ -27,41 +29,71 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: WillPopScope(
+        onWillPop: () async {
+          if (_selectedIndex != 0) {
+            setState(() {
+              _selectedIndex = 0;
+            });
+            return false;
+          }
+
+          final now = DateTime.now();
+          if (_lastBackPressed == null ||
+              now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
+            _lastBackPressed = now;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Press back again to exit"),
+                duration: Duration(seconds: 2),
+              ),
+            );
+            return false;
+          }
+          return true;
         },
-        height: 65,
-        elevation: 10,
-        backgroundColor: Colors.white,
-        indicatorColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(CupertinoIcons.house),
-            selectedIcon: const Icon(CupertinoIcons.house_fill, color: Color(0xFF2E7D32)),
-            label: l10n.home,
+        child: Scaffold(
+          body: SafeArea(
+            minimum: const EdgeInsets.only(bottom: 10),
+            child: _pages[_selectedIndex],
           ),
-          NavigationDestination(
-            icon: const Icon(CupertinoIcons.square_grid_2x2),
-            selectedIcon: const Icon(CupertinoIcons.square_grid_2x2_fill, color: Color(0xFF2E7D32)),
-            label: l10n.categories,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            height: 65,
+            elevation: 10,
+            backgroundColor: Colors.white,
+            indicatorColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(CupertinoIcons.house),
+                selectedIcon: const Icon(CupertinoIcons.house_fill, color: Color(0xFF2E7D32)),
+                label: l10n.home,
+              ),
+              NavigationDestination(
+                icon: const Icon(CupertinoIcons.square_grid_2x2),
+                selectedIcon: const Icon(CupertinoIcons.square_grid_2x2_fill, color: Color(0xFF2E7D32)),
+                label: l10n.categories,
+              ),
+              NavigationDestination(
+                icon: const Icon(CupertinoIcons.bell),
+                selectedIcon: const Icon(CupertinoIcons.bell_fill, color: Color(0xFF2E7D32)),
+                label: l10n.notifications,
+              ),
+              NavigationDestination(
+                icon: const Icon(CupertinoIcons.person),
+                selectedIcon: const Icon(CupertinoIcons.person_fill, color: Color(0xFF2E7D32)),
+                label: l10n.profile,
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: const Icon(CupertinoIcons.bell),
-            selectedIcon: const Icon(CupertinoIcons.bell_fill, color: Color(0xFF2E7D32)),
-            label: l10n.notifications,
-          ),
-          NavigationDestination(
-            icon: const Icon(CupertinoIcons.person),
-            selectedIcon: const Icon(CupertinoIcons.person_fill, color: Color(0xFF2E7D32)),
-            label: l10n.profile,
-          ),
-        ],
+        ),
       ),
     );
   }

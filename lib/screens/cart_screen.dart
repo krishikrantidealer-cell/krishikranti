@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/cart_service.dart';
@@ -24,55 +25,62 @@ class _CartScreenState extends State<CartScreen> {
     bool isEmpty = items.isEmpty;
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: Colors.black, size: 24),
-          onPressed: () => Navigator.pop(context),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(CupertinoIcons.back, color: Colors.black, size: 24),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            l10n.cart,
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          centerTitle: true,
         ),
-        title: Text(
-          l10n.cart,
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-      ),
-      body: isEmpty
-          ? _buildEmptyState(l10n)
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                    itemCount: items.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return _CartItemRow(
-                        item: item,
-                        onDelete: () {
-                          setState(() {
-                            cartService.removeItem(index);
-                          });
-                        },
-                        onUpdate: () => setState(() {}),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProductDetailScreen(productName: item.productName),
-                            ),
+        body: SafeArea(
+          minimum: const EdgeInsets.only(bottom: 10),
+          child: isEmpty
+              ? _buildEmptyState(l10n)
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                        itemCount: items.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          return _CartItemRow(
+                            item: item,
+                            onDelete: () {
+                              setState(() {
+                                cartService.removeItem(index);
+                              });
+                            },
+                            onUpdate: () => setState(() {}),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductDetailScreen(productName: item.productName),
+                                ),
+                              );
+                            },
                           );
                         },
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                    _buildSummary(l10n),
+                  ],
                 ),
-                _buildSummary(l10n),
-              ],
-            ),
+        ),
+      ),
     );
   }
 
@@ -125,7 +133,12 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildSummary(AppLocalizations l10n) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        MediaQuery.of(context).viewPadding.bottom + 10,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -133,56 +146,54 @@ class _CartScreenState extends State<CartScreen> {
           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, -4))
         ],
       ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Total Items", style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w500)),
-                Text("${cartService.totalCount}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Divider(color: Color(0xFFEEEEEE), thickness: 1),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Grand Total", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text(
-                  "₹${cartService.totalAmount.toStringAsFixed(0)}",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: primaryGreen),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (cartService.items.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ShippingAddressScreen()),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: Text(
-                  l10n.confirmOrder,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Total Items", style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w500)),
+              Text("${cartService.totalCount}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFFEEEEEE), thickness: 1),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Grand Total", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                "₹${cartService.totalAmount.toStringAsFixed(0)}",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: primaryGreen),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () {
+                if (cartService.items.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ShippingAddressScreen()),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: Text(
+                l10n.confirmOrder,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -400,6 +411,3 @@ class _CartItemRow extends StatelessWidget {
     );
   }
 }
-
-
-

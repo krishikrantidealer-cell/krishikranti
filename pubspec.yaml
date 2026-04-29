@@ -74,6 +74,7 @@ flutter:
     - assets/images/
     - assets/animations/cart_empty.json
     - assets/animations/orders_empty.json
+    - assets/animations/favorites_empty.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

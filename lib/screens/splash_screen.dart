@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
@@ -22,37 +23,48 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background with wavy shapes
-          CustomPaint(painter: WavyBackgroundPainter(), child: Container()),
-          // Logo in the center - cleaned up (no shadow)
-          Center(
-            child: Image.asset(
-              'assets/images/app_logo.png',
-              width: 200, // Slightly larger for better scale
-              fit: BoxFit.contain,
-            ),
-          ),
-          // Bottom text
-          Positioned(
-            bottom: 40,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Text(
-                'by krishikranti organices',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF2E7D32), // Deep green color
-                  letterSpacing: 0.5,
-                ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Background with wavy shapes - remains full screen
+            CustomPaint(painter: WavyBackgroundPainter(), child: Container()),
+            // Content in SafeArea
+            SafeArea(
+              minimum: const EdgeInsets.only(bottom: 10),
+              child: Stack(
+                children: [
+                  // Logo in the center
+                  Center(
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 200,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  // Bottom text
+                  Positioned(
+                    bottom: 40,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Text(
+                        'Krishikranti Organics',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF2E7D32),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

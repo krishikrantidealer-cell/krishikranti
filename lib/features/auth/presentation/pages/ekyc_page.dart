@@ -12,35 +12,62 @@ class EkycPage extends StatefulWidget {
 
 class _EkycPageState extends State<EkycPage> {
   final _formKey = GlobalKey<FormState>();
-  String _selectedRole = 'Retailer';
 
   final TextEditingController _shopNameController = TextEditingController();
   final TextEditingController _gstNumberController = TextEditingController();
-  final TextEditingController _aadhaarNumberController =
-      TextEditingController();
 
   File? _licenseImage;
-  File? _gstImage;
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> _pickImage(String type) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? image = await _picker.pickImage(source: source);
     if (image != null) {
       setState(() {
-        if (type == 'license') {
-          _licenseImage = File(image.path);
-        } else if (type == 'gst') {
-          _gstImage = File(image.path);
-        }
+        _licenseImage = File(image.path);
       });
     }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF2E7D32)),
+                title: const Text('Camera', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF2E7D32)),
+                title: const Text('Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
     _shopNameController.dispose();
     _gstNumberController.dispose();
-    _aadhaarNumberController.dispose();
     super.dispose();
   }
 
@@ -69,7 +96,7 @@ class _EkycPageState extends State<EkycPage> {
                     ),
                     child: Column(
                       children: [
-                        // Logo & App Name (Matching Phone Verify Page)
+                        // Logo & App Name
                         Image.asset(
                           'assets/images/logo.png',
                           width: 80,
@@ -153,19 +180,45 @@ class _EkycPageState extends State<EkycPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              l10n.registeringAs,
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey.shade800,
-                                  ),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "Retailer & Distributor",
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.grey.shade900,
+                                      ),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 12),
-                            _buildRoleSelector(),
-                            const SizedBox(height: 16),
-                            ..._buildDynamicFields(),
+                            _buildTextField(
+                              l10n.shopName,
+                              _shopNameController,
+                              prefixIcon: Icons.storefront_rounded,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildUploadArea(
+                              l10n.uploadLicense,
+                              _licenseImage,
+                              _showImagePickerOptions,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildTextField(
+                              l10n.gstNumber,
+                              _gstNumberController,
+                              prefixIcon: Icons.assignment_turned_in_outlined,
+                            ),
                             const SizedBox(height: 20),
                             // Professional Submit Button
                             Container(
@@ -286,104 +339,6 @@ class _EkycPageState extends State<EkycPage> {
     );
   }
 
-  Widget _buildRoleSelector() {
-    final l10n = AppLocalizations.of(context)!;
-    final roles = [l10n.retailer, l10n.distributor, l10n.farmer];
-    return DefaultTabController(
-      length: roles.length,
-      initialIndex: 0,
-      child: Column(
-        children: [
-          Container(
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: TabBar(
-              onTap: (index) => setState(() => _selectedRole = roles[index]),
-              labelPadding: EdgeInsets.zero,
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: const Color(0xFF1B5E20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1B5E20).withValues(alpha: 0.2),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.grey.shade600,
-              labelStyle: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontSize: 13),
-              unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(fontSize: 13, fontWeight: FontWeight.w500),
-              dividerColor: Colors.transparent,
-              indicatorSize: TabBarIndicatorSize.tab,
-              tabs: roles.map((role) => Tab(text: role)).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildDynamicFields() {
-    final l10n = AppLocalizations.of(context)!;
-    if (_selectedRole == l10n.retailer) {
-      return [
-        _buildTextField(
-          l10n.shopName,
-          _shopNameController,
-          prefixIcon: Icons.storefront_rounded,
-        ),
-        const SizedBox(height: 12),
-        _buildUploadArea(
-          l10n.uploadLicense,
-          _licenseImage,
-          () => _pickImage('license'),
-        ),
-      ];
-    } else if (_selectedRole == l10n.distributor) {
-      return [
-        _buildTextField(
-          l10n.shopName,
-          _shopNameController,
-          prefixIcon: Icons.storefront_rounded,
-        ),
-        const SizedBox(height: 12),
-        _buildTextField(
-          l10n.gstNumber,
-          _gstNumberController,
-          prefixIcon: Icons.assignment_turned_in_outlined,
-        ),
-        const SizedBox(height: 12),
-        _buildUploadArea(
-          l10n.uploadGst,
-          _gstImage,
-          () => _pickImage('gst'),
-        ),
-        const SizedBox(height: 12),
-        _buildUploadArea(
-          l10n.uploadLicense,
-          _licenseImage,
-          () => _pickImage('license'),
-        ),
-      ];
-    } else {
-      return [
-        _buildTextField(
-          l10n.aadhaarNumber,
-          _aadhaarNumberController,
-          prefixIcon: Icons.badge_outlined,
-        ),
-      ];
-    }
-  }
-
   Widget _buildTextField(
     String hint,
     TextEditingController controller, {
@@ -410,7 +365,6 @@ class _EkycPageState extends State<EkycPage> {
           vertical: 14,
         ),
         filled: true,
-
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -439,7 +393,6 @@ class _EkycPageState extends State<EkycPage> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
           color: image != null ? Colors.white : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
@@ -459,42 +412,64 @@ class _EkycPageState extends State<EkycPage> {
                 ]
               : [],
         ),
-        child: Column(
-          children: [
-            if (image != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  image,
-                  height: 100,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: image != null
+              ? Stack(
+                  children: [
+                    Image.file(
+                      image,
+                      height: 140,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.upload_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 24,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.uploadLimitNotice,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            else ...[
-              const Icon(
-                Icons.upload_rounded,
-                color: Color(0xFF2E7D32),
-                size: 24,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                l10n.uploadLimitNotice,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontSize: 11,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ],
         ),
       ),
     );

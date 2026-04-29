@@ -15,20 +15,16 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoadingLocation = false;
 
   // Controllers for all fields
-  final TextEditingController _shopNameController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _villageController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _pincodeController = TextEditingController();
 
   @override
   void dispose() {
-    _shopNameController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _emailController.dispose();
     _villageController.dispose();
     _cityController.dispose();
     _pincodeController.dispose();
@@ -199,12 +195,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTextField(
-                          l10n.shopName,
-                          _shopNameController,
-                          prefixIcon: Icons.storefront_rounded,
-                        ),
-                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
@@ -223,13 +213,6 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 8),
-                        _buildTextField(
-                          l10n.email,
-                          _emailController,
-                          hint: 'example@gmail.com',
-                          prefixIcon: Icons.email_outlined,
                         ),
                         const SizedBox(height: 12),
 

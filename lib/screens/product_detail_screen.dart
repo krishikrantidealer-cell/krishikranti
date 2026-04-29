@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/cart_service.dart';
@@ -38,6 +39,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _onFavoriteChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _showQuantityPicker(String pack) {
+    int currentQty = quantityMap[pack]!;
+    if (currentQty == 0) currentQty = 1;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _QuantityPickerSheet(
+        initialValue: currentQty,
+        onApply: (newQty) {
+          setState(() {
+            quantityMap[pack] = newQty;
+          });
+        },
+      ),
+    );
   }
 
   void _toggleFavorite() {
@@ -95,378 +115,381 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Section: Full Width Image & Plain Icons
-                    Stack(
-                      children: [
-                        Image.network(
-                          "https://picsum.photos/600/300",
-                          width: double.infinity,
-                          height: 280,
-                          fit: BoxFit.cover,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildTopIcon(
-                                icon: CupertinoIcons.back,
-                                onTap: () => Navigator.pop(context),
-                              ),
-                              Row(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          top: false, // Allow content to extend under status bar
+          minimum: const EdgeInsets.only(bottom: 10),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top Section: Full Width Image & Plain Icons
+                      Stack(
+                        children: [
+                          Image.network(
+                            "https://picsum.photos/600/300",
+                            width: double.infinity,
+                            height: 280,
+                            fit: BoxFit.cover,
+                          ),
+                          // Custom App Bar Icons with SafeArea for padding only
+                          SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   _buildTopIcon(
-                                    icon: Icons.share_outlined,
-                                    onTap: () {
-                                      Share.share('Check out this product: ${widget.productName}');
-                                    },
+                                    icon: CupertinoIcons.back,
+                                    onTap: () => Navigator.pop(context),
                                   ),
-                                  const SizedBox(width: 12),
-                                  _buildTopIcon(
-                                    icon: _favoriteService.isFavorite(widget.productName) ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-                                    iconColor: _favoriteService.isFavorite(widget.productName) ? Colors.red : Colors.black87,
-                                    onTap: _toggleFavorite,
+                                  Row(
+                                    children: [
+                                      _buildTopIcon(
+                                        icon: Icons.share_outlined,
+                                        onTap: () {
+                                          Share.share('Check out this product: ${widget.productName}');
+                                        },
+                                      ),
+                                      const SizedBox(width: 12),
+                                      _buildTopIcon(
+                                        icon: _favoriteService.isFavorite(widget.productName) ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                                        iconColor: _favoriteService.isFavorite(widget.productName) ? Colors.red : Colors.black87,
+                                        onTap: _toggleFavorite,
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 16,
-                          left: 16,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: primaryGreen,
-                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Row(
+                          ),
+                          Positioned(
+                            bottom: 16,
+                            left: 16,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: primaryGreen,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Text(
+                                    "4.2",
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                  SizedBox(width: 2),
+                                  Icon(Icons.star, color: Colors.white, size: 12),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.productName,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              "Technical: Homobrassinolide 0.04%",
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: lightGreenBg,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                "Plant Growth Regulator",
+                                style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 1. FEATURES SECTION
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        clipBehavior: Clip.none,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            _buildFeatureCard("Enhances Growth"),
+                            const SizedBox(width: 8),
+                            _buildFeatureCard("Improves Flowering"),
+                            const SizedBox(width: 8),
+                            _buildFeatureCard("Increases Yield"),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // KYC Section
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: lightGreenBg,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(CupertinoIcons.lock_shield_fill, color: primaryGreen, size: 24),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      "Complete KYC to unlock wholesale pricing",
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 32,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pushNamed(context, '/ekyc');
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryGreen,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      ),
+                                      child: const Text("Complete KYC", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Price Section
+                            const Row(
                               children: [
                                 Text(
-                                  "4.2",
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                  "₹500",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    decoration: TextDecoration.lineThrough,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                                SizedBox(width: 2),
-                                Icon(Icons.star, color: Colors.white, size: 12),
+                                SizedBox(width: 8),
+                                Text(
+                                  "₹450",
+                                  style: TextStyle(
+                                    color: Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  "[33% OFF]",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 20),
+
+                            const Text(
+                              "Select Pack Size",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Pack Size Cards
+                            ...quantityMap.keys.map((pack) {
+                              return PackSizeCard(
+                                title: pack,
+                                pricePerLtr: "price per 1 liter: ₹${pricePerLtr[pack]}",
+                                price: basePrices[pack]! * (quantityMap[pack]! > 0 ? quantityMap[pack]! : 1),
+                                quantity: quantityMap[pack]!,
+                                onTap: () => _showQuantityPicker(pack),
+                              );
+                            }),
+
+                            const SizedBox(height: 24),
+
+                            // 2. TOTAL SECTION CARD (MATCH REFERENCE EXACTLY)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: primaryGreen, width: 1),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 6,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        "Total Items: ",
+                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Colors.black87),
+                                      ),
+                                      Text(
+                                        "$totalItems",
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Grand Total: ",
+                                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: primaryGreen),
+                                      ),
+                                      Text(
+                                        "₹ $grandTotal",
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryGreen),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.productName,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
+              // Bottom Action Buttons
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final cartService = CartService();
+                            bool added = false;
+
+                            quantityMap.forEach((key, value) {
+                              if (value > 0) {
+                                cartService.addItem(
+                                  productId: widget.productName,
+                                  productName: widget.productName,
+                                  productImage: "https://picsum.photos/600/300",
+                                  technicalName: "Homobrassinolide 0.04%",
+                                  variant: key,
+                                  price: basePrices[key]!.toDouble(),
+                                  qty: value,
+                                );
+                                added = true;
+                              }
+                            });
+
+                            if (added) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const CartScreen()),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Please select a pack size")),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: addToCartOrange,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
                           ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: lightGreenBg,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              "Plant Growth Regulator",
-                              style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600, fontSize: 12),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            "Technical Content: Homobrassinolide 0.04%",
-                            style: TextStyle(color: Colors.black87, fontSize: 14),
-                          ),
-                        ],
+                          child: Text(l10n.cart, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final cartService = CartService();
+                            bool added = false;
 
-                    // 1. FEATURES SECTION
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      clipBehavior: Clip.none,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _buildFeatureCard("Enhances Growth"),
-                          const SizedBox(width: 8),
-                          _buildFeatureCard("Improves Flowering"),
-                          const SizedBox(width: 8),
-                          _buildFeatureCard("Increases Yield"),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                            quantityMap.forEach((key, value) {
+                              if (value > 0) {
+                                cartService.addItem(
+                                  productId: widget.productName,
+                                  productName: widget.productName,
+                                  productImage: "https://picsum.photos/600/300",
+                                  technicalName: "Homobrassinolide 0.04%",
+                                  variant: key,
+                                  price: basePrices[key]!.toDouble(),
+                                  qty: value,
+                                );
+                                added = true;
+                              }
+                            });
 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // KYC Section
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: lightGreenBg,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(CupertinoIcons.lock_shield_fill, color: primaryGreen, size: 24),
-                                const SizedBox(width: 10),
-                                const Expanded(
-                                  child: Text(
-                                    "Complete KYC to unlock wholesale pricing",
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 32,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pushNamed(context, '/ekyc');
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryGreen,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    ),
-                                    child: const Text("Complete KYC", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            if (added) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const ShippingAddressScreen()),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Please select a pack size")),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: buyNowGreen,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
                           ),
-                          const SizedBox(height: 16),
-
-                          // Price Section
-                          const Row(
-                            children: [
-                              Text(
-                                "₹500",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  decoration: TextDecoration.lineThrough,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                "₹450",
-                                style: TextStyle(
-                                  color: Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                "[33% OFF]",
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-
-                          const Text(
-                            "Select Pack Size",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Pack Size Cards
-                          ...quantityMap.keys.map((pack) {
-                            return PackSizeCard(
-                              title: pack,
-                              pricePerLtr: "price per 1 liter: ₹${pricePerLtr[pack]}",
-                              price: basePrices[pack]! * (quantityMap[pack]! > 0 ? quantityMap[pack]! : 1),
-                              quantity: quantityMap[pack]!,
-                              onAdd: () => setState(() => quantityMap[pack] = quantityMap[pack]! + 1),
-                              onRemove: () {
-                                if (quantityMap[pack]! > 0) {
-                                  setState(() => quantityMap[pack] = quantityMap[pack]! - 1);
-                                }
-                              },
-                            );
-                          }),
-
-                          const SizedBox(height: 24),
-
-                          // 2. TOTAL SECTION CARD (MATCH REFERENCE EXACTLY)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: primaryGreen, width: 1),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black12,
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Text(
-                                      "Total Items: ",
-                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: Colors.black87),
-                                    ),
-                                    Text(
-                                      "$totalItems",
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      "Grand Total: ",
-                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: primaryGreen),
-                                    ),
-                                    Text(
-                                      "₹ $grandTotal",
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryGreen),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
+                          child: const Text("Buy Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-
-            // Bottom Action Buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          final cartService = CartService();
-                          bool added = false;
-
-                          quantityMap.forEach((key, value) {
-                            if (value > 0) {
-                              cartService.addItem(
-                                productId: widget.productName, // Using name as ID for now
-                                productName: widget.productName,
-                                productImage: "https://picsum.photos/600/300",
-                                technicalName: "Homobrassinolide 0.04%",
-                                variant: key,
-                                price: basePrices[key]!.toDouble(),
-                                qty: value,
-                              );
-                              added = true;
-                            }
-                          });
-
-                          if (added) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const CartScreen()),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Please select a pack size")),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: addToCartOrange,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        child: Text(l10n.cart, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          final cartService = CartService();
-                          bool added = false;
-
-                          quantityMap.forEach((key, value) {
-                            if (value > 0) {
-                              cartService.addItem(
-                                productId: widget.productName,
-                                productName: widget.productName,
-                                productImage: "https://picsum.photos/600/300",
-                                technicalName: "Homobrassinolide 0.04%",
-                                variant: key,
-                                price: basePrices[key]!.toDouble(),
-                                qty: value,
-                              );
-                              added = true;
-                            }
-                          });
-
-                          if (added) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ShippingAddressScreen()),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Please select a pack size")),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: buyNowGreen,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        child: const Text("Buy Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -530,8 +553,7 @@ class PackSizeCard extends StatelessWidget {
   final String pricePerLtr;
   final int price;
   final int quantity;
-  final VoidCallback onAdd;
-  final VoidCallback onRemove;
+  final VoidCallback onTap;
 
   const PackSizeCard({
     super.key,
@@ -539,8 +561,7 @@ class PackSizeCard extends StatelessWidget {
     required this.pricePerLtr,
     required this.price,
     required this.quantity,
-    required this.onAdd,
-    required this.onRemove,
+    required this.onTap,
   });
 
   @override
@@ -548,7 +569,7 @@ class PackSizeCard extends StatelessWidget {
     final Color primaryGreen = const Color(0xFF2E7D32);
 
     return GestureDetector(
-      onTap: onAdd,
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -591,7 +612,7 @@ class PackSizeCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  _qtyBtn(CupertinoIcons.minus, onRemove),
+                  _qtyBtn(CupertinoIcons.minus, onTap),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
@@ -599,7 +620,7 @@ class PackSizeCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
-                  _qtyBtn(CupertinoIcons.plus, onAdd, isAdd: true),
+                  _qtyBtn(CupertinoIcons.plus, onTap, isAdd: true),
                 ],
               ),
             ),
@@ -628,6 +649,139 @@ class PackSizeCard extends StatelessWidget {
           size: 14,
           color: isAdd ? Colors.white : Colors.black87,
         ),
+      ),
+    );
+  }
+}
+
+class _QuantityPickerSheet extends StatefulWidget {
+  final int initialValue;
+  final Function(int) onApply;
+
+  const _QuantityPickerSheet({required this.initialValue, required this.onApply});
+
+  @override
+  State<_QuantityPickerSheet> createState() => _QuantityPickerSheetState();
+}
+
+class _QuantityPickerSheetState extends State<_QuantityPickerSheet> {
+  late int selectedQty;
+  late FixedExtentScrollController scrollController;
+  late TextEditingController textController;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedQty = widget.initialValue;
+    scrollController = FixedExtentScrollController(initialItem: selectedQty - 1);
+    textController = TextEditingController(text: selectedQty.toString());
+  }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        left: 24,
+        right: 24,
+        top: 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Select Quantity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: textController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: "Custom Quantity",
+              hintText: "Enter quantity",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onChanged: (val) {
+              int? q = int.tryParse(val);
+              if (q != null && q > 0 && q <= 100) {
+                setState(() {
+                  selectedQty = q;
+                  scrollController.jumpToItem(q - 1);
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 150,
+            child: ListWheelScrollView.useDelegate(
+              controller: scrollController,
+              itemExtent: 40,
+              physics: const FixedExtentScrollPhysics(),
+              onSelectedItemChanged: (index) {
+                setState(() {
+                  selectedQty = index + 1;
+                  textController.text = selectedQty.toString();
+                });
+              },
+              childDelegate: ListWheelChildBuilderDelegate(
+                childCount: 100,
+                builder: (context, index) {
+                  bool isSelected = selectedQty == index + 1;
+                  return Center(
+                    child: Container(
+                      width: 60,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF2E7D32) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "${index + 1}",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: () {
+                widget.onApply(selectedQty);
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text("Apply", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
       ),
     );
   }

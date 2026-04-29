@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 
@@ -10,234 +13,324 @@ class CatalogueScreen extends StatefulWidget {
 }
 
 class _CatalogueScreenState extends State<CatalogueScreen> {
-  int _selectedTab = 0; // 0: All, 1: Chemicals, 2: Bio
+  late final PageController _bannerController;
+  int _currentBanner = 0;
+  Timer? _bannerTimer;
 
-  final List<Map<String, dynamic>> _allCategories = [
-    {'title': 'Pesticides', 'type': 'Chemicals'},
-    {'title': 'Fertilizers', 'type': 'Chemicals'},
-    {'title': 'Fungicides', 'type': 'Chemicals'},
-    {'title': 'Herbicides', 'type': 'Chemicals'},
-    {'title': 'PGRs', 'type': 'Bio'},
-    {'title': 'Insecticides', 'type': 'Chemicals'},
-    {'title': 'NPK Fertilizers', 'type': 'Chemicals'},
-    {'title': 'Bio-Fungicide', 'type': 'Bio'},
-    {'title': 'Seeds', 'type': 'Bio'},
-    {'title': 'Organic Manure', 'type': 'Bio'},
-    {'title': 'Growth Promoters', 'type': 'Bio'},
-    {'title': 'Spraying Tools', 'type': 'Chemicals'},
-    {'title': 'Soil Nutrition', 'type': 'Chemicals'},
-    {'title': 'Weedicides', 'type': 'Chemicals'},
+  final List<String> _bannerImages = [
+    'https://images.unsplash.com/photo-1595841054115-59a40306932a?auto=format&fit=crop&q=80&w=600',
+    'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&q=80&w=600',
+    'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&q=80&w=600',
   ];
 
-  List<Map<String, dynamic>> get _filteredCategories {
-    if (_selectedTab == 0) return _allCategories;
-    
-    if (_selectedTab == 1) {
-      return _allCategories.where((cat) => 
-        ['Pesticides', 'Fertilizers', 'Herbicides', 'Insecticides', 'Fungicides', 'NPK Fertilizers', 'Spraying Tools', 'Soil Nutrition', 'Weedicides'].contains(cat['title'])
-      ).toList();
-    } else if (_selectedTab == 2) {
-      return _allCategories.where((cat) => 
-        ['Bio-Fungicide', 'PGRs', 'Seeds', 'Organic Manure', 'Growth Promoters'].contains(cat['title'])
-      ).toList();
-    }
-    
-    return _allCategories;
+  final List<Map<String, dynamic>> _categories = [
+    {
+      'title': 'Insecticides',
+      'subtitle': 'कीटनाशक',
+      'icon': Icons.bug_report,
+    },
+    {
+      'title': 'Fungicides',
+      'subtitle': 'कवकनाशी',
+      'icon': Icons.science,
+    },
+    {
+      'title': 'Fertilizers',
+      'subtitle': 'उर्वरक',
+      'icon': Icons.eco,
+    },
+    {
+      'title': 'PGRs',
+      'subtitle': 'पादप वृद्धि नियामक',
+      'icon': Icons.grass,
+    },
+    {
+      'title': 'Bio-Products',
+      'subtitle': 'जैव उत्पाद',
+      'icon': Icons.psychology_alt,
+    },
+    {
+      'title': 'Herbicides',
+      'subtitle': 'खरपतवार नाशी',
+      'icon': Icons.agriculture,
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _bannerController = PageController(initialPage: _bannerImages.length * 100);
+    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_bannerController.hasClients) {
+        _bannerController.nextPage(
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    _bannerController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            // Floating "Categories" Header (Hide on scroll down, show on scroll up)
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              centerTitle: true,
-              pinned: false, // Not sticky
-              floating: true,
-              snap: true,
-              title: Text(
-                l10n.categories,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(CupertinoIcons.back, color: Colors.black, size: 24),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            l10n.categories,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
-            // Floating Filter Section - Hides on scroll down, shows on scroll up
-            SliverAppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              pinned: false, // Not sticky
-              floating: true,
-              snap: true,
-              toolbarHeight: 60,
-              titleSpacing: 0,
-              title: Padding(
+          ),
+        ),
+        body: SafeArea(
+          minimum: const EdgeInsets.only(bottom: 10),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                // TOP BANNER
+                _buildBanner(context, theme),
+                const SizedBox(height: 24),
+
+                // CATEGORY GRID
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _categories.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 0.75,
+                    ),
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      return _buildCategoryCard(context, cat, theme);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // PREMIUM FEATURE BADGES
+                _buildFeatureBadges(theme),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBanner(BuildContext context, ThemeData theme) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 160,
+          child: PageView.builder(
+            controller: _bannerController,
+            itemBuilder: (context, index) {
+              final i = index % _bannerImages.length;
+              return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Icon(Icons.tune, color: theme.colorScheme.primary, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      _bannerImages[i],
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: Colors.grey.shade100,
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey.shade100,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildFilterChip('All', 0),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Chemicals', 1),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Bio', 2),
+                            Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400, size: 32),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Featured Offer",
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
+                            ),
                           ],
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
-          body: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1,
-            ),
-            itemCount: _filteredCategories.length,
-            itemBuilder: (context, index) {
-              final category = _filteredCategories[index];
-              return CategoryCard(
-                title: category['title'],
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProductListScreen(
-                        category: category['title'],
-                      ),
-                    ),
-                  );
-                },
               );
+            },
+            onPageChanged: (index) {
+              setState(() {
+                _currentBanner = index % _bannerImages.length;
+              });
             },
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _bannerImages.length,
+            (i) => AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.all(4),
+              width: _currentBanner == i ? 18 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: _currentBanner == i ? theme.colorScheme.primary : theme.colorScheme.primary.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ),
+        )
+      ],
     );
   }
 
-  Widget _buildFilterChip(String label, int index) {
-    final isSelected = _selectedTab == index;
-    final theme = Theme.of(context);
-    
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (bool selected) {
-        setState(() {
-          _selectedTab = index;
-        });
-      },
-      selectedColor: theme.colorScheme.primary,
-      checkmarkColor: Colors.white,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey.shade600,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-      ),
-      backgroundColor: Colors.grey.shade100,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-        ),
-      ),
-      showCheckmark: false,
-    );
-  }
-}
-
-class CategoryCard extends StatelessWidget {
-  final String title;
-  final VoidCallback onTap;
-
-  const CategoryCard({
-    super.key,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCategoryCard(BuildContext context, Map<String, dynamic> cat, ThemeData theme) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductListScreen(category: cat['title']),
+          ),
+        );
+      },
       child: Container(
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              // Image
-              Positioned.fill(
-                child: Image.network(
-                  "https://picsum.photos/400?random=${title.hashCode}",
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(color: Colors.grey.shade300);
-                  },
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
-              
-              // Gradient Overlay
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.4),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
+              child: Icon(
+                cat['icon'],
+                color: theme.colorScheme.primary,
+                size: 26,
               ),
-              
-              // Text Label
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              cat['title'],
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.black,
               ),
-            ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              cat['subtitle'],
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureBadges(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _badgeItem(Icons.verified_user_outlined, "100% Original", theme),
+          _badgeItem(Icons.biotech_outlined, "Lab Tested", theme),
+          _badgeItem(Icons.support_agent_outlined, "Expert Support", theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _badgeItem(IconData icon, String label, ThemeData theme) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 24, color: theme.colorScheme.primary),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade800,
           ),
         ),
-      ),
+      ],
     );
   }
 }
