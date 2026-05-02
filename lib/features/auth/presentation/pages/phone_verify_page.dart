@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/constants/api_constants.dart';
+import 'package:krishikranti/core/utils/haptic_util.dart';
+import 'dart:convert';
 
 class PhoneVerifyPage extends StatefulWidget {
   const PhoneVerifyPage({super.key});
@@ -11,6 +16,66 @@ class PhoneVerifyPage extends StatefulWidget {
 class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
   final TextEditingController _phoneController = TextEditingController();
   bool _agreedToTerms = false;
+  bool _isLoading = false;
+
+  void _sendOtp() async {
+    final l10n = AppLocalizations.of(context)!;
+    final phoneNumber = _phoneController.text.trim();
+
+    // 1. Validation: Phone length
+    if (phoneNumber.length != 10) {
+      HapticUtil.error();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.phoneNumberHint),
+        ), // Or a more specific error
+      );
+      return;
+    }
+
+    // 2. Validation: Terms checkbox
+    if (!_agreedToTerms) {
+      HapticUtil.error();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please agree to the Terms & Conditions')),
+      );
+      return;
+    }
+
+    HapticUtil.medium();
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await HttpService.post(
+        ApiConstants.sendOtp,
+        body: {'phoneNumber': phoneNumber},
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          HapticUtil.success();
+          Navigator.pushNamed(context, '/otp', arguments: phoneNumber);
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to send OTP')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Network error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +114,8 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                       Text(
                         l10n.welcomeToKrishidealer,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 32, height: 1.1),
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(fontSize: 32, height: 1.1),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -99,7 +165,9 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                   children: [
                     Text(
                       l10n.mobileNumber,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 17),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(fontSize: 17),
                     ),
                     const SizedBox(height: 12),
 
@@ -123,7 +191,9 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                               const SizedBox(width: 4),
                               Text(
                                 '+91',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 15),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleLarge?.copyWith(fontSize: 15),
                               ),
                             ],
                           ),
@@ -133,9 +203,16 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                           child: TextField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 16),
+                            maxLength: 10,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(fontSize: 16),
                             decoration: InputDecoration(
                               hintText: l10n.phoneNumberHint,
+                              counterText: "", // Hide the character counter
                               prefixIcon: const Icon(
                                 Icons.phone_outlined,
                                 color: Colors.grey,
@@ -171,8 +248,10 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                           width: 24,
                           child: Checkbox(
                             value: _agreedToTerms,
-                            onChanged: (val) =>
-                                setState(() => _agreedToTerms = val ?? false),
+                            onChanged: (val) {
+                              HapticUtil.light();
+                              setState(() => _agreedToTerms = val ?? false);
+                            },
                             activeColor: const Color(0xFF2E7D32),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
@@ -183,14 +262,15 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                         Expanded(
                           child: RichText(
                             text: TextSpan(
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontSize: 13,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(fontSize: 13),
                               children: [
                                 TextSpan(text: l10n.agreeTo),
                                 TextSpan(
                                   text: l10n.termsPrivacyPolicy,
-                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  style: Theme.of(context).textTheme.labelLarge
+                                      ?.copyWith(
                                         fontSize: 13,
                                         decoration: TextDecoration.underline,
                                       ),
@@ -208,13 +288,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/otp',
-                            arguments: _phoneController.text,
-                          );
-                        },
+                        onPressed: _isLoading ? null : _sendOtp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2E7D32),
                           foregroundColor: Colors.white,
@@ -222,12 +296,27 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           elevation: 4,
-                          shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                          shadowColor: const Color(
+                            0xFF2E7D32,
+                          ).withValues(alpha: 0.4),
                         ),
-                        child: Text(
-                          l10n.sendOtp,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 18, color: Colors.white),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                l10n.sendOtp,
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                    ),
+                              ),
                       ),
                     ),
                   ],

@@ -158,7 +158,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ],
         ),
         body: SafeArea(
-          minimum: const EdgeInsets.only(bottom: 10),
           child: _notifications.isEmpty
               ? _buildEmptyState(context, theme)
               : ListView(

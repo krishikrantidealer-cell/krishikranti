@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -55,46 +57,389 @@ class _MainScreenState extends State<MainScreen> {
           return true;
         },
         child: Scaffold(
-          body: SafeArea(
-            minimum: const EdgeInsets.only(bottom: 10),
-            child: _pages[_selectedIndex],
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            height: 65,
-            elevation: 10,
-            backgroundColor: Colors.white,
-            indicatorColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            destinations: [
-              NavigationDestination(
-                icon: const Icon(CupertinoIcons.house),
-                selectedIcon: const Icon(CupertinoIcons.house_fill, color: Color(0xFF2E7D32)),
-                label: l10n.home,
+          body: IndexedStack(index: _selectedIndex, children: _pages),
+          bottomNavigationBar: Container(
+            height: 64 + MediaQuery.of(context).padding.bottom,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  width: 1,
+                ),
               ),
-              NavigationDestination(
-                icon: const Icon(CupertinoIcons.square_grid_2x2),
-                selectedIcon: const Icon(CupertinoIcons.square_grid_2x2_fill, color: Color(0xFF2E7D32)),
-                label: l10n.categories,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Shifting Stretching Background Pill
+                  Positioned.fill(
+                    child: _SnakeIndicator(
+                      selectedIndex: _selectedIndex,
+                      itemCount: 4,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      _buildAnimatedNavItem(
+                        0,
+                        CupertinoIcons.house,
+                        CupertinoIcons.house_fill,
+                      ),
+                      _buildAnimatedNavItem(
+                        1,
+                        CupertinoIcons.square_grid_2x2,
+                        CupertinoIcons.square_grid_2x2_fill,
+                      ),
+                      _buildAnimatedNavItem(
+                        2,
+                        CupertinoIcons.bell,
+                        CupertinoIcons.bell_fill,
+                      ),
+                      _buildAnimatedNavItem(
+                        3,
+                        CupertinoIcons.person,
+                        CupertinoIcons.person_fill,
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              NavigationDestination(
-                icon: const Icon(CupertinoIcons.bell),
-                selectedIcon: const Icon(CupertinoIcons.bell_fill, color: Color(0xFF2E7D32)),
-                label: l10n.notifications,
-              ),
-              NavigationDestination(
-                icon: const Icon(CupertinoIcons.person),
-                selectedIcon: const Icon(CupertinoIcons.person_fill, color: Color(0xFF2E7D32)),
-                label: l10n.profile,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildAnimatedNavItem(
+    int index,
+    IconData icon,
+    IconData selectedIcon,
+  ) {
+    final isSelected = _selectedIndex == index;
+    const primaryColor = Color(0xFF2E7D32);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_selectedIndex != index) {
+            HapticFeedback.selectionClick();
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: _LordiconWrapper(
+            index: index,
+            isSelected: isSelected,
+            color: isSelected ? primaryColor : Colors.black45,
+            icon: icon,
+            selectedIcon: selectedIcon,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LordiconWrapper extends StatefulWidget {
+  final int index;
+  final bool isSelected;
+  final Color color;
+  final IconData icon;
+  final IconData selectedIcon;
+
+  const _LordiconWrapper({
+    required this.index,
+    required this.isSelected,
+    required this.color,
+    required this.icon,
+    required this.selectedIcon,
+  });
+
+  @override
+  State<_LordiconWrapper> createState() => _LordiconWrapperState();
+}
+
+class _LordiconWrapperState extends State<_LordiconWrapper>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    if (widget.isSelected) _controller.value = 1.0;
+  }
+
+  @override
+  void didUpdateWidget(_LordiconWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected && !oldWidget.isSelected) {
+      _controller.forward(from: 0.0);
+    } else if (!widget.isSelected && oldWidget.isSelected) {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        double scale = 1.0;
+        double rotation = 0.0;
+        double translateY = 0.0;
+
+        final t = _controller.value;
+
+        // Custom advanced animations based on icon index
+        switch (widget.index) {
+          case 0: // Home: Complex Jump + Squash & Stretch
+            final jump = math.sin(t * math.pi);
+            translateY = -jump * 6;
+            // Squash when landing (at the end), stretch when jumping (in the middle)
+            double scaleX = 1.0 + (math.sin(t * math.pi * 2) * 0.15);
+            double scaleY = 1.0 - (math.sin(t * math.pi * 2) * 0.1);
+            rotation = math.sin(t * math.pi) * 0.1;
+
+            return Transform(
+              transform: Matrix4.identity()
+                ..translate(0.0, translateY)
+                ..rotateZ(rotation)
+                ..scale(scaleX, scaleY),
+              alignment: Alignment.center,
+              child: Icon(
+                widget.isSelected ? widget.selectedIcon : widget.icon,
+                color: widget.color,
+                size: 24,
+              ),
+            );
+
+          case 1: // Catalogue: 3D Tilt + Scale
+            rotation = math.sin(t * math.pi) * 0.25;
+            scale = 1.0 + (t * 0.15);
+            break;
+
+          case 2: // Bell: Realistic Ringing
+            rotation = math.sin(t * math.pi * 4) * 0.2 * (1 - t);
+            scale = 1.0 + (t * 0.1);
+            break;
+
+          case 3: // Profile: Simple Scale & Pop
+            scale = 1.0 + math.sin(t * math.pi) * 0.15;
+            translateY = -math.sin(t * math.pi) * 2;
+            break;
+        }
+
+        return Transform(
+          transform: Matrix4.identity()
+            ..translate(0.0, translateY)
+            ..rotateZ(rotation)
+            ..scale(scale),
+          alignment: Alignment.center,
+          child: Icon(
+            widget.isSelected ? widget.selectedIcon : widget.icon,
+            color: widget.color,
+            size: 24,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SnakeIndicator extends StatefulWidget {
+  final int selectedIndex;
+  final int itemCount;
+
+  const _SnakeIndicator({
+    super.key,
+    required this.selectedIndex,
+    required this.itemCount,
+  });
+
+  @override
+  State<_SnakeIndicator> createState() => _SnakeIndicatorState();
+}
+
+class _SnakeIndicatorState extends State<_SnakeIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  int _prevIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(
+        milliseconds: 400,
+      ), // Slightly longer for silkiness
+    );
+    _controller.value = 1.0;
+    _prevIndex = widget.selectedIndex;
+  }
+
+  @override
+  void didUpdateWidget(_SnakeIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex != oldWidget.selectedIndex) {
+      _prevIndex = oldWidget.selectedIndex;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = constraints.maxWidth / widget.itemCount;
+
+        return RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final t = _controller.value;
+              final isMovingRight = widget.selectedIndex > _prevIndex;
+
+              // Curves for true snake effect: leading edge stretches early, trailing follows
+              final leadingT = Curves.easeOutCubic.transform(t);
+              final trailingT = Curves.easeInCubic.transform(t);
+
+              const baseWidth = 48.0;
+              final prevCenter = _getCenter(_prevIndex, itemWidth);
+              final destCenter = _getCenter(widget.selectedIndex, itemWidth);
+
+              double leftEdge, rightEdge;
+
+              if (isMovingRight) {
+                // Moving Right: Right edge is leading
+                leftEdge =
+                    (prevCenter - baseWidth / 2) +
+                    (destCenter - prevCenter) * trailingT;
+                rightEdge =
+                    (prevCenter + baseWidth / 2) +
+                    (destCenter - prevCenter) * leadingT;
+              } else {
+                // Moving Left: Left edge is leading
+                leftEdge =
+                    (prevCenter - baseWidth / 2) +
+                    (destCenter - prevCenter) * leadingT;
+                rightEdge =
+                    (prevCenter + baseWidth / 2) +
+                    (destCenter - prevCenter) * trailingT;
+              }
+
+              final currentCenter = (leftEdge + rightEdge) / 2;
+              final currentWidth = rightEdge - leftEdge;
+
+              // Fade logic: Subtle light background (0.1) that becomes even lighter (0.05) while moving
+              final stretchT = math.sin(t * math.pi);
+              final alpha = (0.1 - (stretchT * 0.05)).clamp(0.05, 0.1);
+
+              return CustomPaint(
+                painter: _SnakePainter(
+                  center: currentCenter,
+                  width: currentWidth,
+                  alpha: alpha,
+                  color: const Color(0xFF2E7D32),
+                ),
+                size: Size(constraints.maxWidth, constraints.maxHeight),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  double _getCenter(int index, double itemWidth) {
+    return (itemWidth * index) + (itemWidth / 2);
+  }
+}
+
+class _SnakePainter extends CustomPainter {
+  final double center;
+  final double width;
+  final double alpha;
+  final Color color;
+
+  _SnakePainter({
+    required this.center,
+    required this.width,
+    required this.alpha,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: alpha)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
+    // Optional: Add a subtle shadow for a "floating" premium feel
+    if (alpha > 0.8) {
+      final shadowPaint = Paint()
+        ..color = color.withValues(alpha: 0.1)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: Offset(center, size.height / 2 + 2),
+            width: width,
+            height: 48,
+          ),
+          const Radius.circular(24),
+        ),
+        shadowPaint,
+      );
+    }
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(center, size.height / 2),
+        width: width,
+        height: 48,
+      ),
+      const Radius.circular(24),
+    );
+
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(_SnakePainter oldDelegate) {
+    return oldDelegate.center != center ||
+        oldDelegate.width != width ||
+        oldDelegate.alpha != alpha;
   }
 }

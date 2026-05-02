@@ -517,13 +517,13 @@ abstract class AppLocalizations {
   /// No description provided for @uploadLicense.
   ///
   /// In en, this message translates to:
-  /// **'Upload License Image'**
+  /// **'Upload License Document'**
   String get uploadLicense;
 
   /// No description provided for @uploadGst.
   ///
   /// In en, this message translates to:
-  /// **'Upload GST Image'**
+  /// **'Upload GST Document'**
   String get uploadGst;
 
   /// No description provided for @gstNumber.
@@ -553,7 +553,7 @@ abstract class AppLocalizations {
   /// No description provided for @uploadLimitNotice.
   ///
   /// In en, this message translates to:
-  /// **'JPG/PNG up to 3MB'**
+  /// **'Only images, PDFs, and Word documents are allowed!'**
   String get uploadLimitNotice;
 
   /// No description provided for @notifications.

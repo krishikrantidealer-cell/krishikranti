@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'dart:async';
 import '../widgets/wavy_painter.dart';
+import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/constants/api_constants.dart';
+import 'package:krishikranti/core/network/auth_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -19,13 +22,37 @@ class _SplashPageState extends State<SplashPage> {
     // once this widget is rendered for a 1:1 smooth transition.
     initialization();
 
-    // Navigate to the next screen (Choose Language)
-    Timer(const Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacementNamed('/language');
+    // Navigate to the next screen based on auth status
+    Timer(const Duration(seconds: 3), () async {
+      if (mounted) {
+        final loggedIn = await AuthService.isLoggedIn();
+        if (mounted) {
+          if (loggedIn) {
+            final profileDone = await AuthService.isProfileComplete();
+            final kycDone = await AuthService.isKycComplete();
+
+            if (mounted) {
+              if (!profileDone) {
+                Navigator.of(context).pushReplacementNamed('/register');
+              } else if (!kycDone) {
+                Navigator.of(context).pushReplacementNamed('/kyc');
+              } else {
+                Navigator.of(context).pushReplacementNamed('/dashboard');
+              }
+            }
+          } else {
+            Navigator.of(context).pushReplacementNamed('/language');
+          }
+        }
+      }
     });
   }
 
   void initialization() async {
+    // Proactively "ping" the backend to wake up the Render server
+    // This happens while the user is seeing the splash animation.
+    HttpService.get(ApiConstants.baseUrl).catchError((_) => null);
+
     // This is where you'd perform initial app setup (e.g., loading config)
     // For now, we just remove the native splash screen handoff.
     FlutterNativeSplash.remove();

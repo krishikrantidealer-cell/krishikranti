@@ -271,7 +271,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     height: 32,
                                     child: ElevatedButton(
                                       onPressed: () {
-                                        Navigator.pushNamed(context, '/ekyc');
+                                        Navigator.pushNamed(context, '/kyc');
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: primaryGreen,

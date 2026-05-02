@@ -1,0 +1,211 @@
+import 'dart:convert';
+import 'package:dio/dio.dart' as dio;
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
+import 'package:krishikranti/core/network/auth_service.dart';
+
+import 'package:krishikranti/main.dart'; // Import navigatorKey
+
+class HttpService {
+  static final dio.Dio _dio = dio.Dio();
+
+  static void _forceLogout() {
+    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      '/phone-verify',
+      (route) => false,
+    );
+  }
+
+  static Future<Map<String, String>> _getHeaders() async {
+    final token = await AuthService.getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  static Future<http.Response> get(
+    String url, {
+    Map<String, String>? headers,
+  }) async {
+    try {
+      final defaultHeaders = await _getHeaders();
+      var response = await http.get(
+        Uri.parse(url),
+        headers: {...defaultHeaders, ...?headers},
+      );
+
+      if (response.statusCode == 401) {
+        final refreshed = await AuthService.refreshAccessToken();
+        if (refreshed) {
+          final newHeaders = await _getHeaders();
+          response = await http.get(
+            Uri.parse(url),
+            headers: {...newHeaders, ...?headers},
+          );
+        } else {
+          _forceLogout();
+        }
+      }
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<http.Response> post(
+    String url, {
+    Map<String, String>? headers,
+    dynamic body,
+  }) async {
+    try {
+      final defaultHeaders = await _getHeaders();
+      var response = await http.post(
+        Uri.parse(url),
+        headers: {...defaultHeaders, ...?headers},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 401) {
+        final refreshed = await AuthService.refreshAccessToken();
+        if (refreshed) {
+          final newHeaders = await _getHeaders();
+          response = await http.post(
+            Uri.parse(url),
+            headers: {...newHeaders, ...?headers},
+            body: jsonEncode(body),
+          );
+        } else {
+          _forceLogout();
+        }
+      }
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Upload file using Dio for progress tracking and better performance
+  static Future<dio.Response> uploadFile(
+    String url, {
+    required Map<String, dynamic> fields,
+    required String fileKey,
+    required String filePath,
+    Function(int, int)? onProgress,
+  }) async {
+    try {
+      final token = await AuthService.getToken();
+      
+      final formData = dio.FormData.fromMap({
+        ...fields,
+        fileKey: await dio.MultipartFile.fromFile(
+          filePath,
+          contentType: MediaType.parse(lookupMimeType(filePath) ?? 'application/octet-stream'),
+        ),
+      });
+
+      final options = dio.Options(
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      var response = await _dio.post(
+        url,
+        data: formData,
+        options: options,
+        onSendProgress: onProgress,
+      );
+
+      return response;
+    } on dio.DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        final refreshed = await AuthService.refreshAccessToken();
+        if (refreshed) {
+          // Retry with new token
+          final newToken = await AuthService.getToken();
+          final formData = dio.FormData.fromMap({
+            ...fields,
+            fileKey: await dio.MultipartFile.fromFile(
+              filePath,
+              contentType: MediaType.parse(lookupMimeType(filePath) ?? 'application/octet-stream'),
+            ),
+          });
+          final options = dio.Options(
+            headers: {
+              if (newToken != null) 'Authorization': 'Bearer $newToken',
+            },
+          );
+          return await _dio.post(
+            url,
+            data: formData,
+            options: options,
+            onSendProgress: onProgress,
+          );
+        } else {
+          _forceLogout();
+        }
+      }
+      rethrow;
+    }
+  }
+
+  static Future<http.StreamedResponse> postMultipart(
+    String url, {
+    required Map<String, String> fields,
+    required String fileKey,
+    required String filePath,
+  }) async {
+    try {
+      final token = await AuthService.getToken();
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.fields.addAll(fields);
+
+      // Detect MIME type
+      final mimeType = lookupMimeType(filePath);
+      final contentType = mimeType != null ? MediaType.parse(mimeType) : null;
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          fileKey,
+          filePath,
+          contentType: contentType,
+        ),
+      );
+
+      var response = await request.send();
+
+      if (response.statusCode == 401) {
+        final refreshed = await AuthService.refreshAccessToken();
+        if (refreshed) {
+          // Re-create request with new token
+          final newToken = await AuthService.getToken();
+          final newRequest = http.MultipartRequest('POST', Uri.parse(url));
+          if (newToken != null) {
+            newRequest.headers['Authorization'] = 'Bearer $newToken';
+          }
+          newRequest.fields.addAll(fields);
+          newRequest.files.add(
+            await http.MultipartFile.fromPath(
+              fileKey,
+              filePath,
+              contentType: contentType,
+            ),
+          );
+          response = await newRequest.send();
+        } else {
+          _forceLogout();
+        }
+      }
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+}

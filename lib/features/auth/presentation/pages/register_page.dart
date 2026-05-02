@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/constants/api_constants.dart';
+import 'package:krishikranti/core/profile_service.dart';
+import 'package:provider/provider.dart';
+import 'package:krishikranti/core/utils/haptic_util.dart';
+import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -13,6 +21,8 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoadingLocation = false;
+  bool _isLoading = false;
+  String _selectedAddressType = 'Shop'; // Default
 
   // Controllers for all fields
   final TextEditingController _firstNameController = TextEditingController();
@@ -33,14 +43,15 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _getLocation() async {
     final l10n = AppLocalizations.of(context)!;
+    HapticUtil.medium();
     setState(() => _isLoadingLocation = true);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.enableLocationServices)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.enableLocationServices)));
         }
         return;
       }
@@ -54,7 +65,9 @@ class _RegisterPageState extends State<RegisterPage> {
       if (permission == LocationPermission.deniedForever) return;
 
       Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -63,6 +76,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (placemarks.isNotEmpty) {
+        HapticUtil.light();
         Placemark place = placemarks[0];
         setState(() {
           _villageController.text = place.subLocality ?? place.name ?? '';
@@ -74,6 +88,78 @@ class _RegisterPageState extends State<RegisterPage> {
       // Removed debugPrint for production
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
+    }
+  }
+
+  Future<void> _registerUser() async {
+    if (!_formKey.currentState!.validate()) {
+      HapticUtil.error();
+      return;
+    }
+
+    HapticUtil.medium();
+    setState(() => _isLoading = true);
+    final l10n = AppLocalizations.of(context)!;
+
+    final registrationData = {
+      'firstName': _firstNameController.text.trim(),
+      'lastName': _lastNameController.text.trim(),
+      'addressType': _selectedAddressType,
+      'address': {
+        'villageArea': _villageController.text.trim(),
+        'cityTehsil': _cityController.text.trim(),
+        'pincode': _pincodeController.text.trim(),
+      },
+    };
+
+    try {
+      final response = await HttpService.post(
+        ApiConstants.register,
+        body: registrationData,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Update local profile service
+        if (mounted) {
+          final profileService = Provider.of<ProfileService>(
+            context,
+            listen: false,
+          );
+          await profileService.updateProfile(
+            name: '${_firstNameController.text} ${_lastNameController.text}',
+            storeName: _selectedAddressType == 'Shop' ? 'My Store' : '',
+            phone: '', // Phone is already verified
+            pincode: _pincodeController.text,
+            address1: _villageController.text,
+            address2: '',
+            city: _cityController.text,
+            state: '', // Add state if needed
+          );
+
+          await AuthService.saveUserStatus(
+            isProfileComplete: true,
+            isKycComplete: await AuthService.isKycComplete(),
+          );
+
+          HapticUtil.success();
+          Navigator.pushNamed(context, '/kyc');
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Registration failed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -118,11 +204,15 @@ class _RegisterPageState extends State<RegisterPage> {
                             children: [
                               TextSpan(
                                 text: l10n.krishi,
-                                style: const TextStyle(color: Color(0xFF1B5E20)),
+                                style: const TextStyle(
+                                  color: Color(0xFF1B5E20),
+                                ),
                               ),
                               TextSpan(
                                 text: l10n.dealer,
-                                style: const TextStyle(color: Color(0xFFE67E22)),
+                                style: const TextStyle(
+                                  color: Color(0xFFE67E22),
+                                ),
                               ),
                             ],
                           ),
@@ -309,18 +399,16 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF1B5E20).withValues(alpha: 0.3),
+                                color: const Color(
+                                  0xFF1B5E20,
+                                ).withValues(alpha: 0.3),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
                               ),
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                Navigator.pushNamed(context, '/ekyc');
-                              }
-                            },
+                            onPressed: _isLoading ? null : _registerUser,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
@@ -328,11 +416,25 @@ class _RegisterPageState extends State<RegisterPage> {
                                 borderRadius: BorderRadius.circular(18),
                               ),
                             ),
-                            child: Text(
-                              l10n.submitDetails,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(fontSize: 18, color: Colors.white),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    l10n.submitDetails,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                          fontSize: 18,
+                                          color: Colors.white,
+                                        ),
+                                  ),
                           ),
                         ),
                       ],
@@ -358,7 +460,8 @@ class _RegisterPageState extends State<RegisterPage> {
       controller: controller,
       validator: (value) {
         if (value == null || value.isEmpty) return l10n.fieldRequired;
-        if (label == l10n.pincode && value.length != 6) return l10n.invalidPincode;
+        if (label == l10n.pincode && value.length != 6)
+          return l10n.invalidPincode;
         return null;
       },
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -413,7 +516,10 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
         child: TabBar(
           onTap: (index) {
-            // Address type selection handled by TabController index
+            HapticUtil.light();
+            setState(() {
+              _selectedAddressType = types[index];
+            });
           },
           labelPadding: EdgeInsets.zero,
           indicatorSize: TabBarIndicatorSize.tab,

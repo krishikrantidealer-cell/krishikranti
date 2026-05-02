@@ -222,10 +222,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get farmer => 'किसान';
 
   @override
-  String get uploadLicense => 'लाइसेंस छवि अपलोड करें';
+  String get uploadLicense => 'लाइसेंस दस्तावेज़ अपलोड करें';
 
   @override
-  String get uploadGst => 'जीएसटी छवि अपलोड करें';
+  String get uploadGst => 'जीएसटी दस्तावेज़ अपलोड करें';
 
   @override
   String get gstNumber => 'जीएसटी नंबर';
@@ -240,7 +240,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get dataSecureNotice => 'आपका डेटा एन्क्रिप्टेड और सुरक्षित है।';
 
   @override
-  String get uploadLimitNotice => 'JPG/PNG 3MB तक';
+  String get uploadLimitNotice => 'JPG/PNG/PDF 3MB तक';
 
   @override
   String get notifications => 'सूचनाएं';

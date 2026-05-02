@@ -1,7 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:pinput/pinput.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/constants/api_constants.dart';
+import 'dart:convert';
+import 'package:krishikranti/core/utils/haptic_util.dart';
+import 'package:krishikranti/core/utils/device_utils.dart';
 
 class OtpPage extends StatefulWidget {
   const OtpPage({super.key});
@@ -13,8 +20,105 @@ class OtpPage extends StatefulWidget {
 class _OtpPageState extends State<OtpPage> {
   final TextEditingController _pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
-  int _secondsRemaining = 30; // 30 second timer
+  int _secondsRemaining = 60; // 60 second timer (as per integration plan)
   Timer? _timer;
+  bool _isLoading = false;
+
+  void _verifyOtp(String phoneNumber) async {
+    final otp = _pinController.text;
+    if (otp.length != 6) {
+      HapticUtil.error();
+      return;
+    }
+
+    HapticUtil.medium();
+    setState(() => _isLoading = true);
+
+    try {
+      final deviceId = await DeviceUtils.getUniqueId();
+      final response = await HttpService.post(
+        ApiConstants.verifyOtp,
+        body: {'phoneNumber': phoneNumber, 'otp': otp, 'deviceId': deviceId},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['accessToken'] != null && data['refreshToken'] != null) {
+          await AuthService.saveTokens(
+            data['accessToken'],
+            data['refreshToken'],
+          );
+        }
+        
+        final user = data['user'];
+        final bool isProfileComplete = user?['isProfileComplete'] ?? false;
+        final bool isKycComplete = user?['isKycComplete'] ?? false;
+
+        await AuthService.saveUserStatus(
+          isProfileComplete: isProfileComplete,
+          isKycComplete: isKycComplete,
+        );
+
+        if (mounted) {
+          HapticUtil.success();
+          if (!isProfileComplete) {
+            Navigator.of(context).pushReplacementNamed('/register');
+          } else if (!isKycComplete) {
+            Navigator.of(context).pushReplacementNamed('/kyc');
+          } else {
+            Navigator.of(context).pushReplacementNamed('/dashboard');
+          }
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Invalid OTP')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Network error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _resendOtp(String phoneNumber) async {
+    HapticUtil.medium();
+    setState(() => _isLoading = true);
+    try {
+      final response = await HttpService.post(
+        ApiConstants.sendOtp,
+        body: {'phoneNumber': phoneNumber},
+      );
+      if (response.statusCode == 200) {
+        _startTimer();
+        if (mounted) {
+          HapticUtil.success();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('OTP Resent Successfully')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -23,7 +127,8 @@ class _OtpPageState extends State<OtpPage> {
   }
 
   void _startTimer() {
-    _secondsRemaining = 30;
+    _secondsRemaining = 60;
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
@@ -174,7 +279,7 @@ class _OtpPageState extends State<OtpPage> {
                       defaultPinTheme: defaultPinTheme,
                       focusedPinTheme: focusedPinTheme,
                       submittedPinTheme: submittedPinTheme,
-                      onCompleted: (pin) {},
+                      onCompleted: (pin) => _verifyOtp(phoneNumber),
                       hapticFeedbackType: HapticFeedbackType.lightImpact,
                       showCursor: true,
                     ),
@@ -188,7 +293,9 @@ class _OtpPageState extends State<OtpPage> {
                           children: [
                             if (_secondsRemaining > 0) ...[
                               Text(
-                                l10n.resendIn(_secondsRemaining.toString().padLeft(2, '0')),
+                                l10n.resendIn(
+                                  _secondsRemaining.toString().padLeft(2, '0'),
+                                ),
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       color: Colors.black45,
@@ -197,10 +304,9 @@ class _OtpPageState extends State<OtpPage> {
                               ),
                             ] else ...[
                               TextButton(
-                                onPressed: () {
-                                  _startTimer();
-                                  // Add logic to actually resend the OTP here
-                                },
+                                onPressed: _isLoading
+                                    ? null
+                                    : () => _resendOtp(phoneNumber),
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,
@@ -223,7 +329,10 @@ class _OtpPageState extends State<OtpPage> {
                           ],
                         ),
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            HapticUtil.light();
+                            Navigator.pop(context);
+                          },
                           child: Text(
                             l10n.changeNumber,
                             style: Theme.of(context).textTheme.labelLarge
@@ -244,11 +353,9 @@ class _OtpPageState extends State<OtpPage> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(
-                            context,
-                          ).pushReplacementNamed('/register');
-                        },
+                        onPressed: _isLoading
+                            ? null
+                            : () => _verifyOtp(phoneNumber),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2E7D32),
                           foregroundColor: Colors.white,
@@ -257,11 +364,23 @@ class _OtpPageState extends State<OtpPage> {
                           ),
                           elevation: 0,
                         ),
-                        child: Text(
-                          l10n.verify,
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(fontSize: 18, color: Colors.white),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                l10n.verify,
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                    ),
+                              ),
                       ),
                     ),
                   ],

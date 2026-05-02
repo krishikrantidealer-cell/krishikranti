@@ -19,19 +19,20 @@ import 'package:krishikranti/screens/language_screen.dart';
 import 'package:krishikranti/screens/contact_us_screen.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
-import 'package:krishikranti/core/widgets/app_safe_area.dart';
 
 void main() {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set global system UI style
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-    statusBarBrightness: Brightness.light,
-    systemNavigationBarColor: Colors.white,
-    systemNavigationBarIconBrightness: Brightness.dark,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(
@@ -47,6 +48,8 @@ void main() {
   );
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -56,6 +59,7 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Krishi Dealer',
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       locale: languageService.locale,
@@ -73,16 +77,14 @@ class MyApp extends StatelessWidget {
         '/phone-verify': (context) => const PhoneVerifyPage(),
         '/otp': (context) => const OtpPage(),
         '/register': (context) => const RegisterPage(),
-        '/ekyc': (context) => const EkycPage(),
+        '/kyc': (context) => const EkycPage(),
         '/dashboard': (context) => const MainScreen(),
         '/language-select': (context) => const LanguageScreen(),
         '/contact': (context) => const ContactUsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/cart') {
-          return MaterialPageRoute(
-            builder: (context) => const CartScreen(),
-          );
+          return MaterialPageRoute(builder: (context) => const CartScreen());
         }
         return null;
       },

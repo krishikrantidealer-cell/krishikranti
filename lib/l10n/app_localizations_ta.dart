@@ -220,10 +220,10 @@ class AppLocalizationsTa extends AppLocalizations {
   String get farmer => 'Farmer';
 
   @override
-  String get uploadLicense => 'Upload License Image';
+  String get uploadLicense => 'Upload License Document';
 
   @override
-  String get uploadGst => 'Upload GST Image';
+  String get uploadGst => 'Upload GST Document';
 
   @override
   String get gstNumber => 'GST Number';
@@ -238,7 +238,8 @@ class AppLocalizationsTa extends AppLocalizations {
   String get dataSecureNotice => 'Your data is encrypted and secure.';
 
   @override
-  String get uploadLimitNotice => 'JPG/PNG up to 3MB';
+  String get uploadLimitNotice =>
+      'Only images, PDFs, and Word documents are allowed!';
 
   @override
   String get notifications => 'Notifications';

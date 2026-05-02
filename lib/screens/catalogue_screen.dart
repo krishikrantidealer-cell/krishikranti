@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 class CatalogueScreen extends StatefulWidget {
   const CatalogueScreen({super.key});
@@ -13,37 +14,20 @@ class CatalogueScreen extends StatefulWidget {
 }
 
 class _CatalogueScreenState extends State<CatalogueScreen> {
-  late final PageController _bannerController;
   int _currentBanner = 0;
-  Timer? _bannerTimer;
 
   final List<String> _bannerImages = [
-    'https://images.unsplash.com/photo-1595841054115-59a40306932a?auto=format&fit=crop&q=80&w=600',
-    'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&q=80&w=600',
-    'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&q=80&w=600',
+    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800',
+    'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800',
+    'https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=800',
   ];
 
+
   final List<Map<String, dynamic>> _categories = [
-    {
-      'title': 'Insecticides',
-      'subtitle': 'कीटनाशक',
-      'icon': Icons.bug_report,
-    },
-    {
-      'title': 'Fungicides',
-      'subtitle': 'कवकनाशी',
-      'icon': Icons.science,
-    },
-    {
-      'title': 'Fertilizers',
-      'subtitle': 'उर्वरक',
-      'icon': Icons.eco,
-    },
-    {
-      'title': 'PGRs',
-      'subtitle': 'पादप वृद्धि नियामक',
-      'icon': Icons.grass,
-    },
+    {'title': 'Insecticides', 'subtitle': 'कीटनाशक', 'icon': Icons.bug_report},
+    {'title': 'Fungicides', 'subtitle': 'कवकनाशी', 'icon': Icons.science},
+    {'title': 'Fertilizers', 'subtitle': 'उर्वरक', 'icon': Icons.eco},
+    {'title': 'PGRs', 'subtitle': 'पादप वृद्धि नियामक', 'icon': Icons.grass},
     {
       'title': 'Bio-Products',
       'subtitle': 'जैव उत्पाद',
@@ -59,21 +43,10 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   @override
   void initState() {
     super.initState();
-    _bannerController = PageController(initialPage: _bannerImages.length * 100);
-    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (_bannerController.hasClients) {
-        _bannerController.nextPage(
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
   }
 
   @override
   void dispose() {
-    _bannerTimer?.cancel();
-    _bannerController.dispose();
     super.dispose();
   }
 
@@ -92,7 +65,11 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(CupertinoIcons.back, color: Colors.black, size: 24),
+            icon: const Icon(
+              CupertinoIcons.back,
+              color: Colors.black,
+              size: 24,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -105,7 +82,6 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
           ),
         ),
         body: SafeArea(
-          minimum: const EdgeInsets.only(bottom: 10),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,12 +98,13 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _categories.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.75,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.75,
+                        ),
                     itemBuilder: (context, index) {
                       final cat = _categories[index];
                       return _buildCategoryCard(context, cat, theme);
@@ -150,63 +127,80 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   Widget _buildBanner(BuildContext context, ThemeData theme) {
     return Column(
       children: [
-        SizedBox(
-          height: 160,
-          child: PageView.builder(
-            controller: _bannerController,
-            itemBuilder: (context, index) {
-              final i = index % _bannerImages.length;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      _bannerImages[i],
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: Colors.grey.shade100,
-                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) => Container(
+        CarouselSlider.builder(
+          itemCount: _bannerImages.length,
+          itemBuilder: (context, index, realIndex) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    _bannerImages[index],
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
                         color: Colors.grey.shade100,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400, size: 32),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Featured Offer",
-                              style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
-                            ),
-                          ],
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.grey.shade100,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.image_not_supported_outlined,
+                            color: Colors.grey.shade400,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Featured Offer",
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              );
-            },
-            onPageChanged: (index) {
+              ),
+            );
+          },
+          options: CarouselOptions(
+            height: 160,
+            viewportFraction: 1,
+            autoPlay: true,
+            autoPlayInterval: const Duration(seconds: 4),
+            autoPlayAnimationDuration: const Duration(milliseconds: 1000),
+            autoPlayCurve: Curves.fastOutSlowIn,
+            enlargeCenterPage: true,
+            onPageChanged: (index, reason) {
               setState(() {
-                _currentBanner = index % _bannerImages.length;
+                _currentBanner = index;
               });
             },
           ),
         ),
+
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -218,17 +212,23 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
               width: _currentBanner == i ? 18 : 6,
               height: 6,
               decoration: BoxDecoration(
-                color: _currentBanner == i ? theme.colorScheme.primary : theme.colorScheme.primary.withValues(alpha: 0.2),
+                color: _currentBanner == i
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
-        )
+        ),
       ],
     );
   }
 
-  Widget _buildCategoryCard(BuildContext context, Map<String, dynamic> cat, ThemeData theme) {
+  Widget _buildCategoryCard(
+    BuildContext context,
+    Map<String, dynamic> cat,
+    ThemeData theme,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -285,10 +285,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 9,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
             ),
           ],
         ),

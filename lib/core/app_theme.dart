@@ -6,34 +6,36 @@ class AppTheme {
   static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF2E7D32), // Deep green seed
         primary: const Color(0xFF2E7D32),
         secondary: const Color(0xFF689F38),
         surface: Colors.white,
       ),
-      textTheme: GoogleFonts.outfitTextTheme(
-        ThemeData.light().textTheme,
-      ).copyWith(
-        displayLarge: GoogleFonts.outfit(
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFF1B5E20),
-        ),
-        headlineMedium: GoogleFonts.outfit(
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFF1B5E20),
-        ),
-        titleLarge: GoogleFonts.outfit(
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
-        bodyLarge: GoogleFonts.outfit(color: Colors.black87),
-        bodyMedium: GoogleFonts.outfit(color: Colors.black54),
-        labelLarge: GoogleFonts.outfit(
-          fontWeight: FontWeight.bold,
-          color: const Color(0xFF2E7D32),
-        ),
-      ),
+      textTheme:
+          GoogleFonts.plusJakartaSansTextTheme(
+            ThemeData.light().textTheme,
+          ).copyWith(
+            displayLarge: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1B5E20),
+            ),
+            headlineMedium: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1B5E20),
+            ),
+            titleLarge: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            bodyLarge: GoogleFonts.plusJakartaSans(color: Colors.black87),
+            bodyMedium: GoogleFonts.plusJakartaSans(color: Colors.black54),
+            labelLarge: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF2E7D32),
+            ),
+          ),
 
       // Modern, elevated app bar
       appBarTheme: const AppBarTheme(
@@ -53,7 +55,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          textStyle: GoogleFonts.outfit(
+          textStyle: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -83,6 +85,28 @@ class AppTheme {
         elevation: 2,
         shadowColor: Colors.black.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+
+      // Simple & Proper Bottom Navigation Bar Theme
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        indicatorColor: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+        height: 65,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          return GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF2E7D32),
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: Color(0xFF2E7D32), size: 24);
+          }
+          return const IconThemeData(color: Colors.black45, size: 24);
+        }),
       ),
     );
   }
