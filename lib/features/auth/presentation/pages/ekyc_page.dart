@@ -188,520 +188,525 @@ class _EkycPageState extends State<EkycPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF8),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                // Layer 1: Green Header Section (Matching other screens)
-                ClipPath(
-                  clipper: HeaderClipper(),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.only(top: 40, bottom: 80),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFFE8F5E9), Color(0xFF81C784)],
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        // Logo & App Name
-                        Image.asset(
-                          'assets/images/logo.png',
-                          width: 80,
-                          height: 80,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.completeEkyc,
-                          style: Theme.of(context).textTheme.displayLarge
-                              ?.copyWith(fontSize: 28, height: 1.1),
-                        ),
-                        const SizedBox(height: 4),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 40),
-                          child: Text(
-                            l10n.ekycSubtitle,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.1,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 6,
-                          ),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(15),
-                              topRight: Radius.circular(15),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 10,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            l10n.step2Of2,
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(
-                                  fontSize: 11,
-                                  color: const Color(0xFF2E7D32),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Layer 2: Main Form Card
-                Transform.translate(
-                  offset: const Offset(0, -80),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAF8),
+        body: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Layer 1: Green Header Section (Matching other screens)
+                  ClipPath(
+                    clipper: HeaderClipper(),
                     child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10),
+                      width: double.infinity,
+                      padding: const EdgeInsets.only(top: 40, bottom: 80),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFFE8F5E9), Color(0xFF81C784)],
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // Logo & App Name
+                          Image.asset(
+                            'assets/images/logo.png',
+                            width: 80,
+                            height: 80,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.completeEkyc,
+                            style: Theme.of(context).textTheme.displayLarge
+                                ?.copyWith(fontSize: 28, height: 1.1),
+                          ),
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 40),
+                            child: Text(
+                              l10n.ekycSubtitle,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.1,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 6,
+                            ),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(15),
+                                topRight: Radius.circular(15),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 10,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              l10n.step2Of2,
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    fontSize: 11,
+                                    color: const Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
                           ),
                         ],
                       ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 6,
+                    ),
+                  ),
+
+                  // Layer 2: Main Form Card
+                  Transform.translate(
+                    offset: const Offset(0, -80),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE8F5E9),
+                                    borderRadius: BorderRadius.circular(30),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFF81C784,
+                                      ).withValues(alpha: 0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.verified_user_rounded,
+                                        color: Color(0xFF2E7D32),
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "Retailer & Distributor",
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFF1B5E20),
+                                              letterSpacing: 0.3,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildTextField(
+                                l10n.shopName,
+                                _shopNameController,
+                                prefixIcon: Icons.storefront_rounded,
+                              ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                l10n.gstNumber,
+                                _gstNumberController,
+                                prefixIcon: Icons.assignment_turned_in_outlined,
+                                isGst: true,
+                              ),
+                              const SizedBox(height: 28),
+                              _buildUploadArea(
+                                l10n.uploadLicense,
+                                _licenseImage,
+                                _showImagePickerOptions,
+                              ),
+                              const SizedBox(height: 32),
+                              // Professional Submit Button
+                              Container(
+                                width: double.infinity,
+                                height: 56,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE8F5E9),
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFF81C784,
-                                    ).withValues(alpha: 0.3),
-                                    width: 1,
+                                  borderRadius: BorderRadius.circular(18),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF1B5E20),
+                                      Color(0xFF2E7D32),
+                                    ],
                                   ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.verified_user_rounded,
-                                      color: Color(0xFF2E7D32),
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "Retailer & Distributor",
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.copyWith(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w800,
-                                            color: const Color(0xFF1B5E20),
-                                            letterSpacing: 0.3,
-                                          ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF1B5E20,
+                                      ).withValues(alpha: 0.3),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 5),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildTextField(
-                              l10n.shopName,
-                              _shopNameController,
-                              prefixIcon: Icons.storefront_rounded,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              l10n.gstNumber,
-                              _gstNumberController,
-                              prefixIcon: Icons.assignment_turned_in_outlined,
-                              isGst: true,
-                            ),
-                            const SizedBox(height: 28),
-                            _buildUploadArea(
-                              l10n.uploadLicense,
-                              _licenseImage,
-                              _showImagePickerOptions,
-                            ),
-                            const SizedBox(height: 32),
-                            // Professional Submit Button
-                            Container(
-                              width: double.infinity,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF1B5E20),
-                                    Color(0xFF2E7D32),
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF1B5E20,
-                                    ).withValues(alpha: 0.3),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton(
-                                onPressed: _isLoading
-                                    ? null
-                                    : () async {
-                                        if (_formKey.currentState!.validate()) {
-                                          if (_licenseImage == null) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  "Please upload your business license",
+                                child: ElevatedButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () async {
+                                          if (_formKey.currentState!
+                                              .validate()) {
+                                            if (_licenseImage == null) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    "Please upload your business license",
+                                                  ),
+                                                  backgroundColor:
+                                                      Colors.redAccent,
                                                 ),
-                                                backgroundColor:
-                                                    Colors.redAccent,
-                                              ),
-                                            );
-                                            return;
-                                          }
+                                              );
+                                              return;
+                                            }
 
-                                          // Pre-upload validation for file types
-                                          final allowedExtensions = [
-                                            '.jpg',
-                                            '.jpeg',
-                                            '.png',
-                                            '.pdf',
-                                            '.doc',
-                                            '.docx',
-                                          ];
-                                          final ext = path
-                                              .extension(_licenseImage!.path)
-                                              .toLowerCase();
-                                          if (!allowedExtensions.contains(
-                                            ext,
-                                          )) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  l10n.uploadLimitNotice,
-                                                ),
-                                                backgroundColor:
-                                                    Colors.orange.shade800,
-                                              ),
-                                            );
-                                            return;
-                                          }
-
-                                          setState(() {
-                                            _isLoading = true;
-                                            _uploadProgress = 0;
-                                            _loadingMessage =
-                                                "Optimizing document...";
-                                          });
-                                          HapticUtil.medium();
-
-                                          try {
-                                            String finalPath =
-                                                _licenseImage!.path;
-
-                                            // Compress if it's an image
-                                            final ext = path
-                                                .extension(finalPath)
-                                                .toLowerCase();
-                                            if ([
+                                            // Pre-upload validation for file types
+                                            final allowedExtensions = [
                                               '.jpg',
                                               '.jpeg',
                                               '.png',
-                                            ].contains(ext)) {
-                                              final tempDir =
-                                                  await getTemporaryDirectory();
-                                              final targetPath = path.join(
-                                                tempDir.path,
-                                                "compressed_${DateTime.now().millisecondsSinceEpoch}$ext",
-                                              );
-
-                                              final compressedFile =
-                                                  await FlutterImageCompress.compressAndGetFile(
-                                                    finalPath,
-                                                    targetPath,
-                                                    quality: 60,
-                                                  );
-
-                                              if (compressedFile != null) {
-                                                finalPath = compressedFile.path;
-                                              }
-                                            }
-
-                                            setState(() {
-                                              _loadingMessage =
-                                                  "Uploading to secure server...";
-                                            });
-
-                                            final response =
-                                                await HttpService.uploadFile(
-                                                  ApiConstants.kyc,
-                                                  fields: {
-                                                    'shopName':
-                                                        _shopNameController.text
-                                                            .trim(),
-                                                    'gstNumber':
-                                                        _gstNumberController
-                                                            .text
-                                                            .trim()
-                                                            .toUpperCase(),
-                                                    'userType':
-                                                        'Retailer and Distributor',
-                                                  },
-                                                  fileKey: 'licenceImage',
-                                                  filePath: finalPath,
-                                                  onProgress: (sent, total) {
-                                                    setState(() {
-                                                      _uploadProgress =
-                                                          sent / total;
-                                                    });
-                                                  },
-                                                );
-
-                                            if (response.statusCode == 200 ||
-                                                response.statusCode == 201) {
-                                              if (mounted) {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                  _uploadProgress = 1.0;
-                                                });
-                                                await AuthService.saveUserStatus(
-                                                  isProfileComplete: true,
-                                                  isKycComplete: true,
-                                                );
-                                                HapticUtil.success();
-                                                Navigator.pushNamedAndRemoveUntil(
-                                                  context,
-                                                  '/dashboard',
-                                                  (route) => false,
-                                                );
-                                              }
-                                            } else {
-                                              throw Exception(
-                                                'Failed to upload KYC documents',
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (mounted) {
-                                              setState(
-                                                () => _isLoading = false,
-                                              );
-
-                                              String errorMessage = e
-                                                  .toString();
-                                              if (errorMessage.contains(
-                                                'DioException',
-                                              )) {
-                                                errorMessage =
-                                                    "Network error. Please check your connection.";
-                                              }
-
+                                              '.pdf',
+                                              '.doc',
+                                              '.docx',
+                                            ];
+                                            final ext = path
+                                                .extension(_licenseImage!.path)
+                                                .toLowerCase();
+                                            if (!allowedExtensions.contains(
+                                              ext,
+                                            )) {
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
                                                 SnackBar(
-                                                  content: Text(errorMessage),
-                                                  backgroundColor:
-                                                      Colors.redAccent,
-                                                  behavior:
-                                                      SnackBarBehavior.floating,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          10,
-                                                        ),
+                                                  content: Text(
+                                                    l10n.uploadLimitNotice,
                                                   ),
+                                                  backgroundColor:
+                                                      Colors.orange.shade800,
                                                 ),
                                               );
+                                              return;
+                                            }
+
+                                            setState(() {
+                                              _isLoading = true;
+                                              _uploadProgress = 0;
+                                              _loadingMessage =
+                                                  "Optimizing document...";
+                                            });
+                                            HapticUtil.medium();
+
+                                            try {
+                                              String finalPath =
+                                                  _licenseImage!.path;
+
+                                              // Compress if it's an image
+                                              final ext = path
+                                                  .extension(finalPath)
+                                                  .toLowerCase();
+                                              if ([
+                                                '.jpg',
+                                                '.jpeg',
+                                                '.png',
+                                              ].contains(ext)) {
+                                                final tempDir =
+                                                    await getTemporaryDirectory();
+                                                final targetPath = path.join(
+                                                  tempDir.path,
+                                                  "compressed_${DateTime.now().millisecondsSinceEpoch}$ext",
+                                                );
+
+                                                final compressedFile =
+                                                    await FlutterImageCompress.compressAndGetFile(
+                                                      finalPath,
+                                                      targetPath,
+                                                      quality: 60,
+                                                    );
+
+                                                if (compressedFile != null) {
+                                                  finalPath =
+                                                      compressedFile.path;
+                                                }
+                                              }
+
+                                              setState(() {
+                                                _loadingMessage =
+                                                    "Uploading to secure server...";
+                                              });
+
+                                              final response =
+                                                  await HttpService.uploadFile(
+                                                    ApiConstants.kyc,
+                                                    fields: {
+                                                      'shopName':
+                                                          _shopNameController
+                                                              .text
+                                                              .trim(),
+                                                      'gstNumber':
+                                                          _gstNumberController
+                                                              .text
+                                                              .trim()
+                                                              .toUpperCase(),
+                                                      'userType':
+                                                          'Retailer and Distributor',
+                                                    },
+                                                    fileKey: 'licenceImage',
+                                                    filePath: finalPath,
+                                                    onProgress: (sent, total) {
+                                                      setState(() {
+                                                        _uploadProgress =
+                                                            sent / total;
+                                                      });
+                                                    },
+                                                  );
+
+                                              if (response.statusCode == 200 ||
+                                                  response.statusCode == 201) {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _isLoading = false;
+                                                    _uploadProgress = 1.0;
+                                                  });
+                                                  await AuthService.saveUserStatus(
+                                                    isProfileComplete: true,
+                                                    isKycComplete: true,
+                                                  );
+                                                  HapticUtil.success();
+                                                  Navigator.pushNamedAndRemoveUntil(
+                                                    context,
+                                                    '/dashboard',
+                                                    (route) => false,
+                                                  );
+                                                }
+                                              } else {
+                                                throw Exception(
+                                                  'Failed to upload KYC documents',
+                                                );
+                                              }
+                                            } catch (e) {
+                                              if (mounted) {
+                                                setState(
+                                                  () => _isLoading = false,
+                                                );
+
+                                                String errorMessage = e
+                                                    .toString();
+                                                if (errorMessage.contains(
+                                                  'DioException',
+                                                )) {
+                                                  errorMessage =
+                                                      "Network error. Please check your connection.";
+                                                }
+
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(errorMessage),
+                                                    backgroundColor:
+                                                        Colors.redAccent,
+                                                    behavior: SnackBarBehavior
+                                                        .floating,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                );
+                                              }
                                             }
                                           }
-                                        }
-                                      },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                ),
-                                child: _isLoading
-                                    ? Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            child: LinearProgressIndicator(
-                                              value: _uploadProgress > 0
-                                                  ? _uploadProgress
-                                                  : null,
-                                              backgroundColor: Colors.white24,
-                                              valueColor:
-                                                  const AlwaysStoppedAnimation<
-                                                    Color
-                                                  >(Colors.white),
-                                              minHeight: 4,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            _loadingMessage,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            l10n.completeVerification,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelLarge
-                                                ?.copyWith(
-                                                  fontSize: 18,
-                                                  color: Colors.white,
-                                                ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Icon(
-                                            Icons.verified_user,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                        ],
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Center(
-                              child: Text(
-                                l10n.dataSecureNotice,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade500,
-                                      fontWeight: FontWeight.w500,
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
                                     ),
+                                  ),
+                                  child: _isLoading
+                                      ? Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: LinearProgressIndicator(
+                                                value: _uploadProgress > 0
+                                                    ? _uploadProgress
+                                                    : null,
+                                                backgroundColor: Colors.white24,
+                                                valueColor:
+                                                    const AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(Colors.white),
+                                                minHeight: 4,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _loadingMessage,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              l10n.completeVerification,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelLarge
+                                                  ?.copyWith(
+                                                    fontSize: 18,
+                                                    color: Colors.white,
+                                                  ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const Icon(
+                                              Icons.verified_user,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                          ],
+                                        ),
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              Center(
+                                child: Text(
+                                  l10n.dataSecureNotice,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade500,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // Premium Skip Button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
-            right: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: InkWell(
-                  onTap: () {
-                    HapticUtil.light();
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/dashboard',
-                      (route) => false,
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        width: 1.5,
+            // Premium Skip Button
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 10,
+              right: 16,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: InkWell(
+                    onTap: () {
+                      HapticUtil.light();
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/dashboard',
+                        (route) => false,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          width: 1.5,
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          "Skip",
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(
-                                color: const Color(0xFF1B5E20),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          color: Color(0xFF1B5E20),
-                          size: 18,
-                        ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "Skip",
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: const Color(0xFF1B5E20),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF1B5E20),
+                            size: 18,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

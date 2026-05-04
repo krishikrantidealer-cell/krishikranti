@@ -9,6 +9,8 @@ import 'package:krishikranti/core/constants/api_constants.dart';
 import 'dart:convert';
 import 'package:krishikranti/core/utils/haptic_util.dart';
 import 'package:krishikranti/core/utils/device_utils.dart';
+import 'package:provider/provider.dart';
+import 'package:krishikranti/core/profile_service.dart';
 
 class OtpPage extends StatefulWidget {
   const OtpPage({super.key});

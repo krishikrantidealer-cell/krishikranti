@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/core/profile_service.dart';
+import 'package:provider/provider.dart';
 import 'home_screen.dart';
 import 'catalogue_screen.dart';
 import 'notification_screen.dart';
@@ -19,6 +21,17 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   DateTime? _lastBackPressed;
+
+  @override
+  void initState() {
+    super.initState();
+    // CENTRAL SYNC: Fetch the latest profile data as soon as we enter the main app
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<ProfileService>().fetchProfileFromServer();
+      }
+    });
+  }
 
   final List<Widget> _pages = [
     const HomeScreen(),
@@ -94,21 +107,29 @@ class _MainScreenState extends State<MainScreen> {
                         0,
                         CupertinoIcons.house,
                         CupertinoIcons.house_fill,
+                        assetPath: 'assets/icons/home.png',
+                        activeAssetPath: 'assets/icons/home_fill.png',
                       ),
                       _buildAnimatedNavItem(
                         1,
                         CupertinoIcons.square_grid_2x2,
                         CupertinoIcons.square_grid_2x2_fill,
+                        assetPath: 'assets/icons/category.png',
+                        activeAssetPath: 'assets/icons/category_fill.png',
                       ),
                       _buildAnimatedNavItem(
                         2,
                         CupertinoIcons.bell,
                         CupertinoIcons.bell_fill,
+                        assetPath: 'assets/icons/notification.png',
+                        activeAssetPath: 'assets/icons/notification_fill.png',
                       ),
                       _buildAnimatedNavItem(
                         3,
-                        CupertinoIcons.person,
-                        CupertinoIcons.person_fill,
+                        CupertinoIcons.person_crop_circle,
+                        CupertinoIcons.person_crop_circle_fill,
+                        assetPath: 'assets/icons/user.png',
+                        activeAssetPath: 'assets/icons/user_fill.png',
                       ),
                     ],
                   ),
@@ -124,8 +145,10 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildAnimatedNavItem(
     int index,
     IconData icon,
-    IconData selectedIcon,
-  ) {
+    IconData selectedIcon, {
+    String? assetPath,
+    String? activeAssetPath,
+  }) {
     final isSelected = _selectedIndex == index;
     const primaryColor = Color(0xFF2E7D32);
 
@@ -147,6 +170,8 @@ class _MainScreenState extends State<MainScreen> {
             color: isSelected ? primaryColor : Colors.black45,
             icon: icon,
             selectedIcon: selectedIcon,
+            assetPath: assetPath,
+            activeAssetPath: activeAssetPath,
           ),
         ),
       ),
@@ -160,6 +185,8 @@ class _LordiconWrapper extends StatefulWidget {
   final Color color;
   final IconData icon;
   final IconData selectedIcon;
+  final String? assetPath;
+  final String? activeAssetPath;
 
   const _LordiconWrapper({
     required this.index,
@@ -167,6 +194,8 @@ class _LordiconWrapper extends StatefulWidget {
     required this.color,
     required this.icon,
     required this.selectedIcon,
+    this.assetPath,
+    this.activeAssetPath,
   });
 
   @override
@@ -193,7 +222,7 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
     if (widget.isSelected && !oldWidget.isSelected) {
       _controller.forward(from: 0.0);
     } else if (!widget.isSelected && oldWidget.isSelected) {
-      _controller.reverse();
+      _controller.value = 0.0;
     }
   }
 
@@ -219,7 +248,6 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
           case 0: // Home: Complex Jump + Squash & Stretch
             final jump = math.sin(t * math.pi);
             translateY = -jump * 6;
-            // Squash when landing (at the end), stretch when jumping (in the middle)
             double scaleX = 1.0 + (math.sin(t * math.pi * 2) * 0.15);
             double scaleY = 1.0 - (math.sin(t * math.pi * 2) * 0.1);
             rotation = math.sin(t * math.pi) * 0.1;
@@ -230,11 +258,7 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
                 ..rotateZ(rotation)
                 ..scale(scaleX, scaleY),
               alignment: Alignment.center,
-              child: Icon(
-                widget.isSelected ? widget.selectedIcon : widget.icon,
-                color: widget.color,
-                size: 24,
-              ),
+              child: _buildIconContent(),
             );
 
           case 1: // Catalogue: 3D Tilt + Scale
@@ -247,9 +271,10 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
             scale = 1.0 + (t * 0.1);
             break;
 
-          case 3: // Profile: Simple Scale & Pop
-            scale = 1.0 + math.sin(t * math.pi) * 0.15;
-            translateY = -math.sin(t * math.pi) * 2;
+          case 3: // Profile: Advanced Sway & Pop
+            scale = 1.0 + math.sin(t * math.pi) * 0.2;
+            rotation = math.sin(t * math.pi * 2) * 0.15;
+            translateY = -math.sin(t * math.pi) * 4;
             break;
         }
 
@@ -259,13 +284,30 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
             ..rotateZ(rotation)
             ..scale(scale),
           alignment: Alignment.center,
-          child: Icon(
-            widget.isSelected ? widget.selectedIcon : widget.icon,
-            color: widget.color,
-            size: 24,
-          ),
+          child: _buildIconContent(),
         );
       },
+    );
+  }
+
+  Widget _buildIconContent() {
+    final effectiveAsset = (widget.isSelected && widget.activeAssetPath != null)
+        ? widget.activeAssetPath
+        : widget.assetPath;
+
+    if (effectiveAsset != null) {
+      return Image.asset(
+        effectiveAsset,
+        width: 22,
+        height: 22,
+        color: widget.color,
+      );
+    }
+
+    return Icon(
+      widget.isSelected ? widget.selectedIcon : widget.icon,
+      color: widget.color,
+      size: 24,
     );
   }
 }

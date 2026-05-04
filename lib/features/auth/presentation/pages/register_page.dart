@@ -29,6 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _villageController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _stateController = TextEditingController();
   final TextEditingController _pincodeController = TextEditingController();
 
   @override
@@ -37,6 +38,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _lastNameController.dispose();
     _villageController.dispose();
     _cityController.dispose();
+    _stateController.dispose();
     _pincodeController.dispose();
     super.dispose();
   }
@@ -81,6 +83,7 @@ class _RegisterPageState extends State<RegisterPage> {
         setState(() {
           _villageController.text = place.subLocality ?? place.name ?? '';
           _cityController.text = place.locality ?? '';
+          _stateController.text = place.administrativeArea ?? '';
           _pincodeController.text = place.postalCode ?? '';
         });
       }
@@ -108,6 +111,7 @@ class _RegisterPageState extends State<RegisterPage> {
       'address': {
         'villageArea': _villageController.text.trim(),
         'cityTehsil': _cityController.text.trim(),
+        'state': _stateController.text.trim(),
         'pincode': _pincodeController.text.trim(),
       },
     };
@@ -133,7 +137,7 @@ class _RegisterPageState extends State<RegisterPage> {
             address1: _villageController.text,
             address2: '',
             city: _cityController.text,
-            state: '', // Add state if needed
+            state: _stateController.text,
           );
 
           await AuthService.saveUserStatus(
@@ -285,6 +289,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // 1. Identity Row
                         Row(
                           children: [
                             Expanded(
@@ -304,29 +309,33 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
 
-                        // Address Type Selector
+                        // 2. Address Type
                         Text(
                           l10n.addressType,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(fontSize: 15),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                              ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         _buildAddressTypeSelector(),
+                        const SizedBox(height: 20),
+
+                        // 3. Detailed Address (Full Width for long strings)
+                        _buildTextField(
+                          l10n.villageArea,
+                          _villageController,
+                          prefixIcon: Icons.map_outlined,
+                        ),
                         const SizedBox(height: 12),
 
+                        // 4. Regional Row (City | State)
                         Row(
                           children: [
-                            Expanded(
-                              child: _buildTextField(
-                                l10n.villageArea,
-                                _villageController,
-                                prefixIcon: Icons.map_outlined,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
                             Expanded(
                               child: _buildTextField(
                                 l10n.cityTehsil,
@@ -334,15 +343,25 @@ class _RegisterPageState extends State<RegisterPage> {
                                 prefixIcon: Icons.location_city_rounded,
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                "State",
+                                _stateController,
+                                prefixIcon: Icons.map_sharp,
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
+
+                        // 5. Postal Code (Full Width)
                         _buildTextField(
                           l10n.pincode,
                           _pincodeController,
                           prefixIcon: Icons.pin_drop_outlined,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
 
                         // Use Current Location Button
                         InkWell(
@@ -465,7 +484,7 @@ class _RegisterPageState extends State<RegisterPage> {
         return null;
       },
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
@@ -477,10 +496,7 @@ class _RegisterPageState extends State<RegisterPage> {
           color: Colors.grey.shade500,
           fontSize: 13,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 14,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 14),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(

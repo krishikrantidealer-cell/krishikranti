@@ -36,7 +36,7 @@ class HttpService {
         headers: {...defaultHeaders, ...?headers},
       );
 
-      if (response.statusCode == 401) {
+      if (response.statusCode == 401 || response.statusCode == 403) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
           final newHeaders = await _getHeaders();
@@ -44,7 +44,7 @@ class HttpService {
             Uri.parse(url),
             headers: {...newHeaders, ...?headers},
           );
-        } else {
+        } else if (!(await AuthService.isLoggedIn())) {
           _forceLogout();
         }
       }
@@ -67,7 +67,7 @@ class HttpService {
         body: jsonEncode(body),
       );
 
-      if (response.statusCode == 401) {
+      if (response.statusCode == 401 || response.statusCode == 403) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
           final newHeaders = await _getHeaders();
@@ -76,7 +76,39 @@ class HttpService {
             headers: {...newHeaders, ...?headers},
             body: jsonEncode(body),
           );
-        } else {
+        } else if (!(await AuthService.isLoggedIn())) {
+          _forceLogout();
+        }
+      }
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  static Future<http.Response> patch(
+    String url, {
+    Map<String, String>? headers,
+    dynamic body,
+  }) async {
+    try {
+      final defaultHeaders = await _getHeaders();
+      var response = await http.patch(
+        Uri.parse(url),
+        headers: {...defaultHeaders, ...?headers},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        final refreshed = await AuthService.refreshAccessToken();
+        if (refreshed) {
+          final newHeaders = await _getHeaders();
+          response = await http.patch(
+            Uri.parse(url),
+            headers: {...newHeaders, ...?headers},
+            body: jsonEncode(body),
+          );
+        } else if (!(await AuthService.isLoggedIn())) {
           _forceLogout();
         }
       }
@@ -96,19 +128,19 @@ class HttpService {
   }) async {
     try {
       final token = await AuthService.getToken();
-      
+
       final formData = dio.FormData.fromMap({
         ...fields,
         fileKey: await dio.MultipartFile.fromFile(
           filePath,
-          contentType: MediaType.parse(lookupMimeType(filePath) ?? 'application/octet-stream'),
+          contentType: MediaType.parse(
+            lookupMimeType(filePath) ?? 'application/octet-stream',
+          ),
         ),
       });
 
       final options = dio.Options(
-        headers: {
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: {if (token != null) 'Authorization': 'Bearer $token'},
       );
 
       var response = await _dio.post(
@@ -129,7 +161,9 @@ class HttpService {
             ...fields,
             fileKey: await dio.MultipartFile.fromFile(
               filePath,
-              contentType: MediaType.parse(lookupMimeType(filePath) ?? 'application/octet-stream'),
+              contentType: MediaType.parse(
+                lookupMimeType(filePath) ?? 'application/octet-stream',
+              ),
             ),
           });
           final options = dio.Options(
@@ -143,7 +177,7 @@ class HttpService {
             options: options,
             onSendProgress: onProgress,
           );
-        } else {
+        } else if (!(await AuthService.isLoggedIn())) {
           _forceLogout();
         }
       }
@@ -199,7 +233,7 @@ class HttpService {
             ),
           );
           response = await newRequest.send();
-        } else {
+        } else if (!(await AuthService.isLoggedIn())) {
           _forceLogout();
         }
       }

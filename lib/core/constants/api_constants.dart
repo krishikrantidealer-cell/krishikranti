@@ -18,6 +18,7 @@ class ApiConstants {
   // Orders
   static const String orders = '$baseUrl/api/orders';
 
-  // KYC
+  // KYC & Profile
   static const String kyc = '$baseUrl/api/users/kyc';
+  static const String profile = '$baseUrl/api/users/profile';
 }

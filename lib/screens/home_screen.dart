@@ -221,10 +221,6 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildBestOffers(context, theme, l10n),
             const SizedBox(height: 30),
 
-            // Recommended For You
-            _buildRecommended(context, theme, l10n),
-            const SizedBox(height: 30),
-
             // Agri Tips
             _buildAgriTips(context, theme, l10n),
             const SizedBox(height: 30),
@@ -840,92 +836,6 @@ class _HomeScreenState extends State<HomeScreen> {
             autoPlayCurve: Curves.fastOutSlowIn,
             enlargeCenterPage: true,
             enableInfiniteScroll: true,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecommended(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    final recommendedProducts = [
-      {
-        'name': "Power Seed 50",
-        'category': "Seeds",
-        'weight': "1 kg",
-        'price': "1250",
-        'imageUrl':
-            "https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&q=80&w=300",
-      },
-      {
-        'name': "Green Growth",
-        'category': "Fertilizer",
-        'weight': "5 Litre",
-        'price': "1800",
-        'imageUrl':
-            "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&q=80&w=300",
-      },
-      {
-        'name': "Protector X",
-        'category': "Pesticide",
-        'weight': "500 ml",
-        'price': "750",
-        'imageUrl':
-            "https://images.unsplash.com/photo-1589927986089-35812388d1f4?auto=format&fit=crop&q=80&w=300",
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _sectionTitle(theme, "Recommended For You", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ProductListScreen(category: "All"),
-              ),
-            );
-          }, l10n),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 260,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: recommendedProducts.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
-            itemBuilder: (context, index) {
-              final product = recommendedProducts[index];
-              return SizedBox(
-                width: 180,
-                child: ProductCard(
-                  name: product['name']!,
-                  category: product['category']!,
-                  weight: product['weight']!,
-                  price: product['price']!,
-                  imageUrl: product['imageUrl']!,
-                  tag: "Recommended",
-                  isFavorite: _favoriteService.isFavorite(product['name']!),
-                  onFavoriteToggle: () {
-                    _favoriteService.toggleFavorite(
-                      FavoriteProduct(
-                        name: product['name']!,
-                        category: product['category']!,
-                        price: product['price']!,
-                        imageUrl: product['imageUrl']!,
-                        weight: product['weight']!,
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
           ),
         ),
       ],

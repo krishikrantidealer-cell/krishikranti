@@ -49,6 +49,7 @@ void main() {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Krishi Dealer',
       navigatorKey: navigatorKey,
+      scaffoldMessengerKey: messengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       locale: languageService.locale,

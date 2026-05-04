@@ -84,7 +84,7 @@ class AuthService {
         Uri.parse(ApiConstants.refreshToken),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refreshToken': refreshToken}),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -99,12 +99,20 @@ class AuthService {
         }
       }
 
-      // If refresh fails, clear everything
-      await logout();
+      // If the server explicitly rejects the refresh token (401 or 403)
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        await logout();
+        completer.complete();
+        _refreshFuture = null;
+        return false;
+      }
+
+      // For other errors (500, etc.), don't logout, just fail the refresh
       completer.complete();
       _refreshFuture = null;
       return false;
     } catch (e) {
+      // If it's a network error, do NOT logout. Just return false.
       completer.complete();
       _refreshFuture = null;
       return false;

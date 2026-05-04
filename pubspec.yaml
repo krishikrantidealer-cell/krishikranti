@@ -81,6 +81,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/icons/
     - assets/animations/cart_empty.json
     - assets/animations/orders_empty.json
     - assets/animations/favorites_empty.json
