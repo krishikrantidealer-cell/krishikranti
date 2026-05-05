@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 import 'package:krishikranti/core/cart_service.dart';
+import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/features/orders/data/repositories/order_repository.dart';
 import 'package:krishikranti/screens/my_orders_screen.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
   const PaymentMethodScreen({super.key});
@@ -14,6 +17,7 @@ class PaymentMethodScreen extends StatefulWidget {
 class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   final Color primaryGreen = const Color(0xFF2E7D32);
   String selectedMethod = "cod";
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -71,33 +75,77 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: () {
-              final cartService = CartService();
-              OrderService().placeOrder(
-                List.from(cartService.items),
-                cartService.totalAmount,
-              );
-              cartService.clear();
-              
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
-                (route) => route.isFirst,
-              );
+            onPressed: _isLoading ? null : () async {
+              setState(() => _isLoading = true);
+              try {
+                final cartService = Provider.of<CartService>(context, listen: false);
+                final profileService = Provider.of<ProfileService>(context, listen: false);
+                final orderRepository = OrderRepository();
+
+                final shippingAddress = {
+                  'villageArea': profileService.user?.address?.villageArea ?? '',
+                  'cityTehsil': profileService.user?.address?.cityTehsil ?? '',
+                  'pincode': profileService.user?.address?.pincode ?? '',
+                  'state': profileService.user?.address?.state ?? '',
+                };
+
+                // 1. Place Order
+                await orderRepository.placeOrder(
+                  paymentMethod: selectedMethod == 'cod' ? 'COD' : 'Online',
+                  shippingAddress: shippingAddress,
+                );
+
+                // 2. Clear Cart
+                await cartService.clear();
+                
+                if (!mounted) return;
+                setState(() => _isLoading = false);
+
+                // 3. Show Success & Navigate
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Order Placed!"),
+                    content: const Text("Your order has been successfully sent to the cloud."),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
+                            (route) => route.isFirst,
+                          );
+                        },
+                        child: const Text("Go to My Orders"),
+                      ),
+                    ],
+                  ),
+                );
+              } catch (e) {
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error: ${e.toString()}"), backgroundColor: Colors.red),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryGreen,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
-            child: const Text(
-              "Confirm & Pay",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            child: _isLoading 
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text(
+                    "Confirm & Pay",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ),
       ),

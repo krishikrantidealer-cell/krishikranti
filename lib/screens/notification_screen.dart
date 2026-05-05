@@ -355,7 +355,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Lottie.asset(
-              'assets/animations/orders_empty.json',
+              'assets/animations/EmptyOrder.json',
               height: 160,
               repeat: true,
             ),

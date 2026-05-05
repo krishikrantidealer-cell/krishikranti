@@ -771,6 +771,7 @@ class _ScaleBtnState extends State<_ScaleBtn>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _controller.reverse(),
       onTapUp: (_) => _controller.forward(),
       onTapCancel: () => _controller.forward(),

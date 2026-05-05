@@ -15,7 +15,6 @@ import 'package:krishikranti/features/auth/presentation/pages/register_page.dart
 import 'package:krishikranti/features/auth/presentation/pages/ekyc_page.dart';
 import 'package:krishikranti/screens/main_screen.dart';
 import 'package:krishikranti/screens/cart_screen.dart';
-import 'package:krishikranti/screens/language_screen.dart';
 import 'package:krishikranti/screens/contact_us_screen.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
@@ -81,7 +80,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/kyc': (context) => const EkycPage(),
         '/dashboard': (context) => const MainScreen(),
-        '/language-select': (context) => const LanguageScreen(),
+        '/language-select': (context) => const ChooseLanguagePage(isSettings: true),
         '/contact': (context) => const ContactUsScreen(),
       },
       onGenerateRoute: (settings) {

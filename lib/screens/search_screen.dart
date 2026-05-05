@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
+import 'package:krishikranti/features/products/data/models/product_model.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -196,10 +197,27 @@ class _SearchScreenState extends State<SearchScreen> {
         final product = _searchResults[index];
         return ListTile(
           onTap: () {
+            final displayProduct = Product(
+              id: product['name']!,
+              title: product['name']!,
+              thumbnail: product['imageUrl']!,
+              images: [product['imageUrl']!],
+              variants: [
+                Variant(
+                  id: "v_${product['name']}",
+                  size: "1 Unit",
+                  price: double.tryParse(product['price']!) ?? 0.0,
+                  compareAtPrice: 0.0,
+                ),
+              ],
+            );
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ProductDetailScreen(productName: product['name']!),
+                builder: (context) => ProductDetailScreen(
+                  product: displayProduct,
+                  thumbnailUrl: product['imageUrl']!,
+                ),
               ),
             );
           },
@@ -228,10 +246,27 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildSmallProductCard(BuildContext context, ThemeData theme, Map<String, String> product) {
     return GestureDetector(
       onTap: () {
+        final displayProduct = Product(
+          id: product['name']!,
+          title: product['name']!,
+          thumbnail: product['imageUrl']!,
+          images: [product['imageUrl']!],
+          variants: [
+            Variant(
+              id: "v_${product['name']}",
+              size: "1 Unit",
+              price: double.tryParse(product['price']!) ?? 0.0,
+              compareAtPrice: 0.0,
+            ),
+          ],
+        );
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(productName: product['name']!),
+            builder: (context) => ProductDetailScreen(
+              product: displayProduct,
+              thumbnailUrl: product['imageUrl']!,
+            ),
           ),
         );
       },

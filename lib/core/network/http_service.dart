@@ -118,6 +118,38 @@ class HttpService {
     }
   }
 
+  static Future<http.Response> delete(
+    String url, {
+    Map<String, String>? headers,
+    dynamic body,
+  }) async {
+    try {
+      final defaultHeaders = await _getHeaders();
+      var response = await http.delete(
+        Uri.parse(url),
+        headers: {...defaultHeaders, ...?headers},
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        final refreshed = await AuthService.refreshAccessToken();
+        if (refreshed) {
+          final newHeaders = await _getHeaders();
+          response = await http.delete(
+            Uri.parse(url),
+            headers: {...newHeaders, ...?headers},
+            body: body != null ? jsonEncode(body) : null,
+          );
+        } else if (!(await AuthService.isLoggedIn())) {
+          _forceLogout();
+        }
+      }
+      return response;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Upload file using Dio for progress tracking and better performance
   static Future<dio.Response> uploadFile(
     String url, {

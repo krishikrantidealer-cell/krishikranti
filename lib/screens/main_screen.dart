@@ -33,12 +33,29 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  final List<Widget> _pages = [
-    const HomeScreen(),
-    const CatalogueScreen(),
-    const NotificationScreen(),
-    const ProfileScreen(),
-  ];
+  final Map<int, Widget> _builtPages = {};
+
+  Widget _getPage(int index) {
+    if (!_builtPages.containsKey(index)) {
+      switch (index) {
+        case 0:
+          _builtPages[index] = const HomeScreen();
+          break;
+        case 1:
+          _builtPages[index] = const CatalogueScreen();
+          break;
+        case 2:
+          _builtPages[index] = const NotificationScreen();
+          break;
+        case 3:
+          _builtPages[index] = const ProfileScreen();
+          break;
+        default:
+          _builtPages[index] = const SizedBox.shrink();
+      }
+    }
+    return _builtPages[index]!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +87,16 @@ class _MainScreenState extends State<MainScreen> {
           return true;
         },
         child: Scaffold(
-          body: IndexedStack(index: _selectedIndex, children: _pages),
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: List.generate(4, (index) {
+              // Only build the page if it's the current one or already built
+              if (index == _selectedIndex || _builtPages.containsKey(index)) {
+                return _getPage(index);
+              }
+              return const SizedBox.shrink();
+            }),
+          ),
           bottomNavigationBar: Container(
             height: 64 + MediaQuery.of(context).padding.bottom,
             decoration: BoxDecoration(

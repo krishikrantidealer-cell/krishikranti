@@ -9,6 +9,8 @@ class ApiConstants {
 
   // Product Endpoints
   static const String products = '$baseUrl/api/products';
+  static const String categories = '$baseUrl/api/products/categories';
+  static const String homeDiscovery = '$baseUrl/api/products/discovery';
   static String productDetail(String id) => '$baseUrl/api/products/$id';
 
   // Cart & Coupon Endpoints
@@ -21,4 +23,11 @@ class ApiConstants {
   // KYC & Profile
   static const String kyc = '$baseUrl/api/users/kyc';
   static const String profile = '$baseUrl/api/users/profile';
+
+  // Favourites
+  static const String favourites = '$baseUrl/api/favourites';
+
+  // Collections
+  static const String collections = '$baseUrl/api/collections';
+  static const String collectionsWithProducts = '$baseUrl/api/collections/products';
 }

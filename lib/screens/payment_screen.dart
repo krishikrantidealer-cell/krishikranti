@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:krishikranti/core/cart_service.dart';
-import 'package:krishikranti/screens/product_list_screen.dart';
+import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/features/orders/data/repositories/order_repository.dart';
 import 'package:krishikranti/screens/my_orders_screen.dart';
+import 'package:krishikranti/screens/complete_payment_screen.dart';
+import 'package:krishikranti/screens/product_list_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -13,8 +17,6 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final cartService = CartService();
-  final orderService = OrderService();
   final Color primaryGreen = const Color(0xFF2E7D32);
 
   String? selectedPaymentMethod; // 'online' or 'partial'
@@ -31,7 +33,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     {'code': 'SUPER50', 'discount': 50, 'type': 'percent'},
   ];
 
-  double get cartTotal => cartService.totalAmount;
+  double get cartTotal => Provider.of<CartService>(context, listen: false).subtotal;
 
   double get finalTotal => (cartTotal - discountAmount).clamp(0.0, double.infinity);
 
@@ -55,13 +57,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
-    final coupon = coupons.firstWhere((c) => c['code'] == code);
-    setState(() {
-      selectedCoupon = code;
-      if (coupon['type'] == 'percent') {
-        discountAmount = cartTotal * (coupon['discount'] / 100);
-      } else {
-        discountAmount = coupon['discount'];
+    final cartService = Provider.of<CartService>(context, listen: false);
+    
+    // Call backend to apply coupon
+    cartService.applyCoupon(code).then((_) {
+      if (mounted) {
+        setState(() {
+          selectedCoupon = code;
+          discountAmount = cartService.discountAmount;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("🎉 Coupon '$code' Applied!"),
+            backgroundColor: primaryGreen,
+          ),
+        );
+      }
+    }).catchError((e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll("Exception: ", "")), backgroundColor: Colors.red),
+        );
       }
     });
 
@@ -88,19 +105,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  void _processPayment() {
+  Future<void> _processPayment() async {
+    if (selectedPaymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a payment method")),
+      );
+      return;
+    }
+
+    // If full online, navigate to payment gateway screen
+    if (selectedPaymentMethod == 'online') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CompletePaymentScreen(
+            finalTotal: finalTotal,
+            paymentType: 'online',
+            advanceAmount: 0,
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
-    // Simulate network delay
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      
-      // 1. Place Order
-      orderService.placeOrder(cartService.items, finalTotal);
-      
-      // 2. Clear Cart
-      cartService.clear();
+    try {
+      final cartService = Provider.of<CartService>(context, listen: false);
+      final profileService = Provider.of<ProfileService>(context, listen: false);
+      final orderRepository = OrderRepository();
 
+      final shippingAddress = {
+        'villageArea': profileService.user?.address?.villageArea ?? '',
+        'cityTehsil': profileService.user?.address?.cityTehsil ?? '',
+        'pincode': profileService.user?.address?.pincode ?? '',
+        'state': profileService.user?.address?.state ?? '',
+      };
+
+      // 1. Place Order
+      await orderRepository.placeOrder(
+        paymentMethod: selectedPaymentMethod == 'partial' ? 'Partial' : 'COD',
+        shippingAddress: shippingAddress,
+      );
+
+      // 2. Clear Cart
+      await cartService.clear();
+
+      if (!mounted) return;
       setState(() => _isProcessing = false);
 
       // 3. Show Success Dialog
@@ -159,7 +210,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
       );
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to place order: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override

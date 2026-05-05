@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:krishikranti/core/cart_service.dart';
+import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/features/orders/data/repositories/order_repository.dart';
 import 'package:krishikranti/screens/my_orders_screen.dart';
 
 class CompletePaymentScreen extends StatefulWidget {
@@ -21,19 +24,38 @@ class CompletePaymentScreen extends StatefulWidget {
 
 class _CompletePaymentScreenState extends State<CompletePaymentScreen> {
   final Color primaryGreen = const Color(0xFF2E7D32);
-  final cartService = CartService();
-  final orderService = OrderService();
+  bool _isProcessing = false;
 
   double get amountToPay => widget.paymentType == 'online' ? widget.finalTotal : widget.advanceAmount;
 
-  void _processPayment() {
-    // 1. Place Order in Service immediately
-    orderService.placeOrder(cartService.items, widget.finalTotal);
-    
-    // 2. Clear Cart
-    cartService.clear();
+  Future<void> _processPayment() async {
+    setState(() => _isProcessing = true);
 
-    // 3. Show Success Animation/Dialog
+    try {
+      final cartService = Provider.of<CartService>(context, listen: false);
+      final profileService = Provider.of<ProfileService>(context, listen: false);
+      final orderRepository = OrderRepository();
+
+      final shippingAddress = {
+        'villageArea': profileService.user?.address?.villageArea ?? '',
+        'cityTehsil': profileService.user?.address?.cityTehsil ?? '',
+        'pincode': profileService.user?.address?.pincode ?? '',
+        'state': profileService.user?.address?.state ?? '',
+      };
+
+      // 1. Place Order via API
+      await orderRepository.placeOrder(
+        paymentMethod: widget.paymentType == 'online' ? 'Online' : 'COD',
+        shippingAddress: shippingAddress,
+      );
+
+      // 2. Clear Cart
+      await cartService.clear();
+
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
+
+      // 3. Show Success Animation/Dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -88,7 +110,18 @@ class _CompletePaymentScreenState extends State<CompletePaymentScreen> {
           ),
         ),
       ),
-    );
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to place order: ${e.toString()}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -259,14 +292,20 @@ class _CompletePaymentScreenState extends State<CompletePaymentScreen> {
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: _processPayment,
+            onPressed: _isProcessing ? null : _processPayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryGreen,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
-            child: const Text("Pay Now", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: _isProcessing 
+                ? const SizedBox(
+                    height: 20, 
+                    width: 20, 
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                  )
+                : const Text("Pay Now", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ),
       ),

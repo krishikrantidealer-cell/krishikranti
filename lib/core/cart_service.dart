@@ -1,76 +1,12 @@
 import 'package:flutter/foundation.dart';
-
-class OrderItem {
-  final String productName;
-  final String productImage;
-  final String variant;
-  final double price;
-  final int qty;
-
-  OrderItem({
-    required this.productName,
-    required this.productImage,
-    required this.variant,
-    required this.price,
-    required this.qty,
-  });
-}
-
-class Order {
-  final String orderId;
-  final String date;
-  final String status;
-  final List<OrderItem> items;
-  final double totalAmount;
-
-  Order({
-    required this.orderId,
-    required this.date,
-    required this.status,
-    required this.items,
-    required this.totalAmount,
-  });
-}
-
-class OrderService extends ChangeNotifier {
-  static final OrderService _instance = OrderService._internal();
-  factory OrderService() => _instance;
-  OrderService._internal();
-
-  final List<Order> _orders = [];
-  List<Order> get orders => _orders;
-
-  void placeOrder(List<CartItem> cartItems, double totalAmount) {
-    final orderId = "#KD${10000 + _orders.length + 1}";
-    final now = DateTime.now();
-    final dateStr = "${now.day} ${_getMonth(now.month)} ${now.year}";
-
-    final orderItems = cartItems.map((item) => OrderItem(
-      productName: item.productName,
-      productImage: item.productImage,
-      variant: item.variant,
-      price: item.price,
-      qty: item.qty,
-    )).toList();
-
-    _orders.insert(0, Order(
-      orderId: orderId,
-      date: dateStr,
-      status: "Processing",
-      items: orderItems,
-      totalAmount: totalAmount,
-    ));
-    notifyListeners();
-  }
-
-  String _getMonth(int month) {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return months[month - 1];
-  }
-}
+import 'dart:convert';
+import 'package:krishikranti/core/constants/api_constants.dart';
+import 'package:krishikranti/core/network/http_service.dart';
 
 class CartItem {
+  final String? itemId; // Backend ID
   final String productId;
+  final String variantId;
   final String productName;
   final String productImage;
   final String technicalName;
@@ -79,7 +15,9 @@ class CartItem {
   int qty;
 
   CartItem({
+    this.itemId,
     required this.productId,
+    required this.variantId,
     required this.productName,
     required this.productImage,
     required this.technicalName,
@@ -87,35 +25,97 @@ class CartItem {
     required this.price,
     required this.qty,
   });
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    final product = json['product'];
+    final variantId = json['variantId'];
+    
+    // Find the variant details from the populated product if possible
+    String variantName = "Standard";
+    if (product != null && product['variants'] != null) {
+      final v = (product['variants'] as List).firstWhere(
+        (v) => v['_id'] == variantId, 
+        orElse: () => null
+      );
+      if (v != null) variantName = v['size'] ?? "Standard";
+    }
+
+    return CartItem(
+      itemId: json['_id'],
+      productId: product?['_id'] ?? '',
+      variantId: variantId ?? '',
+      productName: product?['title'] ?? 'Product',
+      productImage: (product?['images'] != null && (product['images'] as List).isNotEmpty)
+          ? product['images'][0]
+          : '',
+      technicalName: product?['technicalName'] ?? 'Generic',
+      variant: variantName,
+      price: (json['price'] ?? 0).toDouble(),
+      qty: json['quantity'] ?? 1,
+    );
+  }
 }
 
 class CartService extends ChangeNotifier {
   static final CartService _instance = CartService._internal();
   factory CartService() => _instance;
-  CartService._internal();
+  CartService._internal() {
+    syncWithBackend();
+  }
 
-  final List<CartItem> _items = [];
+  List<CartItem> _items = [];
+  String? _appliedCoupon;
+  double _discountAmount = 0;
+  bool _isLoading = false;
 
   List<CartItem> get items => _items;
+  String? get appliedCoupon => _appliedCoupon;
+  double get discountAmount => _discountAmount;
+  bool get isLoading => _isLoading;
 
-  void addItem({
+  Future<void> syncWithBackend() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await HttpService.get(ApiConstants.cartItems);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final cartData = data['cart'];
+        if (cartData != null) {
+          final List itemsJson = cartData['items'] ?? [];
+          _items = itemsJson.map((j) => CartItem.fromJson(j)).toList();
+          _appliedCoupon = cartData['appliedCoupon'];
+          _discountAmount = (cartData['discountAmount'] ?? 0).toDouble();
+        }
+      }
+    } catch (_) {
+      // Offline or error, keep local state
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> addItem({
     required String productId,
+    required String variantId,
     required String productName,
     required String productImage,
     required String technicalName,
     required String variant,
     required double price,
     required int qty,
-  }) {
-    // Check if same product + same variant exists
+  }) async {
+    // 1. Optimistic UI
     int index = _items.indexWhere((item) => 
-        item.productId == productId && item.variant == variant);
+        item.productId == productId && item.variantId == variantId);
 
     if (index != -1) {
       _items[index].qty += qty;
     } else {
       _items.add(CartItem(
         productId: productId,
+        variantId: variantId,
         productName: productName,
         productImage: productImage,
         technicalName: technicalName,
@@ -125,48 +125,89 @@ class CartService extends ChangeNotifier {
       ));
     }
     notifyListeners();
+
+    // 2. Sync with Backend
+    try {
+      await HttpService.post(ApiConstants.cartItems, body: {
+        'productId': productId,
+        'variantId': variantId,
+        'quantity': qty,
+      });
+      await syncWithBackend(); // Get real IDs from server
+    } catch (e) {
+      // Rollback not implemented for brevity
+    }
   }
 
-  void removeItem(int index) {
-    if (index >= 0 && index < _items.length) {
+  Future<void> updateQty(int index, int newQty) async {
+    if (index < 0 || index >= _items.length) return;
+    final item = _items[index];
+    final itemId = item.itemId;
+
+    if (itemId == null) return;
+
+    // 1. Optimistic
+    if (newQty <= 0) {
       _items.removeAt(index);
-      notifyListeners();
+    } else {
+      _items[index].qty = newQty;
     }
-  }
-
-  void updateQty(int index, int newQty) {
-    if (index >= 0 && index < _items.length) {
-      if (newQty <= 0) {
-        _items.removeAt(index);
-      } else {
-        _items[index].qty = newQty;
-      }
-      notifyListeners();
-    }
-  }
-
-  double get totalAmount {
-    return _items.fold(0, (sum, item) => sum + (item.price * item.qty));
-   }
-
-  int get totalCount {
-    return _items.fold(0, (sum, item) => sum + item.qty);
-  }
-
-  void clear() {
-    _items.clear();
     notifyListeners();
+
+    // 2. Sync
+    try {
+      await HttpService.patch("${ApiConstants.cartItems}/$itemId", body: {
+        'quantity': newQty,
+      });
+    } catch (_) {
+      await syncWithBackend(); // Restore state on error
+    }
   }
 
-  void addToCart(String productName, double price, String productImage) {
-    addItem(
-      productId: productName,
-      productName: productName,
-      productImage: productImage,
-      technicalName: "Generic",
-      variant: "Standard",
-      price: price,
-      qty: 1,
-    );
+  Future<void> removeItem(int index) async {
+    if (index < 0 || index >= _items.length) return;
+    final itemId = _items[index].itemId;
+    if (itemId == null) return;
+
+    // 1. Optimistic
+    _items.removeAt(index);
+    notifyListeners();
+
+    // 2. Sync
+    try {
+      await HttpService.delete("${ApiConstants.cartItems}/$itemId");
+    } catch (_) {
+      await syncWithBackend();
+    }
+  }
+
+  Future<void> applyCoupon(String code) async {
+    try {
+      final response = await HttpService.post(ApiConstants.applyCoupon, body: {'code': code});
+      if (response.statusCode == 200) {
+        await syncWithBackend();
+      } else {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to apply coupon');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  double get subtotal => _items.fold(0, (sum, item) => sum + (item.price * item.qty));
+  double get totalAmount => subtotal - _discountAmount;
+
+  int get totalCount => _items.fold(0, (sum, item) => sum + item.qty);
+
+  Future<void> clear() async {
+    _items.clear();
+    _appliedCoupon = null;
+    _discountAmount = 0;
+    notifyListeners();
+
+    try {
+      await HttpService.delete(ApiConstants.cartItems);
+    } catch (_) {}
   }
 }
