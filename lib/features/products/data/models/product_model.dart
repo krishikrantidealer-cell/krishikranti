@@ -53,6 +53,19 @@ class Product {
     return variants.map((v) => v.compareAtPrice).reduce((a, b) => a > b ? a : b);
   }
 
+  static String _parseId(dynamic id) {
+    if (id == null) return '';
+    if (id is String) return id;
+    if (id is Map && id.containsKey('\$oid')) return id['\$oid'].toString();
+    return id.toString();
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0.0;
+  }
+
   static String _resolveImageUrl(String path) {
     if (path.isEmpty) return '';
     
@@ -74,7 +87,7 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['_id'] ?? '',
+      id: _parseId(json['_id']),
       title: json['title'] ?? '',
       brandName: json['brandName'],
       technicalName: json['technicalName'],
@@ -85,10 +98,10 @@ class Product {
               ?.map((v) => Variant.fromJson(v))
               .toList() ??
           [],
-      averageRating: (json['averageRating'] ?? 0).toDouble(),
+      averageRating: _parseDouble(json['averageRating']),
       numReviews: json['numReviews'] ?? 0,
-      categoryId: json['categoryId'],
-      subCategoryId: json['subCategoryId'],
+      categoryId: _parseId(json['categoryId']),
+      subCategoryId: _parseId(json['subCategoryId']),
       tags: List<String>.from(json['tags'] ?? []),
       images: (json['images'] as List?)
               ?.map((img) => _resolveImageUrl(img.toString()))
@@ -97,8 +110,8 @@ class Product {
       details: json['details'] != null
           ? ProductDetail.fromJson(json['details'])
           : null,
-      minPrice: json['minPrice'] != null ? (json['minPrice'] as num).toDouble() : null,
-      maxPrice: json['maxPrice'] != null ? (json['maxPrice'] as num).toDouble() : null,
+      minPrice: json['minPrice'] != null ? _parseDouble(json['minPrice']) : null,
+      maxPrice: json['maxPrice'] != null ? _parseDouble(json['maxPrice']) : null,
     );
   }
 }
@@ -118,10 +131,10 @@ class Variant {
 
   factory Variant.fromJson(Map<String, dynamic> json) {
     return Variant(
-      id: json['_id'] ?? '',
+      id: Product._parseId(json['_id']),
       size: json['size'] ?? '',
-      price: (json['price'] ?? 0).toDouble(),
-      compareAtPrice: (json['compareAtPrice'] ?? 0).toDouble(),
+      price: Product._parseDouble(json['price']),
+      compareAtPrice: Product._parseDouble(json['compareAtPrice']),
     );
   }
 }
@@ -145,8 +158,8 @@ class ProductDetail {
 
   factory ProductDetail.fromJson(Map<String, dynamic> json) {
     return ProductDetail(
-      id: json['_id'] ?? '',
-      productId: json['productId'] ?? '',
+      id: Product._parseId(json['_id']),
+      productId: Product._parseId(json['productId']),
       description: json['description'] ?? '',
       mediumImages: List<String>.from(json['images']?['medium'] ?? [])
           .map((img) => Product._resolveImageUrl(img))

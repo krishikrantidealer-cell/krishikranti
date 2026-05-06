@@ -13,6 +13,7 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/screens/notification_screen.dart';
+import 'package:krishikranti/widgets/animated_heart.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/screens/profile_screen.dart';
@@ -66,7 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _favoriteService.addListener(_onFavoriteChanged);
     _fetchDiscoveryData();
     _startHintRotation();
   }
@@ -199,14 +199,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _favoriteService.removeListener(_onFavoriteChanged);
     _currentBanner.dispose();
     _hintTimer?.cancel();
     super.dispose();
-  }
-
-  void _onFavoriteChanged() {
-    if (mounted) setState(() {});
   }
 
   @override
@@ -238,90 +233,99 @@ class _HomeScreenState extends State<HomeScreen> {
             child: RefreshIndicator(
               onRefresh: () => _fetchDiscoveryData(forceRefresh: true),
               color: theme.colorScheme.primary,
-              child: CustomScrollView(
-                physics: const ClampingScrollPhysics(),
-                slivers: [
-                  // Glassmorphic App Bar / Header
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      child: _buildHeader(context, theme, l10n),
-                    ),
-                  ),
-
-                  // Floating Search Bar with animations
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SliverSearchDelegate(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+              child: ListenableBuilder(
+                listenable: _favoriteService,
+                builder: (context, child) {
+                  return CustomScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    slivers: [
+                      // Glassmorphic App Bar / Header
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: _buildHeader(context, theme, l10n),
                         ),
-                        child: _buildSearchBar(context, theme, l10n),
                       ),
-                    ),
-                  ),
 
-                  // Banner Section with slight elevation
-                  SliverPadding(
-                    padding: const EdgeInsets.only(top: 4),
-                    sliver: SliverToBoxAdapter(
-                      child: _buildBanner(context, theme),
-                    ),
-                  ),
-
-                  // Categories Section with Staggered Grid
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                    sliver: SliverToBoxAdapter(
-                      child: _sectionTitle(theme, l10n.categories, () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CatalogueScreen(),
+                      // Floating Search Bar with animations
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _SliverSearchDelegate(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: _buildSearchBar(context, theme, l10n),
                           ),
-                        );
-                      }, l10n),
-                    ),
-                  ),
-                  SliverToBoxAdapter(child: _buildCategories(context, theme)),
+                        ),
+                      ),
 
-                  // Featured Products
-                  SliverToBoxAdapter(
-                    child: _buildFeaturedProducts(context, theme, l10n),
-                  ),
+                      // Banner Section with slight elevation
+                      SliverPadding(
+                        padding: const EdgeInsets.only(top: 4),
+                        sliver: SliverToBoxAdapter(
+                          child: _buildBanner(context, theme),
+                        ),
+                      ),
 
-                  // Shop by Crop (Collections)
-                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                  SliverToBoxAdapter(
-                    child: _buildShopByCrop(context, theme, l10n),
-                  ),
+                      // Categories Section with Staggered Grid
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                        sliver: SliverToBoxAdapter(
+                          child: _sectionTitle(theme, l10n.categories, () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CatalogueScreen(),
+                              ),
+                            );
+                          }, l10n),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: _buildCategories(context, theme),
+                      ),
 
-                  // Best Offers
-                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                  SliverToBoxAdapter(
-                    child: _buildBestOffers(context, theme, l10n),
-                  ),
+                      // Featured Products
+                      SliverToBoxAdapter(
+                        child: _buildFeaturedProducts(context, theme, l10n),
+                      ),
 
-                  // Agri Tips
-                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                  SliverToBoxAdapter(
-                    child: _buildAgriTips(context, theme, l10n),
-                  ),
+                      // Shop by Crop (Collections)
+                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                      SliverToBoxAdapter(
+                        child: _buildShopByCrop(context, theme, l10n),
+                      ),
 
-                  // Why Choose Us
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                  SliverToBoxAdapter(
-                    child: _buildWhyChooseUs(context, theme, l10n),
-                  ),
+                      // Best Offers
+                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                      SliverToBoxAdapter(
+                        child: _buildBestOffers(context, theme, l10n),
+                      ),
 
-                  // Footer
-                  SliverToBoxAdapter(child: _buildFooter(context, theme, l10n)),
+                      // Agri Tips
+                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                      SliverToBoxAdapter(
+                        child: _buildAgriTips(context, theme, l10n),
+                      ),
 
-                  // Bottom spacing
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                ],
+                      // Why Choose Us
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                      SliverToBoxAdapter(
+                        child: _buildWhyChooseUs(context, theme, l10n),
+                      ),
+
+                      // Footer
+                      SliverToBoxAdapter(
+                        child: _buildFooter(context, theme, l10n),
+                      ),
+
+                      // Bottom spacing
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -814,7 +818,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       : "N/A",
                   price: product.price.toStringAsFixed(0),
                   imageUrl: product.thumbnail,
-                  isFavorite: _favoriteService.isFavorite(product.title),
+                  isFavorite: _favoriteService.isFavorite(product.id),
                   onFavoriteToggle: () {
                     _favoriteService.toggleFavorite(
                       FavoriteProduct(
@@ -828,7 +832,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             : "N/A",
                       ),
                     );
-                    setState(() {});
                   },
                 ),
               );
@@ -851,7 +854,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              "Shop by Collection",
+              "Shop by Crop",
               style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -889,10 +892,14 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _sectionTitle(theme, "Shop by Collection", () {
+          child: _sectionTitle(theme, "Shop by Crop", () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const CatalogueScreen()),
+              MaterialPageRoute(
+                builder: (context) => const CatalogueScreen(
+                  isShowingCollections: true,
+                ),
+              ),
             );
           }, l10n),
         ),
@@ -1608,31 +1615,9 @@ class _ProductCardState extends State<ProductCard> {
                     Positioned(
                       top: 6,
                       right: 6,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            HapticFeedback.mediumImpact();
-                            widget.onFavoriteToggle();
-                          },
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              widget.isFavorite
-                                  ? CupertinoIcons.heart_fill
-                                  : CupertinoIcons.heart,
-                              size: 18,
-                              color: widget.isFavorite
-                                  ? Colors.red
-                                  : Colors.grey.shade400,
-                            ),
-                          ),
-                        ),
+                      child: AnimatedHeart(
+                        isFavorite: widget.isFavorite,
+                        onTap: widget.onFavoriteToggle,
                       ),
                     ),
                   ],

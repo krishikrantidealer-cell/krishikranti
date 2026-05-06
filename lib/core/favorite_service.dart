@@ -64,11 +64,11 @@ class FavoriteService extends ChangeNotifier {
   factory FavoriteService() => _instance;
   FavoriteService._internal() {
     _loadFromDisk();
-    syncWithBackend(); // Background sync
   }
 
   final Set<FavoriteProduct> _favorites = {};
   bool _isSyncing = false;
+  bool _hasInitialSync = false;
 
   List<FavoriteProduct> get favorites => _favorites.toList();
   bool get isSyncing => _isSyncing;
@@ -85,9 +85,9 @@ class FavoriteService extends ChangeNotifier {
   }
 
   Future<void> syncWithBackend() async {
-    if (_isSyncing) return;
+    // Only show sync spinner for initial load or if explicitly asked
     _isSyncing = true;
-    notifyListeners();
+    Future.microtask(() => notifyListeners());
 
     try {
       final response = await HttpService.get(ApiConstants.favourites);
@@ -102,12 +102,13 @@ class FavoriteService extends ChangeNotifier {
         _favorites.clear();
         _favorites.addAll(freshFavs);
         await _saveToDisk();
+        _hasInitialSync = true;
       }
-    } catch (_) {
-      // Background sync failed, we keep local data
+    } catch (e) {
+      debugPrint("Favorite Sync Error: $e");
     } finally {
       _isSyncing = false;
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
     }
   }
 
@@ -120,15 +121,15 @@ class FavoriteService extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite(FavoriteProduct product) async {
-    final isAdding = !_favorites.contains(product);
+    final isAdding = !isFavorite(product.id);
 
     // 1. Optimistic Update
     if (isAdding) {
       _favorites.add(product);
     } else {
-      _favorites.remove(product);
+      _favorites.removeWhere((p) => p.id == product.id);
     }
-    notifyListeners();
+    Future.microtask(() => notifyListeners());
     await _saveToDisk();
 
     // 2. Sync with Backend
@@ -142,18 +143,39 @@ class FavoriteService extends ChangeNotifier {
         await HttpService.delete("${ApiConstants.favourites}/${product.id}");
       }
     } catch (e) {
+      debugPrint("Toggle Favorite Error: $e");
       // 3. Rollback on failure
       if (isAdding) {
-        _favorites.remove(product);
+        _favorites.removeWhere((p) => p.id == product.id);
       } else {
         _favorites.add(product);
       }
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
       await _saveToDisk();
     }
   }
 
   bool isFavorite(String productId) {
     return _favorites.any((p) => p.id == productId);
+  }
+
+  Future<void> clearAll() async {
+    final oldFavorites = List<FavoriteProduct>.from(_favorites);
+
+    // 1. Optimistic Update
+    _favorites.clear();
+    Future.microtask(() => notifyListeners());
+    await _saveToDisk();
+
+    // 2. Sync with Backend
+    try {
+      await HttpService.delete(ApiConstants.favourites);
+    } catch (e) {
+      debugPrint("Clear Favorites Error: $e");
+      // 3. Rollback on failure
+      _favorites.addAll(oldFavorites);
+      Future.microtask(() => notifyListeners());
+      await _saveToDisk();
+    }
   }
 }

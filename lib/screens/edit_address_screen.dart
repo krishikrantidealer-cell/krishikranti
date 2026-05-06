@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:krishikranti/core/address_service.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/shipping_address_screen.dart';
 
@@ -15,7 +16,7 @@ class EditAddressScreen extends StatefulWidget {
 
 class _EditAddressScreenState extends State<EditAddressScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _pincodeController;
@@ -23,34 +24,28 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
   late TextEditingController _addressLine2Controller;
   late TextEditingController _cityController;
   late TextEditingController _stateController;
-  
+
   bool _isLocating = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.address?.name ?? "");
-    _phoneController = TextEditingController(text: widget.address?.phone ?? "");
-    // Extracting parts from the address string if editing
-    // For simplicity in this mock, we'll just pre-fill name and phone and leave address fields for user to fill or use location
-    _pincodeController = TextEditingController();
-    _addressLine1Controller = TextEditingController();
-    _addressLine2Controller = TextEditingController();
-    _cityController = TextEditingController();
-    _stateController = TextEditingController();
-
-    if (widget.address != null) {
-      // Very basic parsing for existing address string
-      final parts = widget.address!.address.split(', ');
-      if (parts.length >= 3) {
-         _addressLine1Controller.text = parts[0];
-         _cityController.text = parts[parts.length - 3];
-         _stateController.text = parts[parts.length - 2].split(' - ')[0];
-         _pincodeController.text = parts[parts.length - 2].split(' - ').last;
-      } else {
-         _addressLine1Controller.text = widget.address!.address;
-      }
-    }
+    _phoneController = TextEditingController(
+      text: widget.address?.phoneNumber ?? "",
+    );
+    _pincodeController = TextEditingController(
+      text: widget.address?.pincode ?? "",
+    );
+    _addressLine1Controller = TextEditingController(
+      text: widget.address?.villageArea ?? "",
+    );
+    _addressLine2Controller =
+        TextEditingController(); // addressLine2 isn't in model yet
+    _cityController = TextEditingController(
+      text: widget.address?.cityTehsil ?? "",
+    );
+    _stateController = TextEditingController(text: widget.address?.state ?? "");
   }
 
   @override
@@ -73,18 +68,25 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      
-      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
         Position position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
-        List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-        
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+
         if (placemarks.isNotEmpty) {
           Placemark place = placemarks[0];
           setState(() {
             _pincodeController.text = place.postalCode ?? '';
-            _addressLine1Controller.text = "${place.name ?? ''}, ${place.subLocality ?? ''}";
+            _addressLine1Controller.text =
+                "${place.name ?? ''}, ${place.subLocality ?? ''}";
             _cityController.text = place.locality ?? '';
             _stateController.text = place.administrativeArea ?? '';
           });
@@ -92,9 +94,9 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.locationFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.locationFailed)));
       }
     } finally {
       if (mounted) setState(() => _isLocating = false);
@@ -125,7 +127,7 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                       child: Text(
                         isEdit ? l10n.editAddress : l10n.addAddress,
                         style: const TextStyle(
-                          fontSize: 20, 
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF2E7D32),
                         ),
@@ -146,11 +148,20 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 6),
-                      
-                      _buildField(l10n.fullName, _nameController, "Enter your full name"),
+
+                      _buildField(
+                        l10n.fullName,
+                        _nameController,
+                        "Enter your full name",
+                      ),
                       const SizedBox(height: 12),
-                      
-                      _buildField(l10n.mobileNumber, _phoneController, "9876543210", keyboardType: TextInputType.phone),
+
+                      _buildField(
+                        l10n.mobileNumber,
+                        _phoneController,
+                        "9876543210",
+                        keyboardType: TextInputType.phone,
+                      ),
                       const SizedBox(height: 16),
 
                       /// LOCATION BUTTON
@@ -159,36 +170,81 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                         height: 44,
                         child: OutlinedButton.icon(
                           onPressed: _isLocating ? null : _getCurrentLocation,
-                          icon: _isLocating 
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2E7D32)))
-                              : const Icon(Icons.my_location_outlined, size: 18, color: Color(0xFF2E7D32)),
+                          icon: _isLocating
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF2E7D32),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.my_location_outlined,
+                                  size: 18,
+                                  color: Color(0xFF2E7D32),
+                                ),
                           label: Text(
                             l10n.useLocationAutofill,
-                            style: const TextStyle(color: Color(0xFF2E7D32), fontSize: 14, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: Color(0xFF2E7D32),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF2E7D32), width: 1),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: const BorderSide(
+                              color: Color(0xFF2E7D32),
+                              width: 1,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
-                      _buildField(l10n.pincode, _pincodeController, "411001", keyboardType: TextInputType.number),
+
+                      _buildField(
+                        l10n.pincode,
+                        _pincodeController,
+                        "411001",
+                        keyboardType: TextInputType.number,
+                      ),
                       const SizedBox(height: 12),
-                      
-                      _buildField(l10n.addressLine1, _addressLine1Controller, "House no., Street, Area"),
+
+                      _buildField(
+                        l10n.addressLine1,
+                        _addressLine1Controller,
+                        "House no., Street, Area",
+                      ),
                       const SizedBox(height: 12),
-                      
-                      _buildField(l10n.addressLine2Optional, _addressLine2Controller, "Landmark, Colony, etc."),
+
+                      _buildField(
+                        l10n.addressLine2Optional,
+                        _addressLine2Controller,
+                        "Landmark, Colony, etc.",
+                      ),
                       const SizedBox(height: 12),
 
                       Row(
                         children: [
-                          Expanded(child: _buildField(l10n.cityDistrict, _cityController, "Pune")),
+                          Expanded(
+                            child: _buildField(
+                              l10n.cityDistrict,
+                              _cityController,
+                              "Pune",
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildField(l10n.state, _stateController, "Maharashtra")),
+                          Expanded(
+                            child: _buildField(
+                              l10n.state,
+                              _stateController,
+                              "Maharashtra",
+                            ),
+                          ),
                         ],
                       ),
 
@@ -201,11 +257,21 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                             child: OutlinedButton(
                               onPressed: () => Navigator.pop(context),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 side: BorderSide(color: Colors.grey.shade300),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                              child: Text(l10n.discard, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                              child: Text(
+                                l10n.discard,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -213,26 +279,38 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                             child: ElevatedButton(
                               onPressed: () {
                                 if (_formKey.currentState!.validate()) {
-                                  final fullAddress = "${_addressLine1Controller.text}, ${_addressLine2Controller.text.isNotEmpty ? "${_addressLine2Controller.text}, " : ""}${_cityController.text}, ${_stateController.text} - ${_pincodeController.text}";
-                                  
                                   final newAddress = AddressModel(
-                                    id: widget.address?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                                    id: widget.address?.id ?? "",
                                     name: _nameController.text,
-                                    address: fullAddress,
-                                    phone: _phoneController.text,
-                                    isDefault: widget.address?.isDefault ?? false,
+                                    villageArea: _addressLine1Controller.text,
+                                    cityTehsil: _cityController.text,
+                                    state: _stateController.text,
+                                    pincode: _pincodeController.text,
+                                    phoneNumber: _phoneController.text,
+                                    isDefault:
+                                        widget.address?.isDefault ?? false,
                                   );
-                                  
+
                                   Navigator.pop(context, newAddress);
                                 }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF2E7D32),
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                                 elevation: 0,
                               ),
-                              child: Text(l10n.saveChanges, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              child: Text(
+                                l10n.saveChanges,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -249,38 +327,53 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, String hint, {TextInputType? keyboardType}) {
+  Widget _buildField(
+    String label,
+    TextEditingController controller,
+    String hint, {
+    TextInputType? keyboardType,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
           style: const TextStyle(fontSize: 14),
           validator: (value) {
-             if (label.contains("Optional")) return null;
-             if (value == null || value.isEmpty) return "Required";
-             return null;
+            if (label.contains("Optional")) return null;
+            if (value == null || value.isEmpty) return "Required";
+            return null;
           },
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
             filled: true,
             fillColor: const Color(0xFFFAFAFA),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10), 
-              borderSide: BorderSide(color: Colors.grey.shade100)
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade100),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10), 
-              borderSide: BorderSide(color: Colors.grey.shade100)
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade100),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1)
+              borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1),
             ),
           ),
         ),

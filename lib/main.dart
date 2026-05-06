@@ -18,6 +18,7 @@ import 'package:krishikranti/screens/cart_screen.dart';
 import 'package:krishikranti/screens/contact_us_screen.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/core/address_service.dart';
 
 void main() {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => FavoriteService()),
         ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => ProfileService()),
+        ChangeNotifierProvider(create: (_) => AddressService()),
       ],
       child: const MyApp(),
     ),

@@ -64,7 +64,7 @@ class HttpService {
       var response = await http.post(
         Uri.parse(url),
         headers: {...defaultHeaders, ...?headers},
-        body: jsonEncode(body),
+        body: body != null ? jsonEncode(body) : null,
       );
 
       if (response.statusCode == 401 || response.statusCode == 403) {
@@ -74,7 +74,7 @@ class HttpService {
           response = await http.post(
             Uri.parse(url),
             headers: {...newHeaders, ...?headers},
-            body: jsonEncode(body),
+            body: body != null ? jsonEncode(body) : null,
           );
         } else if (!(await AuthService.isLoggedIn())) {
           _forceLogout();
@@ -96,7 +96,7 @@ class HttpService {
       var response = await http.patch(
         Uri.parse(url),
         headers: {...defaultHeaders, ...?headers},
-        body: jsonEncode(body),
+        body: body != null ? jsonEncode(body) : null,
       );
 
       if (response.statusCode == 401 || response.statusCode == 403) {
@@ -106,7 +106,7 @@ class HttpService {
           response = await http.patch(
             Uri.parse(url),
             headers: {...newHeaders, ...?headers},
-            body: jsonEncode(body),
+            body: body != null ? jsonEncode(body) : null,
           );
         } else if (!(await AuthService.isLoggedIn())) {
           _forceLogout();

@@ -679,9 +679,7 @@ class _EkycPageState extends State<EkycPage> {
                           children: [
                             Text(
                               "Skip",
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
+                              style: Theme.of(context).textTheme.labelLarge
                                   ?.copyWith(
                                     color: const Color(0xFF1B5E20),
                                     fontSize: 13,

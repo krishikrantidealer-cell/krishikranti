@@ -8,6 +8,7 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:krishikranti/widgets/animated_heart.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -16,111 +17,66 @@ class FavoritesScreen extends StatefulWidget {
   State<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends State<FavoritesScreen>
-    with TickerProviderStateMixin {
+class _FavoritesScreenState extends State<FavoritesScreen> {
   final FavoriteService _favoriteService = FavoriteService();
-  late final AnimationController _staggerController;
-  int _lastItemCount = 0;
+  bool _isPopping = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize controller immediately
-    _staggerController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    // Set initial count and start entrance animation
-    _lastItemCount = _favoriteService.favorites.length;
-    _staggerController.forward();
-
-    // Listen for changes to handle staggered re-animations
-    _favoriteService.addListener(_onFavoritesUpdated);
-  }
-
-  void _onFavoritesUpdated() {
-    if (!mounted) return;
-
-    final currentCount = _favoriteService.favorites.length;
-    if (currentCount > _lastItemCount) {
-      // Only replay animation if items were added
-      _staggerController.reset();
-      _staggerController.forward();
-    }
-    _lastItemCount = currentCount;
-  }
-
-  @override
-  void dispose() {
-    _favoriteService.removeListener(_onFavoritesUpdated);
-    _staggerController.dispose();
-    super.dispose();
+    // Use microtask to ensure sync doesn't clash with the initial build frame
+    Future.microtask(() => _favoriteService.syncWithBackend());
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAF8),
-        appBar: AppBar(
-          backgroundColor: Colors.white.withValues(alpha: 0.8),
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-          leading: Center(
-            child: _TopIconButton(
-              icon: CupertinoIcons.chevron_left,
-              onTap: () => Navigator.pop(context),
-            ),
-          ),
-          title: Text(
-            l10n.favorites,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
-              letterSpacing: -0.5,
-            ),
-          ),
-          centerTitle: true,
-        ),
         body: ListenableBuilder(
           listenable: _favoriteService,
           builder: (context, _) {
             final favorites = _favoriteService.favorites;
 
-            if (favorites.length > _lastItemCount) {
-              _staggerController.reset();
-              _staggerController.forward();
-            }
-            _lastItemCount = favorites.length;
-
-            if (favorites.isEmpty) {
-              return _buildEmptyState(l10n);
+            if (favorites.isEmpty && !_favoriteService.isSyncing) {
+              return _buildEmptyState(context, l10n);
             }
 
-            return GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+            return CustomScrollView(
               physics: const BouncingScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 20,
-                childAspectRatio: 0.65,
-              ),
-              itemCount: favorites.length,
-              itemBuilder: (context, index) {
-                final product = favorites[index];
-                return _buildAnimatedCard(index, product);
-              },
+              slivers: [
+                _buildSliverAppBar(context, favorites.length, l10n),
+                if (_favoriteService.isSyncing && favorites.isEmpty)
+                  const SliverFillRemaining(
+                    child: Center(child: CupertinoActivityIndicator()),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 12,
+                            mainAxisExtent: 245,
+                          ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final product = favorites[index];
+                        return _buildAdvancedCard(
+                          context,
+                          index,
+                          product,
+                          theme,
+                        );
+                      }, childCount: favorites.length),
+                    ),
+                  ),
+              ],
             );
           },
         ),
@@ -128,70 +84,250 @@ class _FavoritesScreenState extends State<FavoritesScreen>
     );
   }
 
-  Widget _buildAnimatedCard(int index, FavoriteProduct product) {
-    final animation = CurvedAnimation(
-      parent: _staggerController,
-      curve: Interval(
-        (index * 0.1).clamp(0.0, 0.5),
-        (index * 0.1 + 0.5).clamp(0.0, 1.0),
-        curve: Curves.easeOutQuart,
+  Widget _buildSliverAppBar(
+    BuildContext context,
+    int count,
+    AppLocalizations l10n,
+  ) {
+    return SliverAppBar(
+      pinned: true,
+      backgroundColor: Colors.white.withValues(alpha: 0.9),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      centerTitle: true,
+      leading: IconButton(
+        icon: const Icon(
+          CupertinoIcons.chevron_left,
+          color: Colors.black87,
+          size: 22,
+        ),
+        onPressed: () {
+          setState(() => _isPopping = true);
+          Navigator.pop(context);
+        },
       ),
-    );
-
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, 40 * (1 - animation.value)),
-          child: Opacity(
-            opacity: animation.value.clamp(0.0, 1.0),
-            child: _FavoriteCard(
-              product: product,
-              index: index,
-              // We pass unique key to help Flutter manage state during removals
-              key: ValueKey(product.name),
+      title: Text(
+        l10n.favorites,
+        style: const TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.w600,
+          fontSize: 18,
+          letterSpacing: -0.5,
+        ),
+      ),
+      actions: [
+        if (count > 0)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: const Icon(
+                CupertinoIcons.trash,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+              onPressed: () {
+                _showClearConfirmation(context);
+              },
             ),
           ),
-        );
-      },
+      ],
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations l10n) {
+  void _showClearConfirmation(BuildContext context) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text("Clear Wishlist"),
+        content: const Text(
+          "Are you sure you want to remove all items from your favorites?",
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              _favoriteService.clearAll();
+              Navigator.pop(context);
+              HapticFeedback.heavyImpact();
+            },
+            child: const Text("Clear All"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdvancedCard(
+    BuildContext context,
+    int index,
+    FavoriteProduct product,
+    ThemeData theme,
+  ) {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 400 + (index * 80)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
+        onTap: () {
+          final heavyProduct = Product(
+            id: product.id,
+            title: product.name,
+            thumbnail: product.imageUrl,
+            minPrice: double.tryParse(product.price) ?? 0,
+            images: [product.imageUrl],
+            brandName: product.category,
+            variants: [
+              Variant(
+                id: "v_${product.id}",
+                size: product.weight,
+                price: double.tryParse(product.price) ?? 0,
+                compareAtPrice: 0,
+              ),
+            ],
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailScreen(
+                product: heavyProduct,
+                thumbnailUrl: product.imageUrl,
+              ),
+            ),
+          );
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 12,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                        child: HeroMode(
+                          enabled: !_isPopping,
+                          child: Hero(
+                            tag: 'product_${product.id}',
+                            transitionOnUserGestures: true,
+                            child: Container(
+                              color: Colors.white,
+                              padding: const EdgeInsets.all(10),
+                              child: Image.network(
+                                product.imageUrl,
+                                fit: BoxFit.contain,
+                                key: ValueKey('fav_img_${product.id}'),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: AnimatedHeart(
+                        isFavorite: true,
+                        onTap: () => _favoriteService.toggleFavorite(product),
+                        size: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 8,
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            product.weight,
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "₹${product.price}",
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    blurRadius: 40,
-                    spreadRadius: 10,
-                  ),
-                ],
-              ),
-              child: Lottie.asset(
-                'assets/animations/favorites_empty.json',
-                height: 180,
-                repeat: true,
-              ),
+            Lottie.asset(
+              'assets/animations/favorites_empty.json',
+              height: 220,
+              repeat: true,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             const Text(
               "Your heart is empty!",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: FontWeight.w900,
                 color: Colors.black87,
-                letterSpacing: -0.5,
+                letterSpacing: -1,
               ),
             ),
             const SizedBox(height: 12),
@@ -206,6 +342,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
             ),
             const SizedBox(height: 40),
             _buildModernButton(
+              context,
               onPressed: () => Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -222,234 +359,46 @@ class _FavoritesScreenState extends State<FavoritesScreen>
     );
   }
 
-  Widget _buildModernButton({
+  Widget _buildModernButton(
+    BuildContext context, {
     required VoidCallback onPressed,
     required String text,
     required IconData icon,
   }) {
-    return Container(
-      width: double.infinity,
-      height: 58,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, color: Colors.white, size: 20),
-        label: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
-            letterSpacing: 0.5,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FavoriteCard extends StatelessWidget {
-  final FavoriteProduct product;
-  final int index;
-
-  const _FavoriteCard({required this.product, required this.index, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final favoriteService = FavoriteService();
-
     return GestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(
-              product: Product(
-                id: product.name, // Using name as ID fallback
-                title: product.name,
-                thumbnail: product.imageUrl,
-                images: [product.imageUrl],
-                variants: [
-                  Variant(
-                    id: "v_${product.name}",
-                    size: product.category,
-                    price: double.tryParse(product.price) ?? 0.0,
-                    compareAtPrice: 0.0,
-                  ),
-                ],
-              ),
-              thumbnailUrl: product.imageUrl,
-            ),
-          ),
-        );
+        HapticFeedback.mediumImpact();
+        onPressed();
       },
       child: Container(
+        width: double.infinity,
+        height: 58,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                      child: Hero(
-                        tag: 'product_image_${product.name}', // Consistent tag
-                        child: Image.network(
-                          product.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                                color: Colors.grey.shade100,
-                                child: const Icon(
-                                  CupertinoIcons.photo,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Gradient Overlay for better contrast
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.1),
-                            Colors.transparent,
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.05),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        favoriteService.toggleFavorite(product);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          CupertinoIcons.heart_fill,
-                          size: 16,
-                          color: Color(0xFFE53935),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    product.category,
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "₹${product.price}",
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 17,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.1,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          CupertinoIcons.arrow_right,
-                          size: 12,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -459,68 +408,34 @@ class _FavoriteCard extends StatelessWidget {
   }
 }
 
-class _TopIconButton extends StatefulWidget {
+class _TopIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
   const _TopIconButton({required this.icon, required this.onTap});
 
   @override
-  State<_TopIconButton> createState() => _TopIconButtonState();
-}
-
-class _TopIconButtonState extends State<_TopIconButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-    );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.92,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) {
+      onTap: () {
         HapticFeedback.lightImpact();
-        _controller.forward();
+        onTap();
       },
-      onTapUp: (_) => _controller.reverse(),
-      onTapCancel: () => _controller.reverse(),
-      onTap: widget.onTap,
-      child: ScaleTransition(
-        scale: _scaleAnimation,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade100),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Icon(widget.icon, size: 18, color: Colors.black87),
+      child: Container(
+        height: 44,
+        width: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
+        child: Icon(icon, color: Colors.black87, size: 22),
       ),
     );
   }

@@ -5,12 +5,14 @@ class ProgressiveImage extends StatefulWidget {
   final String thumbnailUrl;
   final String imageUrl;
   final BoxFit fit;
+  final double padding;
 
   const ProgressiveImage({
     super.key,
     required this.thumbnailUrl,
     required this.imageUrl,
     this.fit = BoxFit.contain,
+    this.padding = 8.0,
   });
 
   @override
@@ -58,10 +60,23 @@ class _ProgressiveImageState extends State<ProgressiveImage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.imageUrl.isEmpty || widget.thumbnailUrl.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.all(widget.padding),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Center(
+            child: Icon(Icons.image_outlined, color: Colors.grey, size: 24),
+          ),
+        ),
+      );
+    }
+
     return Padding(
-      padding: const EdgeInsets.all(
-        8.0,
-      ), // Give the product some breathing room
+      padding: EdgeInsets.all(widget.padding),
       child: Stack(
         alignment: Alignment.center,
         children: [

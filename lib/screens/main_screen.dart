@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
+import 'package:krishikranti/features/products/data/repositories/home_repository.dart';
 import 'home_screen.dart';
 import 'catalogue_screen.dart';
 import 'notification_screen.dart';
@@ -29,6 +30,9 @@ class _MainScreenState extends State<MainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ProfileService>().fetchProfileFromServer();
+        // Warm up caches for other tabs to ensure instant loading
+        final homeRepo = HomeRepository();
+        homeRepo.getHomeDiscovery(); // Background fetch
       }
     });
   }

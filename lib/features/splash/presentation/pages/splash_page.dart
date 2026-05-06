@@ -35,9 +35,9 @@ class _SplashPageState extends State<SplashPage> {
           if (mounted) {
             if (!profileDone) {
               Navigator.of(context).pushReplacementNamed('/register');
-            } else if (!kycDone) {
-              Navigator.of(context).pushReplacementNamed('/kyc');
             } else {
+              // We go directly to dashboard. KYC is no longer mandatory at startup
+              // as it can be completed via the Profile section.
               Navigator.of(context).pushReplacementNamed('/dashboard');
             }
           }
