@@ -87,10 +87,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _onCartChanged() {
     if (!mounted) return;
-    
+
     final cartService = Provider.of<CartService>(context, listen: false);
     bool changed = false;
-    
+
     for (var variant in _product.variants) {
       final cartItem = cartService.items.firstWhere(
         (item) => item.variantId == variant.id,
@@ -105,13 +105,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           qty: 0,
         ),
       );
-      
+
       if (_quantityMap[variant.id] != cartItem.qty) {
         _quantityMap[variant.id] = cartItem.qty;
         changed = true;
       }
     }
-    
+
     if (changed) {
       setState(() {});
     }
@@ -275,14 +275,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         const SizedBox(width: 8),
         ListenableBuilder(
           listenable: _favoriteService,
-          builder: (context, _) => _buildHeaderIcon(
-            _favoriteService.isFavorite(_product.id)
-                ? CupertinoIcons.heart_fill
-                : CupertinoIcons.heart,
-            _toggleFavorite,
-            color: _favoriteService.isFavorite(_product.id)
-                ? Colors.red
-                : Colors.black87,
+          builder: (context, _) => Hero(
+            tag: 'heart_${_product.id}',
+            child: _buildHeaderIcon(
+              _favoriteService.isFavorite(_product.id)
+                  ? CupertinoIcons.heart_fill
+                  : CupertinoIcons.heart,
+              _toggleFavorite,
+              color: _favoriteService.isFavorite(_product.id)
+                  ? Colors.red
+                  : Colors.black87,
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -748,9 +751,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     HapticFeedback.mediumImpact();
 
     // 2. Prepare items
-    final List<Map<String, dynamic>> itemsToAdd = selectedEntries.map((
-      entry,
-    ) {
+    final List<Map<String, dynamic>> itemsToAdd = selectedEntries.map((entry) {
       final v = _product.variants.firstWhere((x) => x.id == entry.key);
       return {
         'variantId': v.id,
@@ -764,14 +765,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }).toList();
 
     // 3. Fire and Forget: Background Sync (Optimistic)
-    cartService.addItems(
-      productId: _product.id,
-      items: itemsToAdd,
-      sync: false,
-      isReplace: true,
-    ).catchError((e) {
-      _showError("Sync failed, but items added locally.");
-    });
+    cartService
+        .addItems(
+          productId: _product.id,
+          items: itemsToAdd,
+          sync: false,
+          isReplace: true,
+        )
+        .catchError((e) {
+          _showError("Sync failed, but items added locally.");
+        });
 
     // 4. Update local state and Navigate INSTANTLY
     setState(() {

@@ -7,19 +7,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 class HomeRepository {
   static final Map<String, Future<HomeDiscovery>> _discoveryCache = {};
   static final Map<String, DateTime> _cacheTimestamps = {};
-  static const Duration _cacheDuration = Duration(minutes: 30);
+  static const Duration _cacheDuration = Duration(minutes: 5);
   static SharedPreferences? _prefs;
 
   Future<void> _initPrefs() async {
     _prefs ??= await SharedPreferences.getInstance();
   }
 
+  /// Clears all cached home discovery data (memory + disk)
+  static Future<void> clearCache() async {
+    _discoveryCache.clear();
+    _cacheTimestamps.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('persistent_home_discovery');
+  }
+
   Future<HomeDiscovery> getHomeDiscovery({bool forceRefresh = false}) async {
     const cacheKey = 'persistent_home_discovery';
     await _initPrefs();
 
+    // On forceRefresh: evict memory and disk cache first so we get truly fresh data
+    if (forceRefresh) {
+      _discoveryCache.remove(cacheKey);
+      _cacheTimestamps.remove(cacheKey);
+      await _prefs?.remove(cacheKey);
+    }
+
     // 1. Check Memory Cache
-    if (!forceRefresh && _discoveryCache.containsKey(cacheKey)) {
+    if (_discoveryCache.containsKey(cacheKey)) {
       final timestamp = _cacheTimestamps[cacheKey];
       if (timestamp != null &&
           DateTime.now().difference(timestamp) < _cacheDuration) {
@@ -28,19 +43,17 @@ class HomeRepository {
     }
 
     // 2. Check Disk Cache
-    if (!forceRefresh) {
-      final diskData = _prefs?.getString(cacheKey);
-      if (diskData != null) {
-        try {
-          final data = jsonDecode(diskData);
-          final discovery = HomeDiscovery.fromJson(data);
-          
-          // Warm up memory cache
-          _discoveryCache[cacheKey] = Future.value(discovery);
-          _cacheTimestamps[cacheKey] = DateTime.now();
-          return discovery;
-        } catch (_) {}
-      }
+    final diskData = _prefs?.getString(cacheKey);
+    if (diskData != null) {
+      try {
+        final data = jsonDecode(diskData);
+        final discovery = HomeDiscovery.fromJson(data);
+
+        // Warm up memory cache
+        _discoveryCache[cacheKey] = Future.value(discovery);
+        _cacheTimestamps[cacheKey] = DateTime.now();
+        return discovery;
+      } catch (_) {}
     }
 
     // 3. Fetch Fresh Data

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
@@ -10,6 +9,10 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/models/collection_model.dart';
 import 'package:krishikranti/features/products/data/repositories/home_repository.dart';
+import 'package:krishikranti/features/products/data/models/banner_model.dart';
+import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:krishikranti/screens/product_detail_screen.dart';
 
 class CatalogueScreen extends StatefulWidget {
   final bool isShowingCollections;
@@ -19,23 +22,21 @@ class CatalogueScreen extends StatefulWidget {
   State<CatalogueScreen> createState() => _CatalogueScreenState();
 }
 
-class _CatalogueScreenState extends State<CatalogueScreen> {
+class _CatalogueScreenState extends State<CatalogueScreen>
+    with WidgetsBindingObserver {
   int _currentBanner = 0;
   bool _isLoading = true;
   List<Category> _categories = [];
   List<Collection> _collections = [];
-  final ProductRepository _productRepository = ProductRepository();
+  List<BannerModel> _categoryBanners = [];
+  List<BannerModel> _categoryCardBanners = [];
   final HomeRepository _homeRepository = HomeRepository();
-
-  final List<String> _bannerImages = [
-    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800',
-    'https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=800',
-  ];
+  bool _routeIsCurrent = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.isShowingCollections) {
       _fetchCollections();
     } else {
@@ -43,18 +44,70 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _silentRefresh();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent) {
+      if (_routeIsCurrent == false) {
+        // Route just became active again (user navigated back)
+        _silentRefresh();
+      }
+      _routeIsCurrent = true;
+    } else {
+      _routeIsCurrent = false;
+    }
+  }
+
+  void _silentRefresh() {
+    _homeRepository
+        .getHomeDiscovery(forceRefresh: true)
+        .then((freshDiscovery) {
+          if (mounted) {
+            setState(() {
+              _categories = freshDiscovery.categories;
+              _collections = freshDiscovery.collections;
+              _categoryBanners = freshDiscovery.categoryBanners;
+              _categoryCardBanners = freshDiscovery.categoryCardBanners;
+            });
+          }
+        })
+        .catchError((_) {});
+  }
+
   Future<void> _fetchCollections() async {
     try {
       // Step 1: Try to get cached data instantly
-      final discovery = await _homeRepository.getHomeDiscovery(forceRefresh: false);
+      final discovery = await _homeRepository.getHomeDiscovery(
+        forceRefresh: false,
+      );
       if (mounted) {
         setState(() {
           _collections = discovery.collections;
+          _categoryBanners = discovery.categoryBanners;
+          _categoryCardBanners = discovery.categoryCardBanners;
           _isLoading = false;
         });
       }
 
-      // Step 2: Background refresh happens inside HomeRepository if needed
+      // Step 2: Background refresh (SWR) dynamically
+      final freshDiscovery = await _homeRepository.getHomeDiscovery(
+        forceRefresh: true,
+      );
+      if (mounted) {
+        setState(() {
+          _collections = freshDiscovery.collections;
+          _categoryBanners = freshDiscovery.categoryBanners;
+          _categoryCardBanners = freshDiscovery.categoryCardBanners;
+        });
+      }
     } catch (e) {
       if (mounted && _collections.isEmpty) {
         setState(() => _isLoading = false);
@@ -65,24 +118,27 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   Future<void> _fetchCategories() async {
     try {
       // Step 1: Check HomeDiscovery cache first (it's often already warmed up by HomeScreen)
-      final discovery = await _homeRepository.getHomeDiscovery(forceRefresh: false);
+      final discovery = await _homeRepository.getHomeDiscovery(
+        forceRefresh: false,
+      );
       if (mounted && discovery.categories.isNotEmpty) {
         setState(() {
           _categories = discovery.categories;
+          _categoryBanners = discovery.categoryBanners;
+          _categoryCardBanners = discovery.categoryCardBanners;
           _isLoading = false;
         });
-        
-        // If we found them in discovery, we can skip the dedicated categories fetch 
-        // unless we want to be absolutely sure we have the full list
-        return;
       }
 
-      // Step 2: Fallback to dedicated categories fetch if not in discovery
-      final categories = await _productRepository.getCategories();
+      // Step 2: Run a background refresh (SWR) to update cached values and pull new category banners
+      final freshDiscovery = await _homeRepository.getHomeDiscovery(
+        forceRefresh: true,
+      );
       if (mounted) {
         setState(() {
-          _categories = categories;
-          _isLoading = false;
+          _categories = freshDiscovery.categories;
+          _categoryBanners = freshDiscovery.categoryBanners;
+          _categoryCardBanners = freshDiscovery.categoryCardBanners;
         });
       }
     } catch (e) {
@@ -111,28 +167,85 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
     }
   }
 
-  String _getSubtitleForCategory(String name) {
-    // Add translations for key categories
+  String _getFallbackImageForCategory(String name) {
     switch (name.toLowerCase()) {
       case 'insecticides':
-        return 'कीटनाशक';
+        return 'https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?auto=format&fit=crop&q=80&w=400';
       case 'fungicides':
-        return 'कवकनाशी';
-      case 'pgrs':
-        return 'पादप वृद्धि नियामक';
+        return 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&q=80&w=400';
       case 'fertilizers':
-        return 'उर्वरक';
-      case 'herbicides':
-        return 'खरपतवार नाशी';
+        return 'https://images.unsplash.com/photo-1585314062340-f1a5a7c9328d?auto=format&fit=crop&q=80&w=400';
+      case 'pgrs':
+        return 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=400';
       case 'bio-products':
-        return 'जैव उत्पाद';
+      case 'bio products':
+      case 'bioproducts':
+        return 'https://storage.googleapis.com/krishi-product-images/categorycardbanners/Bio-Products.webp';
+      case 'herbicides':
+        return 'https://images.unsplash.com/photo-1515023115689-589c33041d3c?auto=format&fit=crop&q=80&w=400';
       default:
-        return 'कृषि उत्पाद';
+        return 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=400';
     }
+  }
+
+  String _getImageForCategory(Category cat, int index) {
+    final String name = cat.name;
+    if (_categoryCardBanners.isNotEmpty) {
+      final String cleanName = name.trim().toLowerCase();
+      final String cleanNameNoHyphen = cleanName
+          .replaceAll('-', '')
+          .replaceAll(' ', '');
+
+      // 1. Match by redirect target (ID or Category Name)
+      for (final banner in _categoryCardBanners) {
+        final String? target = banner.redirectTarget?.trim().toLowerCase();
+        if (target != null && (target == cat.id || target == cleanName)) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 2. Match by banner title containing Category Name
+      for (final banner in _categoryCardBanners) {
+        final String title = banner.title.trim().toLowerCase();
+        if (title.contains(cleanName) || title.contains(cleanNameNoHyphen)) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 3. Match by array-index formatting ("_card_index", "Category Card Banner {index + 1}")
+      for (final banner in _categoryCardBanners) {
+        final String bannerId = banner.id;
+        final String bannerTitle = banner.title;
+        if (bannerId.endsWith('_card_$index') ||
+            bannerTitle == 'Category Card Banner ${index + 1}' ||
+            banner.priority == index) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 4. Fallback to image URL keyword matching
+      for (final banner in _categoryCardBanners) {
+        final String cleanUrl = banner.imageUrl.toLowerCase();
+        if (cleanUrl.contains('/$cleanName.') ||
+            cleanUrl.contains('/$cleanName%') ||
+            cleanUrl.contains('_$cleanName') ||
+            cleanUrl.contains(cleanName) ||
+            cleanUrl.contains(cleanNameNoHyphen)) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 5. Ultimate fallback: Match strictly 1-to-1 by order in the list
+      if (index < _categoryCardBanners.length) {
+        return _categoryCardBanners[index].imageUrl;
+      }
+    }
+    return _getFallbackImageForCategory(name);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -159,6 +272,19 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.white,
               automaticallyImplyLeading: false,
+              leading: Navigator.canPop(context)
+                  ? IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.black,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.maybePop(context);
+                      },
+                    )
+                  : null,
               title: Text(
                 widget.isShowingCollections ? "Crops" : l10n.categories,
                 style: const TextStyle(
@@ -287,11 +413,19 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                                 ? _collections.length
                                 : _categories.length,
                             gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  mainAxisSpacing: 12,
-                                  crossAxisSpacing: 12,
-                                  childAspectRatio: 0.82,
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: widget.isShowingCollections
+                                      ? 3
+                                      : 2,
+                                  mainAxisSpacing: widget.isShowingCollections
+                                      ? 12
+                                      : 8,
+                                  crossAxisSpacing: widget.isShowingCollections
+                                      ? 12
+                                      : 8,
+                                  childAspectRatio: widget.isShowingCollections
+                                      ? 0.82
+                                      : 2.3,
                                 ),
                             itemBuilder: (context, index) {
                               return _StaggeredEntrance(
@@ -302,10 +436,11 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                                         _collections[index],
                                         theme,
                                       )
-                                    : _buildCompactCategoryCard(
+                                    : _buildRectangularCategoryCard(
                                         context,
                                         _categories[index],
                                         theme,
+                                        index,
                                       ),
                               );
                             },
@@ -328,30 +463,72 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   }
 
   Widget _buildBanner(BuildContext context, ThemeData theme) {
+    if (_categoryBanners.isEmpty) {
+      return const SizedBox(height: 10);
+    }
     return Column(
       children: [
         CarouselSlider.builder(
-          itemCount: _bannerImages.length,
+          itemCount: _categoryBanners.length,
           itemBuilder: (context, index, realIndex) {
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
+            final banner = _categoryBanners[index];
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                if (banner.redirectType == 'category' &&
+                    banner.redirectTarget != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ProductListScreen(category: banner.redirectTarget!),
+                    ),
+                  );
+                } else if (banner.redirectType == 'product' &&
+                    banner.redirectTarget != null) {
+                  final placeholderProduct = Product(
+                    id: banner.redirectTarget!,
+                    title: banner.title,
+                    thumbnail: banner.imageUrl,
+                    variants: const [],
+                  );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetailScreen(
+                        product: placeholderProduct,
+                        thumbnailUrl: banner.imageUrl,
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: CachedNetworkImage(
+                    imageUrl: banner.imageUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fadeInDuration: const Duration(milliseconds: 300),
+                    placeholder: (context, url) =>
+                        Container(color: const Color(0xFFF5F5F5)),
+                    errorWidget: (context, url, error) => const Center(
+                      child: Icon(Icons.image_outlined, color: Colors.grey),
+                    ),
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  _bannerImages[index],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
                 ),
               ),
             );
@@ -362,13 +539,18 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
             autoPlay: true,
             autoPlayInterval: const Duration(seconds: 4),
             autoPlayCurve: Curves.easeInOut,
+            onPageChanged: (index, reason) {
+              setState(() {
+                _currentBanner = index;
+              });
+            },
           ),
         ),
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
-            _bannerImages.length,
+            _categoryBanners.length,
             (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 400),
               margin: const EdgeInsets.symmetric(horizontal: 2),
@@ -388,15 +570,16 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
   }
 
   Widget _buildShimmerGrid() {
+    final isCol = widget.isShowingCollections;
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 6,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.82,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: isCol ? 3 : 2,
+        crossAxisSpacing: isCol ? 12 : 8,
+        mainAxisSpacing: isCol ? 12 : 8,
+        childAspectRatio: isCol ? 0.82 : 2.3,
       ),
       itemBuilder: (context, index) {
         return Container(
@@ -410,12 +593,19 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
     );
   }
 
-  Widget _buildCompactCategoryCard(
+  Widget _buildRectangularCategoryCard(
     BuildContext context,
     Category category,
     ThemeData theme,
+    int index,
   ) {
-    return GestureDetector(
+    final imageUrl = _getImageForCategory(category, index);
+
+    return RectangularCategoryCard(
+      category: category,
+      imageUrl: imageUrl,
+      fallbackImage: _getFallbackImageForCategory(category.name),
+      icon: _getIconForCategory(category.name),
       onTap: () {
         HapticFeedback.selectionClick();
         Navigator.push(
@@ -429,73 +619,6 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade100, width: 0.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.colorScheme.primary.withValues(alpha: 0.08),
-                    theme.colorScheme.primary.withValues(alpha: 0.02),
-                  ],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Icon(
-                  _getIconForCategory(category.name),
-                  color: theme.colorScheme.primary,
-                  size: 24,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                category.name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: Colors.black,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              _getSubtitleForCategory(category.name),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade400,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -695,6 +818,89 @@ class _StaggeredEntranceState extends State<_StaggeredEntrance>
           ),
         );
       },
+    );
+  }
+}
+
+class RectangularCategoryCard extends StatefulWidget {
+  final Category category;
+  final String imageUrl;
+  final String fallbackImage;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const RectangularCategoryCard({
+    required this.category,
+    required this.imageUrl,
+    required this.fallbackImage,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  State<RectangularCategoryCard> createState() =>
+      _RectangularCategoryCardState();
+}
+
+class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CachedNetworkImage(
+                  imageUrl: widget.imageUrl,
+                  fit: BoxFit.fill,
+                  placeholder: (context, url) =>
+                      Container(color: Colors.grey[200]),
+                  errorWidget: (context, url, error) => CachedNetworkImage(
+                    imageUrl: widget.fallbackImage,
+                    fit: BoxFit.fill,
+                    placeholder: (context, url) =>
+                        Container(color: Colors.grey[200]),
+                    errorWidget: (context, url, error) => Container(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      child: Center(
+                        child: Icon(
+                          widget.icon,
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.2,
+                          ),
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

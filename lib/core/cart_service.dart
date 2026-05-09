@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 
@@ -109,19 +110,46 @@ class CartService extends ChangeNotifier {
   static final CartService _instance = CartService._internal();
   factory CartService() => _instance;
   CartService._internal() {
+    _init();
+  }
+
+  static SharedPreferences? _prefs;
+
+  Future<void> _init() async {
+    await _loadFromCache();
     syncWithBackend();
+  }
+
+  Future<void> _loadFromCache() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final cachedData = _prefs?.getString('cart_cache');
+    if (cachedData != null) {
+      try {
+        final decoded = jsonDecode(cachedData);
+        _updateCartFromJson(decoded, saveToCache: false);
+      } catch (e) {
+        debugPrint("Error loading cart cache: $e");
+      }
+    }
+  }
+
+  Future<void> _saveToCache(Map cartMap) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    _prefs?.setString('cart_cache', jsonEncode(cartMap));
   }
 
   List<CartItem> _items = [];
   String? _appliedCoupon;
   double _discountAmount = 0;
   bool _isLoading = false;
+  bool _isCouponLoading = false;
   Future<void>? _pendingSyncTask;
 
   List<CartItem> get items => _items;
   String? get appliedCoupon => _appliedCoupon;
   double get discountAmount => _discountAmount;
   bool get isLoading => _isLoading;
+  bool get isCouponLoading => _isCouponLoading;
   Future<void>? get pendingSyncTask => _pendingSyncTask;
 
   Future<void> syncWithBackend() async {
@@ -136,19 +164,7 @@ class CartService extends ChangeNotifier {
         final cartMap = data is Map ? (data['cart'] ?? data) : null;
 
         if (cartMap != null) {
-          final List itemsJson = cartMap['items'] ?? [];
-          final List freeItemsJson = cartMap['freeItems'] ?? [];
-
-          final List<CartItem> parsedItems = itemsJson
-              .map((j) => CartItem.fromJson(j))
-              .toList();
-          final List<CartItem> parsedFreeItems = freeItemsJson
-              .map((j) => CartItem.fromJson(j, isFree: true))
-              .toList();
-
-          _items = [...parsedItems, ...parsedFreeItems];
-          _appliedCoupon = cartMap['appliedCoupon'];
-          _discountAmount = CartItem._parseDouble(cartMap['discountAmount']);
+          _updateCartFromJson(cartMap);
         } else {
           debugPrint("Unrecognized cart response structure: $data");
         }
@@ -336,34 +352,78 @@ class CartService extends ChangeNotifier {
     }
   }
 
+  void _updateCartFromJson(Map cartMap, {bool saveToCache = true}) {
+    final List itemsJson = cartMap['items'] ?? [];
+    final List freeItemsJson = cartMap['freeItems'] ?? [];
+
+    final List<CartItem> parsedItems = itemsJson
+        .map((j) => CartItem.fromJson(j))
+        .toList();
+    final List<CartItem> parsedFreeItems = freeItemsJson
+        .map((j) => CartItem.fromJson(j, isFree: true))
+        .toList();
+
+    _items = [...parsedItems, ...parsedFreeItems];
+    _appliedCoupon = cartMap['appliedCoupon'];
+    _discountAmount = CartItem._parseDouble(cartMap['discountAmount']);
+    
+    if (saveToCache) {
+      _saveToCache(cartMap);
+    }
+    
+    notifyListeners();
+  }
+
   Future<void> applyCoupon(String code) async {
+    _isCouponLoading = true;
+    notifyListeners();
+
     try {
       final response = await HttpService.post(
         ApiConstants.applyCoupon,
         body: {'code': code},
       );
+      final data = jsonDecode(response.body);
+
       if (response.statusCode == 200) {
-        await syncWithBackend();
+        final cartMap = data['cart'];
+        if (cartMap != null) _updateCartFromJson(cartMap);
       } else {
-        final data = jsonDecode(response.body);
         throw Exception(data['message'] ?? 'Failed to apply coupon');
       }
-    } catch (e) {
-      rethrow;
+    } finally {
+      _isCouponLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> removeCoupon() async {
+    _isCouponLoading = true;
+
+    // 1. Optimistic Update (Instant feedback)
+    _appliedCoupon = null;
+    _discountAmount = 0;
+    _items.removeWhere((item) => item.isFree);
+    notifyListeners();
+
+    // 2. Sync
     try {
       final response = await HttpService.delete(ApiConstants.applyCoupon);
       if (response.statusCode == 200) {
-        await syncWithBackend();
+        final data = jsonDecode(response.body);
+        final cartMap = data['cart'];
+        if (cartMap != null) _updateCartFromJson(cartMap);
       } else {
+        await syncWithBackend();
         final data = jsonDecode(response.body);
         throw Exception(data['message'] ?? 'Failed to remove coupon');
       }
     } catch (e) {
+      await syncWithBackend();
       rethrow;
+    } finally {
+      _isCouponLoading = false;
+      notifyListeners();
     }
   }
 
@@ -378,6 +438,7 @@ class CartService extends ChangeNotifier {
     _items.clear();
     _appliedCoupon = null;
     _discountAmount = 0;
+    _prefs?.remove('cart_cache');
     notifyListeners();
 
     // 2. Sync

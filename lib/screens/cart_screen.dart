@@ -195,7 +195,9 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               offset: Offset(0, 30 * (1 - value)),
               child: Dismissible(
                 key: Key('cart_item_${item.productId}_${item.variant}_$index'),
-                direction: item.isFree ? DismissDirection.none : DismissDirection.endToStart,
+                direction: item.isFree
+                    ? DismissDirection.none
+                    : DismissDirection.endToStart,
                 onDismissed: (_) {
                   cartService.removeItem(index);
                   HapticFeedback.mediumImpact();
@@ -505,13 +507,15 @@ class _CouponTile extends StatelessWidget {
     const primaryGreen = Color(0xFF1B5E20);
 
     return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CouponsScreen()),
-        );
-      },
+      onTap: cartService.isCouponLoading
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CouponsScreen()),
+              );
+            },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -575,24 +579,35 @@ class _CouponTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (isApplied)
+            if (cartService.isCouponLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              )
+            else if (isApplied)
               TextButton(
-                onPressed: () async {
-                  HapticFeedback.mediumImpact();
-                  try {
-                    await cartService.removeCoupon();
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(e.toString())));
-                    }
-                  }
-                },
+                onPressed: cartService.isCouponLoading
+                    ? null
+                    : () async {
+                        HapticFeedback.mediumImpact();
+                        try {
+                          await cartService.removeCoupon();
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(e.toString())));
+                          }
+                        }
+                      },
                 child: Text(
                   "REMOVE",
                   style: TextStyle(
-                    color: Colors.red.shade400,
+                    color: cartService.isCouponLoading ? Colors.grey : Colors.red.shade400,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -610,6 +625,7 @@ class _CouponTile extends StatelessWidget {
     );
   }
 }
+
 
 class _CartItemRow extends StatelessWidget {
   final CartItem item;
@@ -731,8 +747,8 @@ class _CartItemRow extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        item.technicalName.isNotEmpty 
-                            ? item.technicalName 
+                        item.technicalName.isNotEmpty
+                            ? item.technicalName
                             : (item.isFree ? "Promotional Gift" : ""),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -761,7 +777,9 @@ class _CartItemRow extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  item.variant.isNotEmpty ? item.variant : "Standard",
+                                  item.variant.isNotEmpty
+                                      ? item.variant
+                                      : "Standard",
                                   style: TextStyle(
                                     color: theme.colorScheme.primary,
                                     fontWeight: FontWeight.w800,

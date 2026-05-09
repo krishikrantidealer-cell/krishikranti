@@ -35,8 +35,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAF8),
+      child: WillPopScope(
+        onWillPop: () async {
+          setState(() => _isPopping = true);
+          return true;
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8FAF8),
         body: ListenableBuilder(
           listenable: _favoriteService,
           builder: (context, _) {
@@ -79,6 +84,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ],
             );
           },
+        ),
         ),
       ),
     );
@@ -247,10 +253,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: AnimatedHeart(
-                        isFavorite: true,
-                        onTap: () => _favoriteService.toggleFavorite(product),
-                        size: 14,
+                      child: Hero(
+                        tag: 'heart_${product.id}',
+                        child: AnimatedHeart(
+                          isFavorite: true,
+                          onTap: () => _favoriteService.toggleFavorite(product),
+                          size: 14,
+                        ),
                       ),
                     ),
                   ],

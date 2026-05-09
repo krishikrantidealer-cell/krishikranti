@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
+import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
 import 'package:krishikranti/features/products/data/models/collection_model.dart';
 import 'package:krishikranti/features/products/data/repositories/home_repository.dart';
@@ -12,7 +13,6 @@ import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
-import 'package:krishikranti/screens/notification_screen.dart';
 import 'package:krishikranti/widgets/animated_heart.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,7 +26,6 @@ import 'package:krishikranti/screens/catalogue_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:krishikranti/widgets/progressive_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,40 +34,80 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Carousel state
   final ValueNotifier<int> _currentBanner = ValueNotifier<int>(0);
+  final ValueNotifier<int> _currentOfferBanner = ValueNotifier<int>(0);
   final FavoriteService _favoriteService = FavoriteService();
   final ProductRepository _productRepository = ProductRepository();
   final HomeRepository _homeRepository = HomeRepository();
   List<Category> _categories = [];
   List<Collection> _collections = [];
   List<Product> _featuredProducts = [];
+  List<BannerModel> _banners = [];
+  List<BannerModel> _categoryCardBanners = [];
+  List<BannerModel> _bestOffersBanners = [];
   bool _isDiscoveryLoading = true;
   String? _discoveryError;
 
-  final List<String> _bannerImages = [
-    'assets/images/home_banner.png',
-    'assets/images/home_banner.png',
-    'assets/images/home_banner.png',
-    'assets/images/home_banner.png',
-  ];
-
   final List<String> _searchHints = [
-    "Search for 'Urea'...",
     "Search for 'Fungicides'...",
     "Search for 'Insecticides'...",
-    "Search for 'NPK Fertilizer'...",
+    "Search for 'Herbicides'...",
+    "Search for 'Bio-Products'...",
     "Search for 'PGRs'...",
+    "Search for 'Fertilizers'...",
   ];
   int _currentHintIndex = 0;
   Timer? _hintTimer;
+  bool _routeIsCurrent = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchDiscoveryData();
     _startHintRotation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When user returns to the app from background, silently refresh data
+    if (state == AppLifecycleState.resumed) {
+      _silentRefresh();
+    }
+  }
+
+  /// Called whenever dependencies change (including on pop-back to this screen)
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent) {
+      if (_routeIsCurrent == false) {
+        // Route just became active again (user navigated back)
+        _silentRefresh();
+      }
+      _routeIsCurrent = true;
+    } else {
+      _routeIsCurrent = false;
+    }
+  }
+
+  /// Silent background refresh — updates data without showing a loading spinner
+  void _silentRefresh() {
+    _homeRepository.getHomeDiscovery(forceRefresh: true).then((freshDiscovery) {
+      if (mounted) {
+        setState(() {
+          _categories = freshDiscovery.categories;
+          _collections = freshDiscovery.collections;
+          _featuredProducts = freshDiscovery.featuredProducts;
+          _banners = freshDiscovery.banners;
+          _categoryCardBanners = freshDiscovery.categoryCardBanners;
+          _bestOffersBanners = freshDiscovery.bestOffersBanners;
+        });
+      }
+    }).catchError((_) {/* silent — don't disrupt UI on background failure */});
   }
 
   void _startHintRotation() {
@@ -93,6 +132,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _categories = discovery.categories;
           _collections = discovery.collections;
           _featuredProducts = discovery.featuredProducts;
+          _banners = discovery.banners;
+          _categoryCardBanners = discovery.categoryCardBanners;
+          _bestOffersBanners = discovery.bestOffersBanners;
           _isDiscoveryLoading = false;
           _discoveryError = null;
         });
@@ -110,6 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
             _categories = freshDiscovery.categories;
             _collections = freshDiscovery.collections;
             _featuredProducts = freshDiscovery.featuredProducts;
+            _banners = freshDiscovery.banners;
+            _categoryCardBanners = freshDiscovery.categoryCardBanners;
+            _bestOffersBanners = freshDiscovery.bestOffersBanners;
           });
           _prefetchData(freshDiscovery.categories);
         }
@@ -178,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return "Good Evening";
   }
 
-  String _getImageForCategory(String name) {
+  String _getFallbackImageForCategory(String name) {
     switch (name.toLowerCase()) {
       case 'insecticides':
         return 'https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?auto=format&fit=crop&q=80&w=400';
@@ -189,7 +234,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'pgrs':
         return 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=400';
       case 'bio-products':
-        return 'https://images.unsplash.com/photo-1558449028-b53a39d100fc?auto=format&fit=crop&q=80&w=400';
+      case 'bio products':
+      case 'bioproducts':
+        return 'https://storage.googleapis.com/krishi-product-images/categorycardbanners/Bio-Products.webp';
       case 'herbicides':
         return 'https://images.unsplash.com/photo-1515023115689-589c33041d3c?auto=format&fit=crop&q=80&w=400';
       default:
@@ -197,9 +244,68 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  String _getImageForCategory(Category cat, int index) {
+    final String name = cat.name;
+    if (_categoryCardBanners.isNotEmpty) {
+      final String cleanName = name.trim().toLowerCase();
+      final String cleanNameNoHyphen = cleanName
+          .replaceAll('-', '')
+          .replaceAll(' ', '');
+
+      // 1. Match by redirect target (ID or Category Name)
+      for (final banner in _categoryCardBanners) {
+        final String? target = banner.redirectTarget?.trim().toLowerCase();
+        if (target != null && (target == cat.id || target == cleanName)) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 2. Match by banner title containing Category Name
+      for (final banner in _categoryCardBanners) {
+        final String title = banner.title.trim().toLowerCase();
+        if (title.contains(cleanName) || title.contains(cleanNameNoHyphen)) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 3. Match by array-index formatting ("_card_index", "Category Card Banner {index + 1}")
+      for (final banner in _categoryCardBanners) {
+        final String bannerId = banner.id;
+        final String bannerTitle = banner.title;
+        if (bannerId.endsWith('_card_$index') ||
+            bannerTitle == 'Category Card Banner ${index + 1}' ||
+            banner.priority == index) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 4. Fallback to image URL keyword matching
+      for (final banner in _categoryCardBanners) {
+        final String cleanUrl = banner.imageUrl.toLowerCase();
+        if (cleanUrl.contains('/$cleanName.') ||
+            cleanUrl.contains('/$cleanName%') ||
+            cleanUrl.contains('_$cleanName') ||
+            cleanUrl.contains(cleanName) ||
+            cleanUrl.contains(cleanNameNoHyphen)) {
+          return banner.imageUrl;
+        }
+      }
+
+      // 5. Ultimate fallback: Match strictly 1-to-1 by order in the list
+      if (index < _categoryCardBanners.length) {
+        return _categoryCardBanners[index].imageUrl;
+      }
+    }
+
+    // Default static assets/Unsplash fallback URLs if no database category banners are matched
+    return _getFallbackImageForCategory(name);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _currentBanner.dispose();
+    _currentOfferBanner.dispose();
     _hintTimer?.cancel();
     super.dispose();
   }
@@ -302,12 +408,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SliverToBoxAdapter(child: SizedBox(height: 20)),
                       SliverToBoxAdapter(
                         child: _buildBestOffers(context, theme, l10n),
-                      ),
-
-                      // Agri Tips
-                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                      SliverToBoxAdapter(
-                        child: _buildAgriTips(context, theme, l10n),
                       ),
 
                       // Why Choose Us
@@ -559,22 +659,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBanner(BuildContext context, ThemeData theme) {
+    final List<String> imagesToDisplay = _banners.isNotEmpty
+        ? _banners.map((b) => b.imageUrl).toList()
+        : const [];
+
+    if (imagesToDisplay.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       children: [
         CarouselSlider.builder(
-          itemCount: _bannerImages.length,
+          itemCount: imagesToDisplay.length,
           itemBuilder: (context, index, realIndex) {
+            final String imageUrl = imagesToDisplay[index];
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const ProductListScreen(category: "All"),
-                    ),
-                  );
+                  HapticFeedback.lightImpact();
+                  if (_banners.isNotEmpty && index < _banners.length) {
+                    final banner = _banners[index];
+                    if (banner.redirectType == 'category' &&
+                        banner.redirectTarget != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductListScreen(
+                            category: banner.redirectTarget!,
+                          ),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const ProductListScreen(category: "All"),
+                        ),
+                      );
+                    }
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const ProductListScreen(category: "All"),
+                      ),
+                    );
+                  }
                 },
                 child: Container(
                   decoration: BoxDecoration(
@@ -589,14 +722,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: _bannerImages[index].startsWith('http')
-                        ? Image.network(
-                            _bannerImages[index],
-                            fit: BoxFit.fill,
+                    child: imageUrl.startsWith('http')
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
                             width: double.infinity,
+                            placeholder: (context, url) =>
+                                Container(color: Colors.grey[200]),
+                            errorWidget: (context, url, error) => const Center(
+                              child: Icon(
+                                Icons.image_outlined,
+                                color: Colors.grey,
+                              ),
+                            ),
                           )
                         : Image.asset(
-                            _bannerImages[index],
+                            imageUrl,
                             fit: BoxFit.fill,
                             width: double.infinity,
                           ),
@@ -607,9 +748,15 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           options: CarouselOptions(
             height: 160,
-            viewportFraction: 1,
-            autoPlay: true,
+            viewportFraction: 1.0,
+            autoPlay: imagesToDisplay.length > 1,
             autoPlayInterval: const Duration(seconds: 5),
+            autoPlayAnimationDuration: const Duration(milliseconds: 800),
+            autoPlayCurve: Curves.easeInOutCubic,
+            enableInfiniteScroll: imagesToDisplay.length > 1,
+            pauseAutoPlayOnTouch: true,
+            pauseAutoPlayOnManualNavigate: true,
+            scrollPhysics: const BouncingScrollPhysics(),
             onPageChanged: (index, reason) {
               _currentBanner.value = index;
             },
@@ -618,21 +765,25 @@ class _HomeScreenState extends State<HomeScreen> {
         ValueListenableBuilder<int>(
           valueListenable: _currentBanner,
           builder: (context, currentIndex, child) {
-            if (_bannerImages.length <= 1) return const SizedBox.shrink();
+            if (imagesToDisplay.length <= 1) return const SizedBox.shrink();
+            // Safeguard bounds in case the banner list changed dynamically
+            final int safeIndex = currentIndex < imagesToDisplay.length
+                ? currentIndex
+                : 0;
             return Column(
               children: [
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
-                    _bannerImages.length,
+                    imagesToDisplay.length,
                     (i) => AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       margin: const EdgeInsets.all(4),
-                      width: currentIndex == i ? 18 : 6,
+                      width: safeIndex == i ? 18 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: currentIndex == i
+                        color: safeIndex == i
                             ? theme.colorScheme.primary
                             : theme.colorScheme.primary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(3),
@@ -741,11 +892,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         itemBuilder: (context, index) {
           final cat = _categories[index];
-          return _CategoryCard(
+          return CategoryCard(
             en: cat.name,
             hi: _getSubtitleForCategory(cat.name),
             icon: _getIconForCategory(cat.name),
-            image: _getImageForCategory(cat.name),
+            image: _getImageForCategory(cat, index),
+            fallbackImage: _getFallbackImageForCategory(cat.name),
             onTap: () {
               // Trigger pre-fetch (cached in repository)
               _productRepository.getProducts(categoryId: cat.id, limit: 20);
@@ -896,9 +1048,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const CatalogueScreen(
-                  isShowingCollections: true,
-                ),
+                builder: (context) =>
+                    const CatalogueScreen(isShowingCollections: true),
               ),
             );
           }, l10n),
@@ -1014,23 +1165,27 @@ class _HomeScreenState extends State<HomeScreen> {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
-    final offers = [
-      {
-        'title': 'Buy 1 Get 1',
-        'image':
-            'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600',
-      },
-      {
-        'title': 'Flat 20% OFF',
-        'image':
-            'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=600',
-      },
-      {
-        'title': 'Limited Time Deal',
-        'image':
-            'https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=600',
-      },
-    ];
+    final List<Map<String, String>> offers = _bestOffersBanners.isNotEmpty
+        ? _bestOffersBanners
+              .map((b) => {'title': b.title, 'image': b.imageUrl})
+              .toList()
+        : [
+            {
+              'title': 'Buy 1 Get 1',
+              'image':
+                  'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600',
+            },
+            {
+              'title': 'Flat 20% OFF',
+              'image':
+                  'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=600',
+            },
+            {
+              'title': 'Limited Time Deal',
+              'image':
+                  'https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=600',
+            },
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1052,228 +1207,107 @@ class _HomeScreenState extends State<HomeScreen> {
           itemCount: offers.length,
           itemBuilder: (context, index, realIndex) {
             final offer = offers[index];
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        const ProductListScreen(category: "Offers"),
-                  ),
-                );
-              },
-              child: Container(
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        offer['image']!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.1,
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.local_offer_outlined,
-                              color: theme.colorScheme.primary,
-                              size: 40,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.8),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              offer['title']!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                "Shop Now",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const ProductListScreen(category: "Offers"),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: CachedNetworkImage(
+                      imageUrl: offer['image']!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      fadeInDuration: const Duration(milliseconds: 300),
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[100],
+                        child: const Center(
+                          child: CircularProgressIndicator.adaptive(
+                            strokeWidth: 2.5,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        child: Center(
+                          child: Icon(
+                            Icons.local_offer_outlined,
+                            color: theme.colorScheme.primary,
+                            size: 40,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             );
           },
           options: CarouselOptions(
-            height: 155,
-            viewportFraction: 0.88,
-            autoPlay: true,
+            height: 180,
+            aspectRatio: 16 / 9,
+            viewportFraction: 1.0,
+            autoPlay: offers.length > 1,
             autoPlayInterval: const Duration(seconds: 5),
-            autoPlayAnimationDuration: const Duration(milliseconds: 1000),
-            autoPlayCurve: Curves.fastOutSlowIn,
-            enlargeCenterPage: true,
-            enableInfiniteScroll: true,
+            autoPlayAnimationDuration: const Duration(milliseconds: 800),
+            autoPlayCurve: Curves.easeInOutCubic,
+            enableInfiniteScroll: offers.length > 1,
+            pauseAutoPlayOnTouch: true,
+            pauseAutoPlayOnManualNavigate: true,
+            scrollPhysics: const BouncingScrollPhysics(),
+            onPageChanged: (index, reason) {
+              _currentOfferBanner.value = index;
+            },
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildAgriTips(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    final tips = [
-      {
-        'title': 'Best fertilizer for wheat cultivation in winter',
-        'image':
-            'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&q=80&w=400',
-      },
-      {
-        'title': 'How to protect cotton crops from pests effectively',
-        'image':
-            'https://images.unsplash.com/photo-1594904351111-a072f80b1a71?auto=format&fit=crop&q=80&w=400',
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _sectionTitle(theme, "Agri Tips & Advisory", () {}, l10n),
-        ),
-        const SizedBox(height: 16),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: tips.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 16),
-          itemBuilder: (context, index) {
-            final tip = tips[index];
-            return GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        AgriTipDetailScreen(title: tip['title']!),
+        ValueListenableBuilder<int>(
+          valueListenable: _currentOfferBanner,
+          builder: (context, currentIndex, child) {
+            if (offers.length <= 1) return const SizedBox.shrink();
+            final int safeIndex = currentIndex < offers.length
+                ? currentIndex
+                : 0;
+            return Column(
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    offers.length,
+                    (i) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.all(4),
+                      width: safeIndex == i ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: safeIndex == i
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.primary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
                   ),
-                );
-              },
-              child: Container(
-                height: 95,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(20),
-                      ),
-                      child: CachedNetworkImage(
-                        imageUrl: tip['image']!,
-                        width: 95,
-                        height: 95,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              tip['title']!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                color: Colors.black87,
-                                height: 1.3,
-                                letterSpacing: -0.2,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.menu_book_rounded,
-                                  size: 14,
-                                  color: theme.colorScheme.primary,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  "5 min read",
-                                  style: TextStyle(
-                                    color: theme.colorScheme.primary,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             );
           },
         ),
@@ -1615,9 +1649,12 @@ class _ProductCardState extends State<ProductCard> {
                     Positioned(
                       top: 6,
                       right: 6,
-                      child: AnimatedHeart(
-                        isFavorite: widget.isFavorite,
-                        onTap: widget.onFavoriteToggle,
+                      child: Hero(
+                        tag: 'heart_${widget.id}',
+                        child: AnimatedHeart(
+                          isFavorite: widget.isFavorite,
+                          onTap: widget.onFavoriteToggle,
+                        ),
                       ),
                     ),
                   ],
@@ -1698,102 +1735,25 @@ class _ProductCardState extends State<ProductCard> {
   }
 }
 
-class AgriTipDetailScreen extends StatelessWidget {
-  final String title;
-  const AgriTipDetailScreen({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Agri Tip Details"),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                "https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&q=80&w=800",
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Expert Advisory",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2E7D32),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Proper cultivation techniques are essential for a high-quality harvest. This guide provides comprehensive information on best practices, recommended schedules for fertilizer application, and effective pest management strategies tailored for your specific crop needs.",
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.6,
-                color: Colors.black54,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "Key Recommendations:",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "• Ensure optimal soil moisture before application.\n"
-              "• Use certified organic or recommended chemical inputs.\n"
-              "• Monitor weather conditions for effective pest control spray.\n"
-              "• Consult with local agri-experts for region-specific advice.",
-              style: TextStyle(
-                fontSize: 15,
-                height: 1.8,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryCard extends StatefulWidget {
-  final String en, hi, image;
+class CategoryCard extends StatefulWidget {
+  final String en, hi, image, fallbackImage;
   final IconData icon;
   final VoidCallback onTap;
 
-  const _CategoryCard({
+  const CategoryCard({
     required this.en,
     required this.hi,
     required this.image,
+    required this.fallbackImage,
     required this.icon,
     required this.onTap,
   });
 
   @override
-  State<_CategoryCard> createState() => _CategoryCardState();
+  State<CategoryCard> createState() => _CategoryCardState();
 }
 
-class _CategoryCardState extends State<_CategoryCard> {
+class _CategoryCardState extends State<CategoryCard> {
   bool _isPressed = false;
 
   @override
@@ -1828,78 +1788,24 @@ class _CategoryCardState extends State<_CategoryCard> {
               children: [
                 CachedNetworkImage(
                   imageUrl: widget.image,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.fill,
                   placeholder: (context, url) =>
                       Container(color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => Container(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    child: Center(
-                      child: Icon(
-                        widget.icon,
-                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.85),
-                        theme.colorScheme.primary.withValues(alpha: 0.5),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              widget.en,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.hi,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                  errorWidget: (context, url, error) => CachedNetworkImage(
+                    imageUrl: widget.fallbackImage,
+                    fit: BoxFit.fill,
+                    placeholder: (context, url) =>
+                        Container(color: Colors.grey[200]),
+                    errorWidget: (context, url, error) => Container(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      child: Center(
+                        child: Icon(
+                          widget.icon,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                          size: 40,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(widget.icon, color: Colors.white, size: 20),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],

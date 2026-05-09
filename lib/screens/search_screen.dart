@@ -1,7 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
-import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
+import 'package:krishikranti/screens/product_list_screen.dart'; // For ShimmerCard and ProductCard
+import 'package:krishikranti/core/favorite_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -12,37 +18,134 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<String> _recentSearches = ["Urea", "Zinc", "Fungicide", "Safety Gloves", "Seeds"];
-  
-  final List<Map<String, String>> _allProducts = [
-    {'name': "COXY-50", 'category': "Fungicide", 'price': "650", 'imageUrl': "https://images.unsplash.com/photo-1589927986089-35812388d1f4?auto=format&fit=crop&q=80&w=300"},
-    {'name': "Zinc Power", 'category': "Fertilizer", 'price': "490", 'imageUrl': "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&q=80&w=300"},
-    {'name': "Urea Premium", 'category': "Fertilizer", 'price': "290", 'imageUrl': "https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&q=80&w=300"},
-    {'name': "Organic Plus", 'category': "Growth", 'price': "850", 'imageUrl': "https://images.unsplash.com/photo-1589927986089-35812388d1f4?auto=format&fit=crop&q=80&w=300"},
-    {'name': "Nano Nitrogen", 'category': "Fertilizer", 'price': "550", 'imageUrl': "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&q=80&w=300"},
-    {'name': "Root Guard", 'category': "Pesticide", 'price': "1200", 'imageUrl': "https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&q=80&w=300"},
-  ];
+  final ProductRepository _productRepository = ProductRepository();
+  final FavoriteService _favoriteService = FavoriteService();
 
-  List<Map<String, String>> _searchResults = [];
-  bool _isSearching = false;
+  Timer? _debounce;
+  List<Product> _searchResults = [];
+  bool _isLoading = false;
+  String _searchQuery = "";
+  String? _errorMessage;
+
+  List<String> _recentSearches = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentSearches();
+  }
+
+  Future<void> _loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _recentSearches = prefs.getStringList('recent_searches') ?? [];
+      });
+    }
+  }
+
+  Future<void> _saveRecentSearch(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final currentSearches = prefs.getStringList('recent_searches') ?? [];
+    
+    currentSearches.remove(trimmed);
+    currentSearches.insert(0, trimmed);
+    
+    if (currentSearches.length > 10) {
+      currentSearches.removeLast();
+    }
+
+    await prefs.setStringList('recent_searches', currentSearches);
+    if (mounted) {
+      setState(() {
+        _recentSearches = currentSearches;
+      });
+    }
+  }
+
+  Future<void> _clearRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('recent_searches');
+    if (mounted) {
+      setState(() {
+        _recentSearches = [];
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
 
   void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
     if (query.isEmpty) {
       setState(() {
-        _isSearching = false;
         _searchResults = [];
+        _isLoading = false;
+        _errorMessage = null;
       });
       return;
     }
 
     setState(() {
-      _isSearching = true;
-      _searchResults = _allProducts.where((product) {
-        final name = product['name']!.toLowerCase();
-        final category = product['category']!.toLowerCase();
-        return name.contains(query.toLowerCase()) || category.contains(query.toLowerCase());
-      }).toList();
+      _isLoading = true;
+      _errorMessage = null;
     });
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(query);
+    });
+  }
+
+  Future<void> _performSearch(String query) async {
+    if (!mounted) return;
+    try {
+      final result = await _productRepository.getProducts(
+        search: query,
+        limit: 20,
+      );
+      if (mounted && _searchQuery == query) {
+        setState(() {
+          _searchResults = result['products'] as List<Product>;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted && _searchQuery == query) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
+      }
+    }
+  }
+
+  void _toggleFavorite(Product product) {
+    HapticFeedback.mediumImpact();
+    _favoriteService.toggleFavorite(
+      FavoriteProduct(
+        id: product.id,
+        name: product.title,
+        category: "Search",
+        price: product.price.toString(),
+        imageUrl: product.thumbnail,
+        weight: product.variants.isNotEmpty
+            ? product.variants.first.size
+            : "Standard",
+      ),
+    );
   }
 
   @override
@@ -55,31 +158,47 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            Navigator.pop(context);
+          },
         ),
         title: TextField(
           controller: _searchController,
           autofocus: true,
           onChanged: _onSearchChanged,
+          onSubmitted: (value) => _saveRecentSearch(value),
+          textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             hintText: l10n.searchProducts,
             border: InputBorder.none,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
-            suffixIcon: _searchController.text.isNotEmpty 
-              ? IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () {
-                    _searchController.clear();
-                    _onSearchChanged("");
-                  },
-                )
-              : null,
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(
+                      CupertinoIcons.clear_thick_circled,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                      _onSearchChanged("");
+                    },
+                  )
+                : null,
           ),
         ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: Colors.grey.shade200, height: 1),
+        ),
       ),
-      body: _isSearching ? _buildSearchResults(theme, l10n) : _buildDefaultView(theme, l10n),
+      body: _searchQuery.isEmpty
+          ? _buildDefaultView(theme, l10n)
+          : _buildSearchResults(theme, l10n),
     );
   }
 
@@ -90,50 +209,114 @@ class _SearchScreenState extends State<SearchScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_recentSearches.isNotEmpty) ...[
-            const Text(
-              "Recent Searches",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Recent Searches",
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+                TextButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _clearRecentSearches();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade600,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text("Clear All", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: _recentSearches.map((search) => GestureDetector(
-                onTap: () {
-                  _searchController.text = search;
-                  _onSearchChanged(search);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Text(search, style: const TextStyle(fontSize: 14)),
-                ),
-              )).toList(),
+              children: _recentSearches
+                  .map(
+                    (search) => GestureDetector(
+                      onTap: () {
+                        _searchController.text = search;
+                        _onSearchChanged(search);
+                        _saveRecentSearch(search);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.history_rounded, size: 14, color: Colors.grey.shade500),
+                            const SizedBox(width: 6),
+                            Text(
+                              search,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: 32),
           ],
-          const Text(
-            "Suggested Products",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.85,
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              ),
             ),
-            itemCount: _allProducts.length,
-            itemBuilder: (context, index) {
-              return _buildSmallProductCard(context, theme, _allProducts[index]);
-            },
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  size: 40,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Search Anything",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Find fertilizers, pesticides, seeds and more for your farm.",
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -141,180 +324,103 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildSearchResults(ThemeData theme, AppLocalizations l10n) {
-    if (_searchResults.isEmpty) {
+    if (_isLoading) {
+      return GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisExtent: 245,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: 6,
+        itemBuilder: (context, index) => const ShimmerCard(),
+      );
+    }
+
+    if (_errorMessage != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+            Icon(
+              Icons.error_outline_rounded,
+              size: 60,
+              color: Colors.red.shade300,
+            ),
             const SizedBox(height: 16),
-            Text(
-              l10n.noProducts,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+            const Text(
+              "Oops! Something went wrong",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              "Try searching for something else",
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: const Text(
-                  "Suggested for you",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.85,
-                ),
-                itemCount: 4,
-                itemBuilder: (context, index) {
-                  return _buildSmallProductCard(context, theme, _allProducts[index]);
-                },
-              ),
+            Text(
+              "Failed to search. Please try again.",
+              style: TextStyle(color: Colors.grey.shade600),
             ),
           ],
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _searchResults.length,
-      separatorBuilder: (_, index) => const Divider(height: 24),
-      itemBuilder: (context, index) {
-        final product = _searchResults[index];
-        return ListTile(
-          onTap: () {
-            final displayProduct = Product(
-              id: product['name']!,
-              title: product['name']!,
-              thumbnail: product['imageUrl']!,
-              images: [product['imageUrl']!],
-              variants: [
-                Variant(
-                  id: "v_${product['name']}",
-                  size: "1 Unit",
-                  price: double.tryParse(product['price']!) ?? 0.0,
-                  compareAtPrice: 0.0,
-                ),
-              ],
-            );
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProductDetailScreen(
-                  product: displayProduct,
-                  thumbnailUrl: product['imageUrl']!,
-                ),
+    if (_searchResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 80,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "No Products Found",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "We couldn't find anything matching '${_searchQuery}'",
+              style: TextStyle(color: Colors.grey.shade500),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListenableBuilder(
+      listenable: _favoriteService,
+      builder: (context, child) {
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisExtent: 245,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: _searchResults.length,
+          itemBuilder: (context, index) {
+            final product = _searchResults[index];
+            return RepaintBoundary(
+              child: ProductCard(
+                key: ValueKey(product.id),
+                index: index,
+                product: product,
+                category: "Search Result",
+                isFavorite: _favoriteService.isFavorite(product.id),
+                onFavoriteToggle: () => _toggleFavorite(product),
+                isPopping: false,
               ),
             );
           },
-          contentPadding: EdgeInsets.zero,
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(product['imageUrl']!, width: 50, height: 50, fit: BoxFit.cover),
-          ),
-          title: Text(
-            product['name']!,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text(product['category']!),
-          trailing: Text(
-            "₹${product['price']}",
-            style: TextStyle(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         );
       },
-    );
-  }
-
-  Widget _buildSmallProductCard(BuildContext context, ThemeData theme, Map<String, String> product) {
-    return GestureDetector(
-      onTap: () {
-        final displayProduct = Product(
-          id: product['name']!,
-          title: product['name']!,
-          thumbnail: product['imageUrl']!,
-          images: [product['imageUrl']!],
-          variants: [
-            Variant(
-              id: "v_${product['name']}",
-              size: "1 Unit",
-              price: double.tryParse(product['price']!) ?? 0.0,
-              compareAtPrice: 0.0,
-            ),
-          ],
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(
-              product: displayProduct,
-              thumbnailUrl: product['imageUrl']!,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.network(product['imageUrl']!, fit: BoxFit.cover, width: double.infinity),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product['name']!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  Text(
-                    product['category']!,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "₹${product['price']}",
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
