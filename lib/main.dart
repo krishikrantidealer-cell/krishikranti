@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:krishikranti/firebase_options.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/app_theme.dart';
 import 'package:krishikranti/core/language_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
+import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/features/splash/presentation/pages/splash_page.dart';
 import 'package:krishikranti/features/language/presentation/pages/choose_language_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/phone_verify_page.dart';
@@ -20,8 +23,15 @@ import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/address_service.dart';
 
-void main() {
+void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize Notification Service
+  await NotificationService.initialize();
 
   // Set global system UI style
   SystemChrome.setSystemUIOverlayStyle(

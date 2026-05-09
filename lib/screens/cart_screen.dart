@@ -124,7 +124,6 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                           ),
                         ],
                       ),
-
                 if (!isEmpty)
                   Positioned(
                     left: 0,
@@ -598,16 +597,18 @@ class _CouponTile extends StatelessWidget {
                           await cartService.removeCoupon();
                         } catch (e) {
                           if (context.mounted) {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(SnackBar(content: Text(e.toString())));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
                           }
                         }
                       },
                 child: Text(
                   "REMOVE",
                   style: TextStyle(
-                    color: cartService.isCouponLoading ? Colors.grey : Colors.red.shade400,
+                    color: cartService.isCouponLoading
+                        ? Colors.grey
+                        : Colors.red.shade400,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -625,7 +626,6 @@ class _CouponTile extends StatelessWidget {
     );
   }
 }
-
 
 class _CartItemRow extends StatelessWidget {
   final CartItem item;
