@@ -50,7 +50,9 @@ class Product {
   double get compareAtPrice {
     if (maxPrice != null) return maxPrice!;
     if (variants.isEmpty) return 0.0;
-    return variants.map((v) => v.compareAtPrice).reduce((a, b) => a > b ? a : b);
+    return variants
+        .map((v) => v.compareAtPrice)
+        .reduce((a, b) => a > b ? a : b);
   }
 
   static String _parseId(dynamic id) {
@@ -68,10 +70,12 @@ class Product {
 
   static String _resolveImageUrl(String path) {
     if (path.isEmpty) return '';
-    
+
     // Handle Google Drive links
     if (path.contains('drive.google.com')) {
-      final idMatch = RegExp(r'(?:id=|\/d\/|folders\/)([a-zA-Z0-9-_]+)').firstMatch(path);
+      final idMatch = RegExp(
+        r'(?:id=|\/d\/|folders\/)([a-zA-Z0-9-_]+)',
+      ).firstMatch(path);
       if (idMatch != null) {
         final fileId = idMatch.group(1);
         // Using the thumbnail endpoint which is very reliable for Drive images
@@ -94,7 +98,8 @@ class Product {
       vendor: json['vendor'],
       availabilityStatus: json['availabilityStatus'],
       thumbnail: _resolveImageUrl(json['thumbnail'] ?? ''),
-      variants: (json['variants'] as List?)
+      variants:
+          (json['variants'] as List?)
               ?.map((v) => Variant.fromJson(v))
               .toList() ??
           [],
@@ -103,15 +108,39 @@ class Product {
       categoryId: _parseId(json['categoryId']),
       subCategoryId: _parseId(json['subCategoryId']),
       tags: List<String>.from(json['tags'] ?? []),
-      images: (json['images'] as List?)
+      images:
+          (json['images'] as List?)
               ?.map((img) => _resolveImageUrl(img.toString()))
               .toList() ??
           [],
       details: json['details'] != null
           ? ProductDetail.fromJson(json['details'])
+          : (json['description'] != null || json['specifications'] != null)
+          ? ProductDetail(
+              id: _parseId(json['_id']),
+              productId: _parseId(json['_id']),
+              description: json['description'] ?? '',
+              mediumImages:
+                  (json['mediumImages'] as List?)
+                      ?.map((img) => _resolveImageUrl(img.toString()))
+                      .toList() ??
+                  [],
+              originalImages:
+                  (json['originalImages'] as List?)
+                      ?.map((img) => _resolveImageUrl(img.toString()))
+                      .toList() ??
+                  [],
+              specifications: Map<String, dynamic>.from(
+                json['specifications'] ?? {},
+              ),
+            )
           : null,
-      minPrice: json['minPrice'] != null ? _parseDouble(json['minPrice']) : null,
-      maxPrice: json['maxPrice'] != null ? _parseDouble(json['maxPrice']) : null,
+      minPrice: json['minPrice'] != null
+          ? _parseDouble(json['minPrice'])
+          : null,
+      maxPrice: json['maxPrice'] != null
+          ? _parseDouble(json['maxPrice'])
+          : null,
     );
   }
 }
@@ -121,20 +150,41 @@ class Variant {
   final String size;
   final double price;
   final double compareAtPrice;
+  final double price10_30;
+  final double price30_50;
+  final double price50_plus;
+  final double packVolume;
 
   Variant({
     required this.id,
     required this.size,
     required this.price,
     required this.compareAtPrice,
+    this.price10_30 = 0.0,
+    this.price30_50 = 0.0,
+    this.price50_plus = 0.0,
+    this.packVolume = 1.0,
   });
 
   factory Variant.fromJson(Map<String, dynamic> json) {
+    final double basePrice = Product._parseDouble(json['price']);
     return Variant(
       id: Product._parseId(json['_id']),
       size: json['size'] ?? '',
-      price: Product._parseDouble(json['price']),
+      price: basePrice,
       compareAtPrice: Product._parseDouble(json['compareAtPrice']),
+      price10_30: json['price10_30'] != null
+          ? Product._parseDouble(json['price10_30'])
+          : basePrice,
+      price30_50: json['price30_50'] != null
+          ? Product._parseDouble(json['price30_50'])
+          : basePrice,
+      price50_plus: json['price50_plus'] != null
+          ? Product._parseDouble(json['price50_plus'])
+          : basePrice,
+      packVolume: json['packVolume'] != null
+          ? Product._parseDouble(json['packVolume'])
+          : 1.0,
     );
   }
 }
@@ -161,12 +211,12 @@ class ProductDetail {
       id: Product._parseId(json['_id']),
       productId: Product._parseId(json['productId']),
       description: json['description'] ?? '',
-      mediumImages: List<String>.from(json['images']?['medium'] ?? [])
-          .map((img) => Product._resolveImageUrl(img))
-          .toList(),
-      originalImages: List<String>.from(json['images']?['original'] ?? [])
-          .map((img) => Product._resolveImageUrl(img))
-          .toList(),
+      mediumImages: List<String>.from(
+        json['images']?['medium'] ?? [],
+      ).map((img) => Product._resolveImageUrl(img)).toList(),
+      originalImages: List<String>.from(
+        json['images']?['original'] ?? [],
+      ).map((img) => Product._resolveImageUrl(img)).toList(),
       specifications: json['specifications'] ?? {},
     );
   }

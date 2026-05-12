@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/http_service.dart';
@@ -144,6 +145,7 @@ class CartService extends ChangeNotifier {
   bool _isLoading = false;
   bool _isCouponLoading = false;
   Future<void>? _pendingSyncTask;
+  final Set<String> _syncingVariantIds = {};
 
   List<CartItem> get items => _items;
   String? get appliedCoupon => _appliedCoupon;
@@ -151,18 +153,47 @@ class CartService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isCouponLoading => _isCouponLoading;
   Future<void>? get pendingSyncTask => _pendingSyncTask;
+  Set<String> get syncingVariantIds => _syncingVariantIds;
+
+  final Map<String, Timer> _addDebounceTimers = {};
+  final Map<String, Timer> _updateDebounceTimers = {};
+  final Map<String, int> _optimisticTargetQty = {};
+  final Set<String> _inFlightSyncVariantIds = {};
+  final Map<String, int> _inFlightSyncCounts = {};
+
+  void _incrementInFlight(String variantId) {
+    _inFlightSyncCounts[variantId] = (_inFlightSyncCounts[variantId] ?? 0) + 1;
+    _inFlightSyncVariantIds.add(variantId);
+  }
+
+  void _decrementInFlight(String variantId) {
+    final current = _inFlightSyncCounts[variantId] ?? 0;
+    if (current <= 1) {
+      _inFlightSyncCounts.remove(variantId);
+      _inFlightSyncVariantIds.remove(variantId);
+    } else {
+      _inFlightSyncCounts[variantId] = current - 1;
+    }
+  }
+
+  // Compile-time compatibility
+  Map<String, Timer> get addDebounceTimers => _addDebounceTimers;
+  Map<String, Timer> get updateDebounceTimers => _updateDebounceTimers;
 
   Future<void> syncWithBackend() async {
     _isLoading = true;
     notifyListeners();
+    final stopwatch = Stopwatch()..start();
     try {
       final response = await HttpService.get(ApiConstants.cart);
+      stopwatch.stop();
+      debugPrint(
+        "[Cart API] GET syncWithBackend took ${stopwatch.elapsedMilliseconds}ms",
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // Handle both wrapped {cart: {...}} and direct {...} responses
         final cartMap = data is Map ? (data['cart'] ?? data) : null;
-
         if (cartMap != null) {
           _updateCartFromJson(cartMap);
         } else {
@@ -215,25 +246,77 @@ class CartService extends ChangeNotifier {
     bool sync = true,
     bool isReplace = false,
   }) async {
-    // 1. Optimistic UI
+    if (!sync) {
+      // Local addition helper (offline mock operations)
+      for (var item in items) {
+        int index = _items.indexWhere(
+          (existing) =>
+              existing.productId == productId &&
+              existing.variantId == item['variantId'],
+        );
+        if (index != -1) {
+          if (isReplace) {
+            _items[index].qty = (item['quantity'] as int);
+          } else {
+            _items[index].qty += (item['quantity'] as int);
+          }
+        } else {
+          _items.add(
+            CartItem(
+              productId: productId,
+              variantId: item['variantId'],
+              productName: item['productName'] ?? '',
+              productImage: item['productImage'] ?? '',
+              technicalName: item['technicalName'] ?? '',
+              variant: item['variant'] ?? '',
+              price: (item['price'] as num).toDouble(),
+              qty: item['quantity'] as int,
+            ),
+          );
+        }
+      }
+      notifyListeners();
+      return;
+    }
+
+    // --- OPTIMISTIC UPDATE ---
+    // Backup current state for potential rollback
+    final oldItems = _items
+        .map(
+          (it) => CartItem(
+            itemId: it.itemId,
+            productId: it.productId,
+            variantId: it.variantId,
+            productName: it.productName,
+            productImage: it.productImage,
+            technicalName: it.technicalName,
+            variant: it.variant,
+            price: it.price,
+            qty: it.qty,
+            isFree: it.isFree,
+          ),
+        )
+        .toList();
+
+    // Instantly apply changes to local state
     for (var item in items) {
+      final vId = item['variantId'] as String;
       int index = _items.indexWhere(
         (existing) =>
-            existing.productId == productId &&
-            existing.variantId == item['variantId'],
+            existing.productId == productId && existing.variantId == vId,
       );
-
       if (index != -1) {
         if (isReplace) {
           _items[index].qty = (item['quantity'] as int);
         } else {
           _items[index].qty += (item['quantity'] as int);
         }
+        _optimisticTargetQty[vId] = _items[index].qty;
       } else {
         _items.add(
           CartItem(
             productId: productId,
-            variantId: item['variantId'],
+            variantId: vId,
             productName: item['productName'] ?? '',
             productImage: item['productImage'] ?? '',
             technicalName: item['technicalName'] ?? '',
@@ -242,113 +325,300 @@ class CartService extends ChangeNotifier {
             qty: item['quantity'] as int,
           ),
         );
+        _optimisticTargetQty[vId] = item['quantity'] as int;
       }
     }
     notifyListeners();
 
-    // 2. Sync with Backend using the batch "variants" array
-    _pendingSyncTask = _performAddSync(productId, items, isReplace, sync);
+    // Debounce backend sync per product to avoid rapid successive server hits
+    _addDebounceTimers[productId]?.cancel();
+
+    final completer = Completer<void>();
+    _pendingSyncTask = completer.future;
+
+    _addDebounceTimers[productId] = Timer(
+      const Duration(milliseconds: 300),
+      () async {
+        for (var item in items) {
+          _incrementInFlight(item['variantId']);
+        }
+        final stopwatch = Stopwatch()..start();
+        try {
+          final variantsPayload = items
+              .map(
+                (item) => {
+                  'variantId': item['variantId'],
+                  'quantity': item['quantity'],
+                  'isReplace': isReplace,
+                },
+              )
+              .toList();
+
+          final response = await HttpService.post(
+            ApiConstants.cartItems,
+            body: {'productId': productId, 'variants': variantsPayload},
+          );
+          stopwatch.stop();
+          debugPrint(
+            "[Cart API] POST addItems (debounced) took ${stopwatch.elapsedMilliseconds}ms",
+          );
+
+          if (response.statusCode != 200 && response.statusCode != 201) {
+            throw Exception("Failed to sync cart items");
+          }
+
+          final data = jsonDecode(response.body);
+          final cartMap = data is Map ? (data['cart'] ?? data) : null;
+          if (cartMap != null) {
+            _updateCartFromJson(cartMap);
+          } else {
+            await syncWithBackend();
+          }
+        } catch (e) {
+          debugPrint("Add items error: $e");
+          // Rollback
+          _items = oldItems;
+          notifyListeners();
+          await syncWithBackend();
+        } finally {
+          for (var item in items) {
+            final vId = item['variantId'] as String;
+            _decrementInFlight(vId);
+            final bool hasPendingProductAdd =
+                _addDebounceTimers.containsKey(productId) &&
+                _addDebounceTimers[productId]?.isActive == true;
+            if (!_updateDebounceTimers.containsKey(vId) &&
+                !hasPendingProductAdd) {
+              _optimisticTargetQty.remove(vId);
+            }
+          }
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        }
+      },
+    );
+
     return _pendingSyncTask;
   }
 
-  Future<void> _performAddSync(
-    String productId,
-    List<Map<String, dynamic>> items,
-    bool isReplace,
-    bool sync,
-  ) async {
-    try {
-      final variantsPayload = items
-          .map(
-            (item) => {
-              'variantId': item['variantId'],
-              'quantity': item['quantity'],
-              'isReplace': isReplace,
-            },
-          )
-          .toList();
-
-      final response = await HttpService.post(
-        ApiConstants.cartItems,
-        body: {'productId': productId, 'variants': variantsPayload},
-      );
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception("Failed to sync cart items");
-      }
-
-      if (sync) await syncWithBackend();
-    } catch (e) {
-      debugPrint("Batch add error: $e");
-      rethrow;
-    } finally {
-      _pendingSyncTask = null;
-    }
+  int getVariantQty(String variantId) {
+    final index = _items.indexWhere((it) => it.variantId == variantId);
+    if (index == -1) return 0;
+    return _items[index].qty;
   }
 
-  Future<void> updateQty(int index, int newQty) async {
-    if (index < 0 || index >= _items.length) return;
+  Future<void> updateQty(String variantId, int newQty) async {
+    final index = _items.indexWhere((it) => it.variantId == variantId);
+    if (index == -1) return;
     final item = _items[index];
 
-    // 1. Optimistic UI update
+    // --- OPTIMISTIC UPDATE ---
+    final oldItems = _items
+        .map(
+          (it) => CartItem(
+            itemId: it.itemId,
+            productId: it.productId,
+            variantId: it.variantId,
+            productName: it.productName,
+            productImage: it.productImage,
+            technicalName: it.technicalName,
+            variant: it.variant,
+            price: it.price,
+            qty: it.qty,
+            isFree: it.isFree,
+          ),
+        )
+        .toList();
+
     if (newQty <= 0) {
       _items.removeAt(index);
+      _optimisticTargetQty[variantId] = 0;
     } else {
-      item.qty = newQty;
+      _items[index].qty = newQty;
+      _optimisticTargetQty[variantId] = newQty;
     }
     notifyListeners();
 
-    // 2. Sync with Backend
+    // Debounce the quantity sync on the server
+    _updateDebounceTimers[variantId]?.cancel();
+
+    final completer = Completer<void>();
+    _pendingSyncTask = completer.future;
+
+    _updateDebounceTimers[variantId] = Timer(
+      const Duration(milliseconds: 300),
+      () async {
+        _incrementInFlight(variantId);
+        final stopwatch = Stopwatch()..start();
+        try {
+          final String? itemId = item.itemId;
+          if (itemId == null) {
+            debugPrint(
+              "[Cart API] Warning: itemId is null, executing recovery sync first.",
+            );
+            await syncWithBackend();
+          }
+
+          final updatedIdx = _items.indexWhere(
+            (it) => it.variantId == variantId,
+          );
+          final activeItemId = updatedIdx != -1
+              ? _items[updatedIdx].itemId
+              : item.itemId;
+
+          if (activeItemId != null) {
+            if (newQty <= 0) {
+              final response = await HttpService.delete(
+                "${ApiConstants.cartItems}/$activeItemId",
+              );
+              stopwatch.stop();
+              debugPrint(
+                "[Cart API] DELETE removeItem took ${stopwatch.elapsedMilliseconds}ms",
+              );
+
+              if (response.statusCode != 200) {
+                throw Exception("Failed to remove item");
+              }
+              final data = jsonDecode(response.body);
+              final cartMap = data is Map ? (data['cart'] ?? data) : null;
+              if (cartMap != null) {
+                _updateCartFromJson(cartMap);
+              } else {
+                await syncWithBackend();
+              }
+            } else {
+              final response = await HttpService.patch(
+                "${ApiConstants.cartItems}/$activeItemId",
+                body: {'quantity': newQty},
+              );
+              stopwatch.stop();
+              debugPrint(
+                "[Cart API] PATCH updateQty took ${stopwatch.elapsedMilliseconds}ms",
+              );
+
+              if (response.statusCode != 200) {
+                throw Exception("Failed to update quantity");
+              }
+              final data = jsonDecode(response.body);
+              final cartMap = data is Map ? (data['cart'] ?? data) : null;
+              if (cartMap != null) {
+                _updateCartFromJson(cartMap);
+              } else {
+                await syncWithBackend();
+              }
+            }
+          } else {
+            stopwatch.stop();
+            debugPrint(
+              "[Cart API] Error: activeItemId unresolved after recovery sync.",
+            );
+            await syncWithBackend();
+          }
+        } catch (e) {
+          debugPrint("Error updating quantity: $e");
+          // Rollback
+          _items = oldItems;
+          notifyListeners();
+          await syncWithBackend();
+        } finally {
+          _decrementInFlight(variantId);
+          final bool hasPendingProductAdd =
+              _addDebounceTimers.containsKey(item.productId) &&
+              _addDebounceTimers[item.productId]?.isActive == true;
+          if (!_updateDebounceTimers.containsKey(variantId) &&
+              !hasPendingProductAdd) {
+            _optimisticTargetQty.remove(variantId);
+          }
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        }
+      },
+    );
+
+    return _pendingSyncTask;
+  }
+
+  Future<void> removeItem(String variantId) async {
+    final index = _items.indexWhere((it) => it.variantId == variantId);
+    if (index == -1) return;
+    final item = _items[index];
+
+    // Cancel any pending update timer for this variant since it is being removed
+    _updateDebounceTimers[variantId]?.cancel();
+    _updateDebounceTimers.remove(variantId);
+
+    // --- OPTIMISTIC UPDATE ---
+    final oldItems = _items
+        .map(
+          (it) => CartItem(
+            itemId: it.itemId,
+            productId: it.productId,
+            variantId: it.variantId,
+            productName: it.productName,
+            productImage: it.productImage,
+            technicalName: it.technicalName,
+            variant: it.variant,
+            price: it.price,
+            qty: it.qty,
+            isFree: it.isFree,
+          ),
+        )
+        .toList();
+
+    _items.removeAt(index);
+    _optimisticTargetQty[variantId] = 0;
+    notifyListeners();
+
+    final stopwatch = Stopwatch()..start();
+
     try {
-      // If the item doesn't have a backend ID yet (still syncing from 'add'),
-      // we wait a moment or trigger a sync to get the ID.
-      String? itemId = item.itemId;
+      _incrementInFlight(variantId);
+      final String? itemId = item.itemId;
       if (itemId == null) {
-        await syncWithBackend();
-        // Re-find the item after sync to get the new ID
-        final syncedItem = _items.firstWhere(
-          (it) =>
-              it.productId == item.productId && it.variantId == item.variantId,
-          orElse: () => item,
+        debugPrint(
+          "[Cart API] Warning: itemId is null, executing recovery sync first.",
         );
-        itemId = syncedItem.itemId;
+        await syncWithBackend();
       }
 
-      if (itemId != null) {
-        final response = await HttpService.patch(
-          "${ApiConstants.cartItems}/$itemId",
-          body: {'quantity': newQty},
+      final activeItemId = item.itemId;
+      if (activeItemId != null) {
+        final response = await HttpService.delete(
+          "${ApiConstants.cartItems}/$activeItemId",
+        );
+        stopwatch.stop();
+        debugPrint(
+          "[Cart API] DELETE removeItem took ${stopwatch.elapsedMilliseconds}ms",
         );
 
         if (response.statusCode != 200) {
-          throw Exception("Failed to update quantity");
+          throw Exception("Failed to delete item from cart");
         }
-      }
-    } catch (_) {
-      // On failure, restore the original state to keep DB and UI in sync
-      await syncWithBackend();
-    }
-  }
-
-  Future<void> removeItem(int index) async {
-    if (index < 0 || index >= _items.length) return;
-    final item = _items[index];
-
-    // 1. Optimistic
-    _items.removeAt(index);
-    notifyListeners();
-
-    // 2. Sync
-    try {
-      String? itemId = item.itemId;
-      if (itemId == null) {
+        final data = jsonDecode(response.body);
+        final cartMap = data is Map ? (data['cart'] ?? data) : null;
+        if (cartMap != null) {
+          _updateCartFromJson(cartMap);
+        } else {
+          await syncWithBackend();
+        }
+      } else {
+        stopwatch.stop();
+        debugPrint(
+          "[Cart API] Error: activeItemId unresolved after recovery sync.",
+        );
         await syncWithBackend();
-        return;
       }
-
-      await HttpService.delete("${ApiConstants.cartItems}/$itemId");
-    } catch (_) {
+    } catch (e) {
+      debugPrint("Error removing item: $e");
+      // Rollback
+      _items = oldItems;
+      notifyListeners();
       await syncWithBackend();
+    } finally {
+      _decrementInFlight(variantId);
+      _optimisticTargetQty.remove(variantId);
     }
   }
 
@@ -363,14 +633,63 @@ class CartService extends ChangeNotifier {
         .map((j) => CartItem.fromJson(j, isFree: true))
         .toList();
 
-    _items = [...parsedItems, ...parsedFreeItems];
+    // Build a list of active syncing/debouncing variant IDs
+    final Set<String> activeSyncingIds = {
+      ..._updateDebounceTimers.keys,
+      ..._inFlightSyncVariantIds,
+    };
+
+    // Override quantity of incoming server items with active optimistic values
+    final List<CartItem> filteredItems = [];
+    final Set<String> processedVariantIds = {};
+
+    for (var item in parsedItems) {
+      final vId = item.variantId;
+      processedVariantIds.add(vId);
+
+      final bool hasPendingProductAdd =
+          _addDebounceTimers.containsKey(item.productId) &&
+          _addDebounceTimers[item.productId]?.isActive == true;
+
+      if (activeSyncingIds.contains(vId) || hasPendingProductAdd) {
+        final targetQty = _optimisticTargetQty[vId];
+        if (targetQty != null) {
+          if (targetQty <= 0) {
+            // User deleted this item, skip adding to cart list
+            continue;
+          } else {
+            item.qty = targetQty;
+          }
+        }
+      }
+      filteredItems.add(item);
+    }
+
+    // Retain any pending optimistic items that aren't even present on the server response yet
+    for (var localItem in _items) {
+      if (localItem.isFree) continue;
+      final vId = localItem.variantId;
+      final bool hasPendingProductAdd =
+          _addDebounceTimers.containsKey(localItem.productId) &&
+          _addDebounceTimers[localItem.productId]?.isActive == true;
+
+      if ((activeSyncingIds.contains(vId) || hasPendingProductAdd) &&
+          !processedVariantIds.contains(vId)) {
+        final targetQty = _optimisticTargetQty[vId];
+        if (targetQty != null && targetQty > 0) {
+          filteredItems.add(localItem);
+        }
+      }
+    }
+
+    _items = [...filteredItems, ...parsedFreeItems];
     _appliedCoupon = cartMap['appliedCoupon'];
     _discountAmount = CartItem._parseDouble(cartMap['discountAmount']);
-    
+
     if (saveToCache) {
       _saveToCache(cartMap);
     }
-    
+
     notifyListeners();
   }
 
@@ -400,13 +719,13 @@ class CartService extends ChangeNotifier {
   Future<void> removeCoupon() async {
     _isCouponLoading = true;
 
-    // 1. Optimistic Update (Instant feedback)
+    // Optimistic Update (Instant feedback)
     _appliedCoupon = null;
     _discountAmount = 0;
     _items.removeWhere((item) => item.isFree);
     notifyListeners();
 
-    // 2. Sync
+    // Sync
     try {
       final response = await HttpService.delete(ApiConstants.applyCoupon);
       if (response.statusCode == 200) {
@@ -434,16 +753,17 @@ class CartService extends ChangeNotifier {
   int get totalCount => _items.fold(0, (sum, item) => sum + item.qty);
 
   Future<void> clear() async {
-    // 1. Optimistic
     _items.clear();
     _appliedCoupon = null;
     _discountAmount = 0;
     _prefs?.remove('cart_cache');
     notifyListeners();
 
-    // 2. Sync
     try {
-      await HttpService.delete(ApiConstants.cart);
+      final response = await HttpService.delete(ApiConstants.cart);
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception("Failed to clear cart on server");
+      }
     } catch (_) {
       await syncWithBackend();
     }

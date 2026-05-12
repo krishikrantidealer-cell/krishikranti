@@ -96,18 +96,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// Silent background refresh — updates data without showing a loading spinner
   void _silentRefresh() {
-    _homeRepository.getHomeDiscovery(forceRefresh: true).then((freshDiscovery) {
-      if (mounted) {
-        setState(() {
-          _categories = freshDiscovery.categories;
-          _collections = freshDiscovery.collections;
-          _featuredProducts = freshDiscovery.featuredProducts;
-          _banners = freshDiscovery.banners;
-          _categoryCardBanners = freshDiscovery.categoryCardBanners;
-          _bestOffersBanners = freshDiscovery.bestOffersBanners;
+    _homeRepository
+        .getHomeDiscovery(forceRefresh: true)
+        .then((freshDiscovery) {
+          if (mounted) {
+            setState(() {
+              _categories = freshDiscovery.categories;
+              _collections = freshDiscovery.collections;
+              _featuredProducts = freshDiscovery.featuredProducts;
+              _banners = freshDiscovery.banners;
+              _categoryCardBanners = freshDiscovery.categoryCardBanners;
+              _bestOffersBanners = freshDiscovery.bestOffersBanners;
+            });
+          }
+        })
+        .catchError((_) {
+          /* silent — don't disrupt UI on background failure */
         });
-      }
-    }).catchError((_) {/* silent — don't disrupt UI on background failure */});
   }
 
   void _startHintRotation() {
@@ -1623,29 +1628,81 @@ class _ProductCardState extends State<ProductCard> {
                         ),
                       ),
                     ),
-                    if (widget.tag != null)
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade700,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            widget.tag!.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.tag != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade700,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                widget.tag!.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                            const SizedBox(width: 6),
+                          ],
+                          if (displayProduct.averageRating > 0)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(100),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.72),
+                                    borderRadius: BorderRadius.circular(100),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.6),
+                                      width: 1,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.02),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.star_rounded,
+                                        color: Colors.orange,
+                                        size: 11,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        displayProduct.averageRating.toStringAsFixed(1),
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 9.5,
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
+                    ),
                     Positioned(
                       top: 6,
                       right: 6,
@@ -1801,7 +1858,9 @@ class _CategoryCardState extends State<CategoryCard> {
                       child: Center(
                         child: Icon(
                           widget.icon,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.2,
+                          ),
                           size: 40,
                         ),
                       ),

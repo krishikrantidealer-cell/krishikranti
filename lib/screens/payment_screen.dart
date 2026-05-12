@@ -491,28 +491,36 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildTrustBadges() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _trustBadge(CupertinoIcons.lock_shield, "Secure\nPayment"),
-        _trustBadge(CupertinoIcons.doc_text, "GST\nInvoice"),
-        _trustBadge(Icons.local_shipping_outlined, "Fast\nDelivery"),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _trustBadge(CupertinoIcons.lock_shield, "Secure Payment"),
+          _trustBadge(CupertinoIcons.doc_text, "GST Invoice"),
+          _trustBadge(Icons.local_shipping_outlined, "Fast Delivery"),
+        ],
+      ),
     );
   }
 
   Widget _trustBadge(IconData icon, String label) {
-    return Column(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 24, color: Colors.grey.shade600),
-        const SizedBox(height: 4),
+        Icon(icon, size: 16, color: Colors.grey.shade700),
+        const SizedBox(width: 5),
         Text(
           label,
-          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
+            fontSize: 11,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],

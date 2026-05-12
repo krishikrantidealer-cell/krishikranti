@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://backend-krishi.onrender.com';
+  static const String baseUrl = 'https://api.krishikrantiorganics.com';
 
   // Auth Endpoints
   static const String sendOtp = '$baseUrl/api/auth/send-otp';

@@ -29,6 +29,13 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat(reverse: true);
+
+    // Sync cart with backend on open to ensure prices are fully updated and healed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<CartService>(context, listen: false).syncWithBackend();
+      }
+    });
   }
 
   @override
@@ -198,7 +205,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                     ? DismissDirection.none
                     : DismissDirection.endToStart,
                 onDismissed: (_) {
-                  cartService.removeItem(index);
+                  cartService.removeItem(item.variantId);
                   HapticFeedback.mediumImpact();
                 },
                 background: Container(
@@ -735,7 +742,7 @@ class _CartItemRow extends StatelessWidget {
                             GestureDetector(
                               onTap: () {
                                 HapticFeedback.mediumImpact();
-                                cartService.removeItem(index);
+                                cartService.removeItem(item.variantId);
                               },
                               child: Icon(
                                 CupertinoIcons.trash,
@@ -805,18 +812,36 @@ class _CartItemRow extends StatelessWidget {
                           _ModernQtySelector(
                             qty: item.qty,
                             isFree: item.isFree,
+                            isSyncing: cartService.syncingVariantIds.contains(
+                              item.variantId,
+                            ),
                             onMinus: () {
                               if (item.qty > 1) {
-                                cartService.updateQty(index, item.qty - 1);
+                                cartService.updateQty(
+                                  item.variantId,
+                                  item.qty - 1,
+                                );
                                 HapticFeedback.lightImpact();
                               } else {
                                 HapticFeedback.mediumImpact();
-                                cartService.removeItem(index);
+                                cartService.removeItem(item.variantId);
                               }
                             },
                             onPlus: () {
-                              cartService.updateQty(index, item.qty + 1);
+                              cartService.updateQty(
+                                item.variantId,
+                                item.qty + 1,
+                              );
                               HapticFeedback.lightImpact();
+                            },
+                            onQtyChanged: (newQty) {
+                              if (newQty <= 0) {
+                                cartService.removeItem(item.variantId);
+                                HapticFeedback.mediumImpact();
+                              } else {
+                                cartService.updateQty(item.variantId, newQty);
+                                HapticFeedback.lightImpact();
+                              }
                             },
                           ),
                         ],
@@ -838,13 +863,83 @@ class _ModernQtySelector extends StatelessWidget {
   final VoidCallback onMinus;
   final VoidCallback onPlus;
   final bool isFree;
+  final bool isSyncing;
+  final ValueChanged<int>? onQtyChanged;
 
   const _ModernQtySelector({
     required this.qty,
     required this.onMinus,
     required this.onPlus,
     this.isFree = false,
+    this.isSyncing = false,
+    this.onQtyChanged,
   });
+
+  void _showQuantityEditDialog(BuildContext context, int currentQty) {
+    final controller = TextEditingController(text: currentQty.toString());
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "Enter Quantity",
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            color: Colors.black,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: "Enter value",
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(
+                color: Color(0xFF1B5E20),
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "CANCEL",
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final int? val = int.tryParse(controller.text);
+              if (val != null && val >= 0) {
+                onQtyChanged?.call(val);
+              }
+              Navigator.pop(context);
+            },
+            child: const Text(
+              "UPDATE",
+              style: TextStyle(
+                color: Color(0xFF1B5E20),
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -859,27 +954,55 @@ class _ModernQtySelector extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!isFree) _qtyBtn(CupertinoIcons.minus, onMinus),
+            if (!isFree)
+              _qtyBtn(
+                qty == 1 ? CupertinoIcons.trash_fill : CupertinoIcons.minus,
+                isSyncing ? () {} : onMinus,
+                size: qty == 1 ? 12 : 14,
+              ),
             Container(
               constraints: const BoxConstraints(minWidth: 32),
               alignment: Alignment.center,
-              child: Text(
-                "$qty",
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13,
-                  color: Colors.black,
-                ),
-              ),
+              child: isSyncing
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: isSyncing || isFree || onQtyChanged == null
+                          ? null
+                          : () => _showQuantityEditDialog(context, qty),
+                      behavior: HitTestBehavior.opaque,
+                      child: Text(
+                        "$qty",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                          color: Colors.black,
+                          decoration: TextDecoration.underline,
+                          decorationStyle: TextDecorationStyle.dashed,
+                          decorationColor: Colors.black45,
+                          decorationThickness: 1.5,
+                        ),
+                      ),
+                    ),
             ),
-            if (!isFree) _qtyBtn(CupertinoIcons.plus, onPlus),
+            if (!isFree)
+              _qtyBtn(CupertinoIcons.plus, isSyncing ? () {} : onPlus),
           ],
         ),
       ),
     );
   }
 
-  Widget _qtyBtn(IconData icon, VoidCallback onTap) {
+  Widget _qtyBtn(IconData icon, VoidCallback onTap, {double size = 14}) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -887,7 +1010,7 @@ class _ModernQtySelector extends StatelessWidget {
         width: 40, // Increased touch area
         height: 36, // Increased touch area
         alignment: Alignment.center,
-        child: Icon(icon, size: 14, color: Colors.black87),
+        child: Icon(icon, size: size, color: Colors.black87),
       ),
     );
   }

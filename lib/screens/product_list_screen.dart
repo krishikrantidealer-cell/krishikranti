@@ -258,235 +258,240 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
                 ),
-              slivers: [
-                // Ultra-Clean Minimalist Header
-                SliverAppBar(
-                  pinned: true,
-                  floating: true,
-                  backgroundColor: Colors.white,
-                  surfaceTintColor: Colors.white,
-                  elevation: 0,
-                  centerTitle: true,
-                  leadingWidth: 56,
-                  title: _isSearching
-                      ? CupertinoSearchTextField(
-                          controller: _searchController,
-                          placeholder: l10n.searchProducts,
-                          backgroundColor: Colors.grey.shade100,
-                          onChanged: (value) =>
-                              setState(() => _searchQuery = value),
-                          onSuffixTap: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = "";
-                              _isSearching = false;
-                            });
-                          },
-                        )
-                      : Text(
-                          widget.category,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
-                        ),
-                  leading: IconButton(
-                    icon: const Icon(
-                      CupertinoIcons.back,
-                      color: Colors.black,
-                      size: 24,
-                    ),
-                    onPressed: () {
-                      setState(() => _isPopping = true);
-                      Navigator.pop(context);
-                    },
-                  ),
-                  actions: [
-                    if (!_isSearching)
-                      IconButton(
-                        icon: const Icon(
-                          CupertinoIcons.search,
-                          color: Colors.black,
-                          size: 22,
-                        ),
-                        onPressed: () => setState(() => _isSearching = true),
-                      ),
-                    const SizedBox(width: 4),
-                  ],
-                  bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(1),
-                    child: Container(color: Colors.grey.shade100, height: 1),
-                  ),
-                ),
-
-                // Professional Sticky Filter Header
-                if (!widget.isCollection)
-                  SliverPersistentHeader(
+                slivers: [
+                  // Ultra-Clean Minimalist Header
+                  SliverAppBar(
                     pinned: true,
-                    delegate: _StickyFilterDelegate(
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Colors.grey.shade100,
-                              width: 1,
+                    floating: true,
+                    backgroundColor: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    elevation: 0,
+                    centerTitle: true,
+                    leadingWidth: 56,
+                    title: _isSearching
+                        ? CupertinoSearchTextField(
+                            controller: _searchController,
+                            placeholder: l10n.searchProducts,
+                            backgroundColor: Colors.grey.shade100,
+                            onChanged: (value) =>
+                                setState(() => _searchQuery = value),
+                            onSuffixTap: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = "";
+                                _isSearching = false;
+                              });
+                            },
+                          )
+                        : Text(
+                            widget.category,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
                             ),
                           ),
+                    leading: IconButton(
+                      icon: const Icon(
+                        CupertinoIcons.back,
+                        color: Colors.black,
+                        size: 24,
+                      ),
+                      onPressed: () {
+                        setState(() => _isPopping = true);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    actions: [
+                      if (!_isSearching)
+                        IconButton(
+                          icon: const Icon(
+                            CupertinoIcons.search,
+                            color: Colors.black,
+                            size: 22,
+                          ),
+                          onPressed: () => setState(() => _isSearching = true),
                         ),
-                        child: ClipRect(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
+                      const SizedBox(width: 4),
+                    ],
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(1),
+                      child: Container(color: Colors.grey.shade100, height: 1),
+                    ),
+                  ),
+
+                  // Professional Sticky Filter Header
+                  if (!widget.isCollection)
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _StickyFilterDelegate(
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.shade100,
+                                width: 1,
                               ),
-                              itemCount: _menuItems.length,
-                              itemBuilder: (context, index) {
-                                final isSelected = _selectedMenuIndex == index;
-                                return TweenAnimationBuilder<double>(
-                                  duration: Duration(
-                                    milliseconds: 300 + (index * 50),
-                                  ),
-                                  tween: Tween(begin: 0.0, end: 1.0),
-                                  builder: (context, value, child) {
-                                    return Opacity(
-                                      opacity: value,
-                                      child: Transform.translate(
-                                        offset: Offset(20 * (1 - value), 0),
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        if (_selectedMenuIndex != index) {
-                                          HapticFeedback.selectionClick();
-                                          setState(() {
-                                            _selectedMenuIndex = index;
-                                            _products = [];
-                                          });
-                                          _fetchProducts();
-                                        }
-                                      },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 250,
+                            ),
+                          ),
+                          child: ClipRect(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                itemCount: _menuItems.length,
+                                itemBuilder: (context, index) {
+                                  final isSelected =
+                                      _selectedMenuIndex == index;
+                                  return TweenAnimationBuilder<double>(
+                                    duration: Duration(
+                                      milliseconds: 300 + (index * 50),
+                                    ),
+                                    tween: Tween(begin: 0.0, end: 1.0),
+                                    builder: (context, value, child) {
+                                      return Opacity(
+                                        opacity: value,
+                                        child: Transform.translate(
+                                          offset: Offset(20 * (1 - value), 0),
+                                          child: child,
                                         ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 18,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? theme.colorScheme.primary
-                                              : Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            100,
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          if (_selectedMenuIndex != index) {
+                                            HapticFeedback.selectionClick();
+                                            setState(() {
+                                              _selectedMenuIndex = index;
+                                              _products = [];
+                                            });
+                                            _fetchProducts();
+                                          }
+                                        },
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 250,
                                           ),
-                                          border: Border.all(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 18,
+                                          ),
+                                          decoration: BoxDecoration(
                                             color: isSelected
                                                 ? theme.colorScheme.primary
-                                                : Colors.grey.shade200,
-                                            width: 1.2,
+                                                : Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              100,
+                                            ),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? theme.colorScheme.primary
+                                                  : Colors.grey.shade200,
+                                              width: 1.2,
+                                            ),
+                                            boxShadow: isSelected
+                                                ? [
+                                                    BoxShadow(
+                                                      color: theme
+                                                          .colorScheme
+                                                          .primary
+                                                          .withValues(
+                                                            alpha: 0.25,
+                                                          ),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(
+                                                        0,
+                                                        3,
+                                                      ),
+                                                    ),
+                                                  ]
+                                                : [],
                                           ),
-                                          boxShadow: isSelected
-                                              ? [
-                                                  BoxShadow(
-                                                    color: theme
-                                                        .colorScheme
-                                                        .primary
-                                                        .withValues(
-                                                          alpha: 0.25,
-                                                        ),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 3),
-                                                  ),
-                                                ]
-                                              : [],
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          _menuItems[index],
-                                          style: TextStyle(
-                                            color: isSelected
-                                                ? Colors.white
-                                                : Colors.grey.shade700,
-                                            fontWeight: isSelected
-                                                ? FontWeight.w700
-                                                : FontWeight.w600,
-                                            fontSize: 11,
-                                            letterSpacing: 0.2,
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            _menuItems[index],
+                                            style: TextStyle(
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : Colors.grey.shade700,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w600,
+                                              fontSize: 11,
+                                              letterSpacing: 0.2,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Product Grid (High Density)
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  sliver: _isLoading
-                      ? _buildSliverShimmerGrid()
-                      : _errorMessage != null
-                      ? SliverToBoxAdapter(child: _buildErrorWidget())
-                      : products.isEmpty
-                      ? SliverToBoxAdapter(child: _buildEmptyWidget())
-                      : ListenableBuilder(
-                          listenable: _favoriteService,
-                          builder: (context, child) {
-                            return SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    mainAxisExtent: 245,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                  ),
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                                  if (index >= products.length) {
-                                    return const ShimmerCard();
-                                  }
-                                  final product = products[index];
-                                  return RepaintBoundary(
-                                    child: ProductCard(
-                                      key: ValueKey(product.id),
-                                      index: index,
-                                      product: product,
-                                      category: widget.category,
-                                      isFavorite: _favoriteService.isFavorite(
-                                        product.id,
-                                      ),
-                                      onFavoriteToggle: () =>
-                                          _toggleFavorite(product),
-                                      isPopping: _isPopping,
                                     ),
                                   );
                                 },
-                                childCount:
-                                    products.length + (_isLoadingMore ? 2 : 0),
                               ),
-                            );
-                          },
+                            ),
+                          ),
                         ),
-                ),
-               ],
+                      ),
+                    ),
+
+                  // Product Grid (High Density)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    sliver: _isLoading
+                        ? _buildSliverShimmerGrid()
+                        : _errorMessage != null
+                        ? SliverToBoxAdapter(child: _buildErrorWidget())
+                        : products.isEmpty
+                        ? SliverToBoxAdapter(child: _buildEmptyWidget())
+                        : ListenableBuilder(
+                            listenable: _favoriteService,
+                            builder: (context, child) {
+                              return SliverGrid(
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      mainAxisExtent: 245,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                    ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    if (index >= products.length) {
+                                      return const ShimmerCard();
+                                    }
+                                    final product = products[index];
+                                    return RepaintBoundary(
+                                      child: ProductCard(
+                                        key: ValueKey(product.id),
+                                        index: index,
+                                        product: product,
+                                        category: widget.category,
+                                        isFavorite: _favoriteService.isFavorite(
+                                          product.id,
+                                        ),
+                                        onFavoriteToggle: () =>
+                                            _toggleFavorite(product),
+                                        isPopping: _isPopping,
+                                      ),
+                                    );
+                                  },
+                                  childCount:
+                                      products.length +
+                                      (_isLoadingMore ? 2 : 0),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ),
           ),
         ),
       ),
@@ -810,6 +815,60 @@ class _ProductCardState extends State<ProductCard>
                         ),
                       ),
                     ),
+
+                    if (widget.product.averageRating > 0)
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(100),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.72),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.6),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.02),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    color: Colors.orange,
+                                    size: 13,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    widget.product.averageRating
+                                        .toStringAsFixed(1),
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 10,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
 
                     Positioned(
                       top: 10,
