@@ -145,7 +145,7 @@ class CartService extends ChangeNotifier {
   bool _isLoading = false;
   bool _isCouponLoading = false;
   Future<void>? _pendingSyncTask;
-  final Set<String> _syncingVariantIds = {};
+  int _dataVersion = 0;
 
   List<CartItem> get items => _items;
   String? get appliedCoupon => _appliedCoupon;
@@ -153,7 +153,7 @@ class CartService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isCouponLoading => _isCouponLoading;
   Future<void>? get pendingSyncTask => _pendingSyncTask;
-  Set<String> get syncingVariantIds => _syncingVariantIds;
+  Set<String> get syncingVariantIds => _inFlightSyncVariantIds;
 
   final Map<String, Timer> _addDebounceTimers = {};
   final Map<String, Timer> _updateDebounceTimers = {};
@@ -183,6 +183,7 @@ class CartService extends ChangeNotifier {
   Future<void> syncWithBackend() async {
     _isLoading = true;
     notifyListeners();
+    final int currentVersion = _dataVersion;
     final stopwatch = Stopwatch()..start();
     try {
       final response = await HttpService.get(ApiConstants.cart);
@@ -190,6 +191,13 @@ class CartService extends ChangeNotifier {
       debugPrint(
         "[Cart API] GET syncWithBackend took ${stopwatch.elapsedMilliseconds}ms",
       );
+
+      if (currentVersion < _dataVersion) {
+        debugPrint(
+          "[Cart API] Discarding stale GET response due to newer mutations",
+        );
+        return;
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -278,6 +286,8 @@ class CartService extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
+    _dataVersion++;
 
     // --- OPTIMISTIC UPDATE ---
     // Backup current state for potential rollback
@@ -413,6 +423,8 @@ class CartService extends ChangeNotifier {
     if (index == -1) return;
     final item = _items[index];
 
+    _dataVersion++;
+
     // --- OPTIMISTIC UPDATE ---
     final oldItems = _items
         .map(
@@ -434,6 +446,8 @@ class CartService extends ChangeNotifier {
     if (newQty <= 0) {
       _items.removeAt(index);
       _optimisticTargetQty[variantId] = 0;
+      _addDebounceTimers[item.productId]?.cancel();
+      _addDebounceTimers.remove(item.productId);
     } else {
       _items[index].qty = newQty;
       _optimisticTargetQty[variantId] = newQty;
@@ -548,6 +562,12 @@ class CartService extends ChangeNotifier {
     // Cancel any pending update timer for this variant since it is being removed
     _updateDebounceTimers[variantId]?.cancel();
     _updateDebounceTimers.remove(variantId);
+
+    // Cancel any pending add/replace timer for this product
+    _addDebounceTimers[item.productId]?.cancel();
+    _addDebounceTimers.remove(item.productId);
+
+    _dataVersion++;
 
     // --- OPTIMISTIC UPDATE ---
     final oldItems = _items
@@ -695,6 +715,7 @@ class CartService extends ChangeNotifier {
 
   Future<void> applyCoupon(String code) async {
     _isCouponLoading = true;
+    _dataVersion++;
     notifyListeners();
 
     try {
@@ -718,6 +739,7 @@ class CartService extends ChangeNotifier {
 
   Future<void> removeCoupon() async {
     _isCouponLoading = true;
+    _dataVersion++;
 
     // Optimistic Update (Instant feedback)
     _appliedCoupon = null;
@@ -753,10 +775,21 @@ class CartService extends ChangeNotifier {
   int get totalCount => _items.fold(0, (sum, item) => sum + item.qty);
 
   Future<void> clear() async {
+    for (var timer in _addDebounceTimers.values) {
+      timer.cancel();
+    }
+    _addDebounceTimers.clear();
+    for (var timer in _updateDebounceTimers.values) {
+      timer.cancel();
+    }
+    _updateDebounceTimers.clear();
+    _optimisticTargetQty.clear();
+
     _items.clear();
     _appliedCoupon = null;
     _discountAmount = 0;
     _prefs?.remove('cart_cache');
+    _dataVersion++;
     notifyListeners();
 
     try {

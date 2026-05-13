@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
+import 'dart:ui';
+import 'package:lottie/lottie.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/cart_service.dart';
@@ -32,11 +35,12 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  final Color primaryGreen = const Color(0xFF006D32);
+  final Color primaryGreen = const Color(0xFF298E4D);
   final Color secondaryGreen = const Color(0xFFE8F5E9);
-  final Color accentOrange = const Color(0xFFFF9100);
+  final Color accentOrange = const Color(0xFFFA9527);
   final Color buttonGreen = const Color(0xFF298E4D);
   final Color buttonOrange = const Color(0xFFFA9527);
+  final Color buttonRed = const Color(0xFFED4337);
 
   final FavoriteService _favoriteService = FavoriteService();
   final ProductRepository _productRepository = ProductRepository();
@@ -44,19 +48,92 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late Product _product;
   bool _isLoading = true;
   late ScrollController _scrollController;
-  bool _showStickyHeader = false;
+  final ValueNotifier<bool> _showStickyHeaderNotifier = ValueNotifier<bool>(
+    false,
+  );
   Variant? _selectedVariant;
   String? _selectedPackSize;
   int _activeTab = 0;
   bool _isDescriptionExpanded = false;
-  int _currentImageIndex = 0;
+  final ValueNotifier<int> _currentImageIndexNotifier = ValueNotifier<int>(0);
   String? _categoryName;
+  String? _unlockedTierLabel;
+  bool _showSuccessAnimation = false;
+  Timer? _celebrationTimer;
+  LottieComposition? _successComposition;
+
+  void _showUnlockCelebration(String tierLabel) {
+    _celebrationTimer?.cancel();
+
+    // Trigger dual strong haptic feedback sequence to accompany the celebration burst
+    HapticFeedback.vibrate();
+    Future.delayed(const Duration(milliseconds: 150), () {
+      HapticFeedback.vibrate();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _unlockedTierLabel = tierLabel;
+          _showSuccessAnimation = true;
+        });
+      }
+    });
+
+    _celebrationTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) {
+        setState(() {
+          _showSuccessAnimation = false;
+          _unlockedTierLabel = null;
+        });
+      }
+    });
+  }
+
+  Widget _buildSuccessAnimationOverlay() {
+    if (_successComposition == null) return const SizedBox.shrink();
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: RepaintBoundary(
+          child: Lottie(
+            composition: _successComposition,
+            repeat: false,
+            fit: BoxFit.contain,
+            frameRate: FrameRate.max,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _product = widget.product;
+
+    // Synchronously check if full details are cached in memory to bypass loading screens entirely
+    final cachedProduct = _productRepository.getProductDetailFromCache(
+      _product.id,
+    );
+    if (cachedProduct != null) {
+      _product = cachedProduct;
+    }
+
     _scrollController = ScrollController()..addListener(_onScroll);
+
+    // Preload animation for zero-jank playback
+    AssetLottie('assets/animations/CongratulationsLottie.json')
+        .load()
+        .then((composition) {
+          if (mounted) {
+            setState(() {
+              _successComposition = composition;
+            });
+          }
+        })
+        .catchError((_) {});
+
     if (_product.variants.isNotEmpty) {
       _selectedVariant = _product.variants.first;
       _selectedPackSize = _parseSize(_selectedVariant!.size).packSize;
@@ -83,7 +160,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     if (_categoryName == null) {
-      final combinedText = '${_product.title} ${_product.brandName ?? ""} ${_product.technicalName ?? ""}'.toLowerCase();
+      final combinedText =
+          '${_product.title} ${_product.brandName ?? ""} ${_product.technicalName ?? ""}'
+              .toLowerCase();
       if (combinedText.contains('herbicide')) {
         _categoryName = 'Herbicides';
       } else if (combinedText.contains('insecticide')) {
@@ -92,7 +171,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _categoryName = 'Fungicides';
       } else if (combinedText.contains('fertilizer')) {
         _categoryName = 'Fertilizers';
-      } else if (combinedText.contains('pgr') || combinedText.contains('growth')) {
+      } else if (combinedText.contains('pgr') ||
+          combinedText.contains('growth')) {
         _categoryName = 'PGRs';
       } else if (combinedText.contains('bio')) {
         _categoryName = 'Bio-Products';
@@ -112,14 +192,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _showStickyHeaderNotifier.dispose();
+    _currentImageIndexNotifier.dispose();
+    _celebrationTimer?.cancel();
     super.dispose();
   }
 
   void _onScroll() {
-    if (_scrollController.offset > 400 && !_showStickyHeader) {
-      setState(() => _showStickyHeader = true);
-    } else if (_scrollController.offset <= 400 && _showStickyHeader) {
-      setState(() => _showStickyHeader = false);
+    if (_scrollController.offset > 400 && !_showStickyHeaderNotifier.value) {
+      _showStickyHeaderNotifier.value = true;
+    } else if (_scrollController.offset <= 400 &&
+        _showStickyHeaderNotifier.value) {
+      _showStickyHeaderNotifier.value = false;
     }
   }
 
@@ -156,9 +240,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           _isLoading = false;
         });
       }
+
+      // Kick off silent background network synchronization to update the cache
+      _performBackgroundSync();
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _performBackgroundSync() {
+    _productRepository
+        .getProductDetail(_product.id, forceRefresh: true)
+        .then((freshProduct) {
+          if (mounted) {
+            setState(() {
+              _product = freshProduct;
+              if (_product.variants.isNotEmpty) {
+                _selectedVariant = _product.variants.firstWhere(
+                  (v) => v.id == _selectedVariant?.id,
+                  orElse: () => _product.variants.first,
+                );
+                _selectedPackSize = _parseSize(_selectedVariant!.size).packSize;
+              }
+            });
+          }
+        })
+        .catchError((_) {});
   }
 
   void _toggleFavorite() {
@@ -176,6 +283,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
+  List<String> get _displayImages {
+    if (_product.details != null &&
+        _product.details!.originalImages.isNotEmpty) {
+      return _product.details!.originalImages;
+    }
+    if (_product.images.isNotEmpty) {
+      return _product.images;
+    }
+    return [_product.thumbnail];
+  }
+
+  void _openFullscreenGallery(int initialIndex) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        pageBuilder: (context, _, __) => _FullscreenImageGallery(
+          images: _displayImages,
+          initialIndex: initialIndex,
+          productId: _product.id,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   int get totalItems {
     final cartService = Provider.of<CartService>(context, listen: false);
     int total = 0;
@@ -189,16 +325,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final cartService = Provider.of<CartService>(context, listen: false);
     double total = 0;
     for (var v in _product.variants) {
-      total += cartService.getVariantQty(v.id) * v.price;
+      final qty = cartService.getVariantQty(v.id);
+      if (qty > 0) {
+        double unitPrice = v.price;
+        final double totalVolume = v.packVolume * qty;
+        if (totalVolume > 50.0) {
+          unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
+        } else if (totalVolume > 30.0) {
+          unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
+        } else if (totalVolume >= 10.0) {
+          unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
+        }
+        total += qty * (unitPrice * v.packVolume);
+      }
     }
     return total;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Watch CartService for centralized real-time updates across the screen
-    Provider.of<CartService>(context);
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
@@ -207,11 +352,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             CustomScrollView(
               controller: _scrollController,
-              physics: const ClampingScrollPhysics(),
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
               slivers: [
                 _buildImageHero(context),
                 SliverToBoxAdapter(
                   child: AnimationLimiter(
+                    key: const ValueKey('product_anim_limiter'),
                     child: Column(
                       children: AnimationConfiguration.toStaggeredList(
                         duration: const Duration(milliseconds: 600),
@@ -222,20 +370,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         children: [
                           _buildPremiumInfoSection(),
                           _buildExpertAnalysis(),
-                          _buildProductDescription(),
                           _buildConfigurationCard(),
-                          const SizedBox(
-                            height: 100,
-                          ), // Bottom padding for actions
+                          _buildProductDescription(),
                         ],
                       ),
                     ),
                   ),
                 ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100), // Bottom padding for actions
+                ),
               ],
             ),
-            _buildFloatingActionBar(),
-            if (_showStickyHeader) _buildStickyHeader(),
+            Consumer<CartService>(
+              builder: (context, cart, child) => _buildFloatingActionBar(),
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: _showStickyHeaderNotifier,
+              builder: (context, showSticky, child) {
+                if (showSticky) {
+                  return Consumer<CartService>(
+                    builder: (context, cart, child) => _buildStickyHeader(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            if (_showSuccessAnimation) _buildSuccessAnimationOverlay(),
           ],
         ),
       ),
@@ -269,7 +430,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   : CupertinoIcons.heart,
               _toggleFavorite,
               color: _favoriteService.isFavorite(_product.id)
-                  ? Colors.red
+                  ? buttonRed
                   : Colors.black87,
             ),
           ),
@@ -278,73 +439,89 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ],
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [StretchMode.zoomBackground],
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 80, bottom: 40),
-              child: Hero(
-                tag: 'product_${_product.id}',
-                child: ProgressiveImage(
-                  thumbnailUrl: widget.thumbnailUrl ?? _product.thumbnail,
-                  imageUrl: _product.images.isNotEmpty
-                      ? _product.images.first
-                      : _product.thumbnail,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            if (_product.details?.originalImages.isNotEmpty ?? false) ...[
-              CarouselSlider(
-                options: CarouselOptions(
-                  height: 420,
-                  viewportFraction: 1.0,
-                  enableInfiniteScroll:
-                      _product.details!.originalImages.length > 1,
-                  onPageChanged: (index, reason) {
-                    setState(() {
-                      _currentImageIndex = index;
-                    });
-                  },
-                ),
-                items: _product.details!.originalImages
-                    .map(
-                      (url) => Container(
-                        padding: const EdgeInsets.only(top: 80, bottom: 40),
-                        child: CachedNetworkImage(
-                          imageUrl: url,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-              if (_product.details!.originalImages.length > 1)
-                Positioned(
-                  bottom: 12,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _product.details!.originalImages.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: _currentImageIndex == index ? 14 : 5,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: _currentImageIndex == index
-                              ? primaryGreen
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
+        background: RepaintBoundary(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 80, bottom: 40),
+                child: GestureDetector(
+                  onTap: () => _openFullscreenGallery(0),
+                  child: Hero(
+                    tag: 'product_${_product.id}',
+                    child: ProgressiveImage(
+                      thumbnailUrl: widget.thumbnailUrl ?? _product.thumbnail,
+                      imageUrl: _product.images.isNotEmpty
+                          ? _product.images.first
+                          : _product.thumbnail,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
+              ),
+              if (_product.details?.originalImages.isNotEmpty ?? false) ...[
+                CarouselSlider(
+                  options: CarouselOptions(
+                    height: 420,
+                    viewportFraction: 1.0,
+                    enableInfiniteScroll:
+                        _product.details!.originalImages.length > 1,
+                    onPageChanged: (index, reason) {
+                      _currentImageIndexNotifier.value = index;
+                    },
+                  ),
+                  items: _product.details!.originalImages.asMap().entries.map((
+                    entry,
+                  ) {
+                    final index = entry.key;
+                    final url = entry.value;
+                    return GestureDetector(
+                      onTap: () => _openFullscreenGallery(index),
+                      child: Container(
+                        padding: const EdgeInsets.only(top: 80, bottom: 40),
+                        child: Hero(
+                          tag: 'product_image_${_product.id}_$index',
+                          child: CachedNetworkImage(
+                            imageUrl: url,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                if (_product.details!.originalImages.length > 1)
+                  Positioned(
+                    bottom: 12,
+                    left: 0,
+                    right: 0,
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _currentImageIndexNotifier,
+                      builder: (context, currentIndex, child) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            _product.details!.originalImages.length,
+                            (index) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: currentIndex == index ? 14 : 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: currentIndex == index
+                                    ? primaryGreen
+                                    : Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -430,15 +607,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _product.averageRating > 0 ? Colors.orange.shade50 : Colors.grey.shade50,
+                  color: _product.averageRating > 0
+                      ? Colors.orange.shade50
+                      : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: _product.averageRating > 0 ? Colors.orange.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                    color: _product.averageRating > 0
+                        ? Colors.orange.withOpacity(0.1)
+                        : Colors.grey.withOpacity(0.1),
                     width: 1,
                   ),
                 ),
@@ -446,22 +624,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   children: [
                     Icon(
                       Icons.star_rounded,
-                      color: _product.averageRating > 0 ? Colors.orange : Colors.grey.shade400,
+                      color: _product.averageRating > 0
+                          ? Colors.orange
+                          : Colors.grey.shade400,
                       size: 16,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _product.averageRating > 0 ? _product.averageRating.toString() : "0.0",
+                      _product.averageRating > 0
+                          ? _product.averageRating.toString()
+                          : "0.0",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: _product.averageRating > 0 ? Colors.orange : Colors.grey.shade600,
+                        color: _product.averageRating > 0
+                            ? Colors.orange
+                            : Colors.grey.shade600,
                         fontSize: 12,
                       ),
                     ),
                     Text(
-                      _product.averageRating > 0 ? " (${_product.numReviews})" : " (0 reviews)",
+                      _product.averageRating > 0
+                          ? " (${_product.numReviews})"
+                          : " (0 reviews)",
                       style: TextStyle(
-                        color: _product.averageRating > 0 ? Colors.orange.shade800 : Colors.grey.shade500,
+                        color: _product.averageRating > 0
+                            ? Colors.orange.shade800
+                            : Colors.grey.shade500,
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
                       ),
@@ -551,501 +739,460 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget _buildConfigurationCard() {
     if (_product.variants.isEmpty) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Select Packaging & Quantity",
-            style: TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w900,
-              color: Colors.black,
-              letterSpacing: -0.4,
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Select Packaging & Quantity",
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+                letterSpacing: -0.4,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          ..._product.variants.map((v) {
-            final cartService = Provider.of<CartService>(
-              context,
-              listen: false,
-            );
-            final int quantity = cartService.getVariantQty(v.id);
-            final bool isSyncing = cartService.syncingVariantIds.contains(v.id);
-            final bool isSelected = quantity > 0;
+            const SizedBox(height: 6),
+            ..._product.variants.map((v) {
+              return Selector<CartService, String>(
+                selector: (context, cart) =>
+                    '${cart.getVariantQty(v.id)}_${cart.syncingVariantIds.contains(v.id)}',
+                builder: (context, stateStr, child) {
+                  final parts = stateStr.split('_');
+                  final int quantity = int.parse(parts[0]);
+                  final bool isSyncing = parts[1] == 'true';
+                  final bool isSelected = quantity > 0;
 
-            // Dynamic tier price calculation based on total volume of this variant
-            double unitPrice = v.price;
-            if (isSelected) {
-              final double totalVolume = v.packVolume * quantity;
-              if (totalVolume > 50.0) {
-                unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
-              } else if (totalVolume > 30.0) {
-                unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
-              } else if (totalVolume >= 10.0) {
-                unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
-              }
-            }
+                  // Dynamic tier price calculation based on total volume of this variant
+                  double unitPrice = v.price;
+                  if (isSelected) {
+                    final double totalVolume = v.packVolume * quantity;
+                    if (totalVolume > 50.0) {
+                      unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
+                    } else if (totalVolume > 30.0) {
+                      unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
+                    } else if (totalVolume >= 10.0) {
+                      unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
+                    }
+                  }
 
-            final String? perUnitLabel = _getPerUnitLabel(v.size, unitPrice);
-            final parsedSize = _parseSize(v.size);
+                  final String? perUnitLabel = _getPerUnitLabel(
+                    v.size,
+                    unitPrice,
+                  );
+                  final parsedSize = _parseSize(v.size);
 
-            final bool isKg =
-                v.size.toLowerCase().contains('g') ||
-                v.size.toLowerCase().contains('kg') ||
-                v.size.toLowerCase().contains('k');
-            final String unitSuffix = isKg ? "Kg" : "Litre";
-            final String configName =
-                parsedSize.configuration.toLowerCase() == "single"
-                ? "${v.packVolume.toInt()} $unitSuffix"
-                : parsedSize.configuration;
+                  final bool isKg =
+                      v.size.toLowerCase().contains('g') ||
+                      v.size.toLowerCase().contains('kg') ||
+                      v.size.toLowerCase().contains('k');
+                  final String unitSuffix = isKg ? "Kg" : "Litre";
+                  final String formattedVol = v.packVolume % 1 == 0
+                      ? v.packVolume.toInt().toString()
+                      : v.packVolume.toStringAsFixed(
+                          v.packVolume < 1
+                              ? (v.packVolume * 100 % 10 == 0 ? 1 : 2)
+                              : 1,
+                        );
+                  final String configName =
+                      parsedSize.configuration.toLowerCase() == "single"
+                      ? "$formattedVol $unitSuffix"
+                      : parsedSize.configuration;
 
-            final String displayConfigName = isSelected
-                ? _getUpdatedConfigName(configName, quantity)
-                : configName;
+                  final String displayConfigName = isSelected
+                      ? _getUpdatedConfigName(configName, quantity)
+                      : configName;
 
-            final double displayPrice = isSelected
-                ? (unitPrice * v.packVolume * quantity)
-                : (v.price * v.packVolume);
-            final double displayCompareAtPrice = isSelected
-                ? (v.compareAtPrice * v.packVolume * quantity)
-                : (v.compareAtPrice * v.packVolume);
+                  final double displayPrice = isSelected
+                      ? (unitPrice * v.packVolume * quantity)
+                      : (v.price * v.packVolume);
+                  final double displayCompareAtPrice = isSelected
+                      ? (v.compareAtPrice * v.packVolume * quantity)
+                      : (v.compareAtPrice * v.packVolume);
 
-            // Calculate bulk discount details
-            double minPrice = v.price;
-            if (v.price50_plus > 0 && v.price50_plus < minPrice) {
-              minPrice = v.price50_plus;
-            }
-            if (v.price30_50 > 0 && v.price30_50 < minPrice) {
-              minPrice = v.price30_50;
-            }
-            if (v.price10_30 > 0 && v.price10_30 < minPrice) {
-              minPrice = v.price10_30;
-            }
+                  // Calculate bulk discount details
+                  double minPrice = v.price;
+                  if (v.price50_plus > 0 && v.price50_plus < minPrice) {
+                    minPrice = v.price50_plus;
+                  }
+                  if (v.price30_50 > 0 && v.price30_50 < minPrice) {
+                    minPrice = v.price30_50;
+                  }
+                  if (v.price10_30 > 0 && v.price10_30 < minPrice) {
+                    minPrice = v.price10_30;
+                  }
 
-            final bool hasBulkDiscount = minPrice < v.price;
-            final double bulkDiscountPercent = hasBulkDiscount
-                ? ((v.price - minPrice) / v.price * 100)
-                : 0.0;
+                  final bool hasBulkDiscount = minPrice < v.price;
+                  final double bulkDiscountPercent = hasBulkDiscount
+                      ? ((v.price - minPrice) / v.price * 100)
+                      : 0.0;
 
-            bool isBulkActive = false;
-            String activeTierName = "";
-            if (isSelected) {
-              final double totalVolume = v.packVolume * quantity;
-              if (totalVolume > 50.0 && v.price50_plus > 0) {
-                isBulkActive = true;
-                activeTierName = "50L+ Tier";
-              } else if (totalVolume > 30.0 && v.price30_50 > 0) {
-                isBulkActive = true;
-                activeTierName = "30-50L Tier";
-              } else if (totalVolume >= 10.0 && v.price10_30 > 0) {
-                isBulkActive = true;
-                activeTierName = "10-30L Tier";
-              }
-            }
+                  bool isBulkActive = false;
+                  String activeTierName = "";
+                  if (isSelected) {
+                    final double totalVolume = v.packVolume * quantity;
+                    if (totalVolume > 50.0 && v.price50_plus > 0) {
+                      isBulkActive = true;
+                      activeTierName = "50L+ Tier";
+                    } else if (totalVolume > 30.0 && v.price30_50 > 0) {
+                      isBulkActive = true;
+                      activeTierName = "30-50L Tier";
+                    } else if (totalVolume >= 10.0 && v.price10_30 > 0) {
+                      isBulkActive = true;
+                      activeTierName = "10-30L Tier";
+                    }
+                  }
 
-            // Parse pack size value and unit for modern vertical stacked layout
-            final packSizeStr = parsedSize.packSize;
-            final match = RegExp(
-              r'^([\d.]+)\s*([a-zA-Z]+)?',
-            ).firstMatch(packSizeStr);
-            final String val = match != null
-                ? (match.group(1) ?? packSizeStr)
-                : packSizeStr;
-            final String unit = match != null ? (match.group(2) ?? "") : "";
+                  // Parse pack size value and unit for modern vertical stacked layout
+                  final packSizeStr = parsedSize.packSize;
+                  final match = RegExp(
+                    r'^([\d.]+)\s*([a-zA-Z]+)?',
+                  ).firstMatch(packSizeStr);
+                  final String val = match != null
+                      ? (match.group(1) ?? packSizeStr)
+                      : packSizeStr;
+                  final String unit = match != null
+                      ? (match.group(2) ?? "")
+                      : "";
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                  return Padding(
+                    key: ValueKey(v.id),
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Left Card: Pack Size card (Stunning pill badge layout - compacted)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 66,
-                          decoration: BoxDecoration(
-                            gradient: isSelected
-                                ? LinearGradient(
-                                    colors: [
-                                      primaryGreen.withOpacity(0.08),
-                                      primaryGreen.withOpacity(0.01),
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                  )
-                                : null,
-                            color: isSelected ? null : Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected
-                                  ? primaryGreen
-                                  : Colors.grey.shade300,
-                              width: isSelected ? 1.5 : 1.0,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: isSelected
-                                    ? primaryGreen.withOpacity(0.08)
-                                    : Colors.black.withOpacity(0.01),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 8,
-                          ),
-                          child: unit.isNotEmpty
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      val,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontFamily: Theme.of(
-                                          context,
-                                        ).textTheme.titleLarge?.fontFamily,
-                                        fontWeight: FontWeight.w900,
-                                        color: isSelected
-                                            ? primaryGreen
-                                            : Colors.black,
-                                        height: 1.1,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      unit.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontFamily: Theme.of(
-                                          context,
-                                        ).textTheme.titleLarge?.fontFamily,
-                                        fontWeight: FontWeight.w900,
-                                        color: isSelected
-                                            ? primaryGreen.withOpacity(0.8)
-                                            : Colors.black54,
-                                        letterSpacing: 0.5,
-                                      ),
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Left Card: Pack Size card (Stunning pill badge layout - compacted)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 66,
+                                decoration: BoxDecoration(
+                                  gradient: isSelected
+                                      ? LinearGradient(
+                                          colors: [
+                                            primaryGreen.withOpacity(0.08),
+                                            primaryGreen.withOpacity(0.01),
+                                          ],
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                        )
+                                      : null,
+                                  color: isSelected
+                                      ? null
+                                      : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? primaryGreen
+                                        : Colors.grey.shade300,
+                                    width: isSelected ? 1.5 : 1.0,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: isSelected
+                                          ? primaryGreen.withOpacity(0.08)
+                                          : Colors.black.withOpacity(0.01),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
                                     ),
                                   ],
-                                )
-                              : Text(
-                                  val,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    fontFamily: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge?.fontFamily,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
                                 ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Right Card: Variant Card (Stunning pricing & quantity container - compacted)
-                        Expanded(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? primaryGreen
-                                    : Colors.grey.shade300,
-                                width: isSelected ? 1.5 : 1.0,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isSelected
-                                      ? primaryGreen.withOpacity(0.08)
-                                      : Colors.black.withOpacity(0.012),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 8,
                                 ),
-                              ],
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Flexible(
-                                            child: Text(
-                                              displayConfigName,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 13.5,
-                                                fontFamily: Theme.of(context)
-                                                    .textTheme
-                                                    .titleLarge
-                                                    ?.fontFamily,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                          ),
-                                          if (isBulkActive) ...[
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 5,
-                                                    vertical: 1.5,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFE8F5E9),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                border: Border.all(
-                                                  color: primaryGreen
-                                                      .withOpacity(0.2),
-                                                  width: 0.5,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.bolt_rounded,
-                                                    color: primaryGreen,
-                                                    size: 9,
-                                                  ),
-                                                  const SizedBox(width: 2),
-                                                  Text(
-                                                    "$activeTierName Applied",
-                                                    style: TextStyle(
-                                                      color: primaryGreen,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      fontSize: 8,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ] else if (hasBulkDiscount) ...[
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 5,
-                                                    vertical: 1.5,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: secondaryGreen,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                border: Border.all(
-                                                  color: primaryGreen
-                                                      .withOpacity(0.15),
-                                                  width: 0.5,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.trending_down_rounded,
-                                                    color: primaryGreen,
-                                                    size: 9,
-                                                  ),
-                                                  const SizedBox(width: 2),
-                                                  Text(
-                                                    "Save upto ${bulkDiscountPercent.toStringAsFixed(0)}% bulk",
-                                                    style: TextStyle(
-                                                      color: primaryGreen,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      fontSize: 8,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(height: 3),
-                                      // Row 1: Selling Price and Per-Unit label
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.baseline,
-                                        textBaseline: TextBaseline.alphabetic,
+                                child: unit.isNotEmpty
+                                    ? Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Text(
-                                            "₹${displayPrice.toStringAsFixed(0)}",
-                                            style: const TextStyle(
-                                              color: Colors.black,
+                                            val,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontFamily: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge
+                                                  ?.fontFamily,
                                               fontWeight: FontWeight.w900,
-                                              fontSize: 13.5,
+                                              color: isSelected
+                                                  ? primaryGreen
+                                                  : Colors.black,
+                                              height: 1.1,
                                             ),
                                           ),
-                                          if (perUnitLabel != null) ...[
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              "($perUnitLabel)",
-                                              style: TextStyle(
-                                                color: primaryGreen,
-                                                fontSize: 9.5,
-                                                fontWeight: FontWeight.w900,
-                                              ),
+                                          const SizedBox(height: 1),
+                                          Text(
+                                            unit.toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontFamily: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge
+                                                  ?.fontFamily,
+                                              fontWeight: FontWeight.w900,
+                                              color: isSelected
+                                                  ? primaryGreen.withOpacity(
+                                                      0.8,
+                                                    )
+                                                  : Colors.black54,
+                                              letterSpacing: 0.5,
                                             ),
-                                          ],
+                                          ),
                                         ],
-                                      ),
-                                      // Row 2: Original Price and Save Percentage (only if discounted)
-                                      if (displayCompareAtPrice >
-                                          displayPrice) ...[
-                                        const SizedBox(height: 3),
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              "₹${displayCompareAtPrice.toStringAsFixed(0)}",
-                                              style: const TextStyle(
-                                                color: Colors.black54,
-                                                decoration:
-                                                    TextDecoration.lineThrough,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Flexible(
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 5,
-                                                      vertical: 1.5,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(
-                                                    0xFFFFECEB,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                  border: Border.all(
-                                                    color: Colors.red.shade100,
-                                                    width: 0.5,
-                                                  ),
-                                                ),
-                                                child: FittedBox(
-                                                  fit: BoxFit.scaleDown,
-                                                  child: Text(
-                                                    "SAVE ₹${(displayCompareAtPrice - displayPrice).toStringAsFixed(0)}",
-                                                    style: TextStyle(
-                                                      color:
-                                                          Colors.red.shade800,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      fontSize: 8,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                      )
+                                    : Text(
+                                        val,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          fontFamily: Theme.of(
+                                            context,
+                                          ).textTheme.titleLarge?.fontFamily,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
                                         ),
-                                      ],
+                                      ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Right Card: Variant Card (Stunning pricing & quantity container - compacted)
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? primaryGreen
+                                          : Colors.grey.shade300,
+                                      width: isSelected ? 1.5 : 1.0,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: isSelected
+                                            ? primaryGreen.withOpacity(0.08)
+                                            : Colors.black.withOpacity(0.012),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-
-                                // Segmented Blinkit-Style quantity controls (Compacted)
-                                if (isSelected)
-                                  Container(
-                                    width: 80,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: primaryGreen,
-                                      borderRadius: BorderRadius.circular(6),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: primaryGreen.withOpacity(0.15),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 1.5),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: isSyncing
-                                              ? null
-                                              : () {
-                                                  final qty = quantity > 1
-                                                      ? quantity - 1
-                                                      : 0;
-                                                  _syncVariantWithCart(v, qty);
-                                                },
-                                          behavior: HitTestBehavior.opaque,
-                                          child: Container(
-                                            width: 25,
-                                            height: double.infinity,
-                                            alignment: Alignment.center,
-                                            child: Icon(
-                                              quantity == 1
-                                                  ? CupertinoIcons.trash_fill
-                                                  : Icons.remove_rounded,
-                                              size: quantity == 1 ? 12 : 14,
-                                              color: isSyncing
-                                                  ? Colors.white54
-                                                  : Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                        // Clickable number to trigger wholesale quantity input dialog
-                                        Expanded(
-                                          child: GestureDetector(
-                                            onTap: isSyncing
-                                                ? null
-                                                : () => _showQuantityDialog(
-                                                    v.id,
-                                                    quantity,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    displayConfigName,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontFamily:
+                                                          Theme.of(context)
+                                                              .textTheme
+                                                              .titleLarge
+                                                              ?.fontFamily,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      color: Colors.black,
+                                                    ),
                                                   ),
-                                            behavior: HitTestBehavior.opaque,
-                                            child: Container(
-                                              height: double.infinity,
-                                              alignment: Alignment.center,
-                                              child: isSyncing
-                                                  ? const SizedBox(
-                                                      width: 12,
-                                                      height: 12,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                            strokeWidth: 1.5,
-                                                            color: Colors.white,
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 3),
+                                            // Row 1: Selling Price and Per-Unit label
+                                            Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.baseline,
+                                              textBaseline:
+                                                  TextBaseline.alphabetic,
+                                              children: [
+                                                Text(
+                                                  "₹${displayPrice.toStringAsFixed(0)}",
+                                                  style: const TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 13.5,
+                                                  ),
+                                                ),
+                                                if (perUnitLabel != null) ...[
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    "($perUnitLabel)",
+                                                    style: TextStyle(
+                                                      color: primaryGreen,
+                                                      fontSize: 9.5,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                            // Row 2: Original Price and Save Percentage (only if discounted)
+                                            if (displayCompareAtPrice >
+                                                displayPrice) ...[
+                                              const SizedBox(height: 3),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    "₹${displayCompareAtPrice.toStringAsFixed(0)}",
+                                                    style: const TextStyle(
+                                                      color: Colors.black54,
+                                                      decoration: TextDecoration
+                                                          .lineThrough,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Flexible(
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 5,
+                                                            vertical: 1.5,
                                                           ),
-                                                    )
-                                                  : AnimatedSwitcher(
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(
+                                                          0xFFFFECEB,
+                                                        ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
+                                                        border: Border.all(
+                                                          color: Colors
+                                                              .red
+                                                              .shade100,
+                                                          width: 0.5,
+                                                        ),
+                                                      ),
+                                                      child: FittedBox(
+                                                        fit: BoxFit.scaleDown,
+                                                        child: Text(
+                                                          "SAVE ₹${(displayCompareAtPrice - displayPrice).toStringAsFixed(0)}",
+                                                          style: TextStyle(
+                                                            color: Colors
+                                                                .red
+                                                                .shade800,
+                                                            fontWeight:
+                                                                FontWeight.w900,
+                                                            fontSize: 8,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+
+                                      // Segmented Blinkit-Style quantity controls (Compacted)
+                                      if (isSelected)
+                                        Container(
+                                          width: 80,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color: primaryGreen,
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: primaryGreen.withOpacity(
+                                                  0.15,
+                                                ),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1.5),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              GestureDetector(
+                                                onTap: isSyncing
+                                                    ? null
+                                                    : () {
+                                                        final qty = quantity > 1
+                                                            ? quantity - 1
+                                                            : 0;
+                                                        _syncVariantWithCart(
+                                                          v,
+                                                          qty,
+                                                        );
+                                                      },
+                                                behavior:
+                                                    HitTestBehavior.opaque,
+                                                child: Container(
+                                                  width: 25,
+                                                  height: double.infinity,
+                                                  alignment: Alignment.center,
+                                                  child: Icon(
+                                                    quantity == 1
+                                                        ? CupertinoIcons
+                                                              .trash_fill
+                                                        : Icons.remove_rounded,
+                                                    size: quantity == 1
+                                                        ? 12
+                                                        : 14,
+                                                    color: isSyncing
+                                                        ? Colors.white54
+                                                        : Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                              // Clickable number to trigger wholesale quantity input dialog
+                                              Expanded(
+                                                child: GestureDetector(
+                                                  onTap: isSyncing
+                                                      ? null
+                                                      : () =>
+                                                            _showQuantityDialog(
+                                                              v.id,
+                                                              quantity,
+                                                            ),
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  child: Container(
+                                                    height: double.infinity,
+                                                    alignment: Alignment.center,
+                                                    child: AnimatedSwitcher(
                                                       duration: const Duration(
                                                         milliseconds: 150,
                                                       ),
@@ -1085,109 +1232,115 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                         ),
                                                       ),
                                                     ),
-                                            ),
+                                                  ),
+                                                ),
+                                              ),
+                                              GestureDetector(
+                                                onTap: isSyncing
+                                                    ? null
+                                                    : () =>
+                                                          _syncVariantWithCart(
+                                                            v,
+                                                            quantity + 1,
+                                                          ),
+                                                behavior:
+                                                    HitTestBehavior.opaque,
+                                                child: Container(
+                                                  width: 25,
+                                                  height: double.infinity,
+                                                  alignment: Alignment.center,
+                                                  child: Icon(
+                                                    Icons.add_rounded,
+                                                    size: 14,
+                                                    color: isSyncing
+                                                        ? Colors.white54
+                                                        : Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
+                                        )
+                                      else
                                         GestureDetector(
                                           onTap: isSyncing
                                               ? null
-                                              : () => _syncVariantWithCart(
-                                                  v,
-                                                  quantity + 1,
-                                                ),
-                                          behavior: HitTestBehavior.opaque,
+                                              : () =>
+                                                    _syncVariantWithCart(v, 1),
                                           child: Container(
-                                            width: 25,
-                                            height: double.infinity,
+                                            width: 80,
+                                            height: 32,
                                             alignment: Alignment.center,
-                                            child: Icon(
-                                              Icons.add_rounded,
-                                              size: 14,
-                                              color: isSyncing
-                                                  ? Colors.white54
-                                                  : Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                else
-                                  GestureDetector(
-                                    onTap: isSyncing
-                                        ? null
-                                        : () => _syncVariantWithCart(v, 1),
-                                    child: Container(
-                                      width: 80,
-                                      height: 32,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: isSyncing
-                                              ? Colors.grey.shade300
-                                              : primaryGreen,
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: primaryGreen.withOpacity(
-                                              0.04,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 1.5),
-                                          ),
-                                        ],
-                                      ),
-                                      child: isSyncing
-                                          ? SizedBox(
-                                              width: 12,
-                                              height: 12,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 1.5,
-                                                color: primaryGreen,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: isSyncing
+                                                    ? Colors.grey.shade300
+                                                    : primaryGreen,
+                                                width: 1.5,
                                               ),
-                                            )
-                                          : Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  "ADD",
-                                                  style: TextStyle(
-                                                    fontSize: 11.5,
-                                                    fontWeight: FontWeight.w900,
-                                                    color: primaryGreen,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 3),
-                                                Icon(
-                                                  Icons.add_rounded,
-                                                  size: 13,
-                                                  color: primaryGreen,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: primaryGreen
+                                                      .withOpacity(0.04),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 1.5),
                                                 ),
                                               ],
                                             ),
-                                    ),
+                                            child: isSyncing
+                                                ? SizedBox(
+                                                    width: 12,
+                                                    height: 12,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 1.5,
+                                                          color: primaryGreen,
+                                                        ),
+                                                  )
+                                                : Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Text(
+                                                        "ADD",
+                                                        style: TextStyle(
+                                                          fontSize: 11.5,
+                                                          fontWeight:
+                                                              FontWeight.w900,
+                                                          color: primaryGreen,
+                                                          letterSpacing: 0.5,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 3),
+                                                      Icon(
+                                                        Icons.add_rounded,
+                                                        size: 13,
+                                                        color: primaryGreen,
+                                                      ),
+                                                    ],
+                                                  ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                              ],
-                            ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        _buildTierMilestonesRow(v, quantity, isKg),
                       ],
                     ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-          if (totalItems > 0) ...[
-            const SizedBox(height: 12),
-            _buildOrderSummaryCard(),
+                  );
+                },
+              );
+            }).toList(),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1293,7 +1446,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text(
           "Enter Quantity",
           style: TextStyle(
@@ -1683,7 +1836,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           const SizedBox(height: 20),
                         ],
                       )
-                    : _buildSpecsContainer(specWidgets, key: const ValueKey<int>(1)),
+                    : _buildSpecsContainer(
+                        specWidgets,
+                        key: const ValueKey<int>(1),
+                      ),
               ),
             ),
           ],
@@ -1920,46 +2076,65 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildFloatingActionBar() {
+    final double bottomPadding = MediaQuery.of(context).padding.bottom;
     return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          16,
-          24,
-          16 + MediaQuery.of(context).padding.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 30,
-              offset: const Offset(0, -10),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _ActionBtn(
-                label: totalItems > 0 ? "GO TO CART" : "ADD TO CART",
-                onPressed: _handleAddToCart,
-                isOutlined: true,
-                color: buttonOrange,
+      bottom: bottomPadding > 0 ? bottomPadding * 0.4 : 10,
+      left: 16,
+      right: 16,
+      child: RepaintBoundary(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _ActionBtn(
+                        label: "GO TO CART",
+                        onPressed: _handleAddToCart,
+                        isOutlined: false,
+                        color: buttonOrange,
+                        icon: CupertinoIcons.cart_fill,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _ActionBtn(
+                        label: "BUY NOW",
+                        onPressed: _handleBuyNow,
+                        color: buttonGreen,
+                        icon: CupertinoIcons.bolt_fill,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _ActionBtn(
-                label: "BUY NOW",
-                onPressed: _handleBuyNow,
-                color: buttonGreen,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -2049,13 +2224,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
 
     if (!hasItems) {
-      _showError("Please select a pack size");
+      final targetVariant =
+          _selectedVariant ??
+          (_product.variants.isNotEmpty ? _product.variants.first : null);
+      if (targetVariant != null) {
+        _syncVariantWithCart(targetVariant, 1);
+        HapticFeedback.mediumImpact();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CartScreen()),
+        );
+      } else {
+        _showError("Please select a pack size");
+      }
       return;
     }
 
-    // Give instant tactile feedback
     HapticFeedback.mediumImpact();
-
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CartScreen()),
@@ -2063,21 +2248,591 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _handleBuyNow() {
-    _handleAddToCart();
-    if (totalItems > 0)
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ShippingAddressScreen()),
-      );
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final hasItems = _product.variants.any(
+      (v) => cartService.getVariantQty(v.id) > 0,
+    );
+
+    if (!hasItems) {
+      final targetVariant =
+          _selectedVariant ??
+          (_product.variants.isNotEmpty ? _product.variants.first : null);
+      if (targetVariant != null) {
+        _syncVariantWithCart(targetVariant, 1);
+        HapticFeedback.mediumImpact();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ShippingAddressScreen()),
+        );
+      } else {
+        _showError("Please select a pack size");
+      }
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ShippingAddressScreen()),
+    );
   }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: buttonRed,
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+
+  List<TierInfo> _getValidTiers(Variant v, bool isKg) {
+    final List<TierInfo> list = [];
+    final String suffix = isKg ? "Kg" : "L";
+
+    if (v.price10_30 > 0) {
+      list.add(
+        TierInfo(
+          label: "10-30$suffix Tier",
+          threshold: 10.0,
+          price: v.price10_30,
+          key: "10_30",
+        ),
+      );
+    }
+    if (v.price30_50 > 0) {
+      list.add(
+        TierInfo(
+          label: "30-50$suffix Tier",
+          threshold: 30.0,
+          price: v.price30_50,
+          key: "30_50",
+        ),
+      );
+    }
+    if (v.price50_plus > 0) {
+      list.add(
+        TierInfo(
+          label: "50$suffix+ Tier",
+          threshold: 50.0,
+          price: v.price50_plus,
+          key: "50_plus",
+        ),
+      );
+    }
+    return list;
+  }
+
+  Widget _buildTierMilestonesRow(Variant v, int quantity, bool isKg) {
+    final double totalVolume = v.packVolume * quantity;
+    final List<TierInfo> validTiers = _getValidTiers(v, isKg);
+
+    if (validTiers.isEmpty || quantity <= 0) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                "Wholesale Tier Pricing",
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey.shade700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const Spacer(),
+              if (quantity > 0) ...[
+                Text(
+                  "Current Volume: ${(v.packVolume * quantity) % 1 == 0 ? (v.packVolume * quantity).toInt() : (v.packVolume * quantity).toStringAsFixed(1)}${isKg ? 'Kg' : 'L'}",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: validTiers.asMap().entries.map((entry) {
+              final int index = entry.key;
+              final t = entry.value;
+
+              bool isTierUnlocked = false;
+              if (t.key == "10_30") {
+                isTierUnlocked = totalVolume >= 10.0;
+              } else if (t.key == "30_50") {
+                isTierUnlocked = totalVolume > 30.0;
+              } else if (t.key == "50_plus") {
+                isTierUnlocked = totalVolume > 50.0;
+              }
+
+              // Resolve the highest unlocked tier as the currently active tier
+              String activeTierKey = "";
+              if (totalVolume > 50.0 && v.price50_plus > 0) {
+                activeTierKey = "50_plus";
+              } else if (totalVolume > 30.0 && v.price30_50 > 0) {
+                activeTierKey = "30_50";
+              } else if (totalVolume >= 10.0 && v.price10_30 > 0) {
+                activeTierKey = "10_30";
+              }
+
+              final bool isActiveTier = (t.key == activeTierKey);
+
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(left: index == 0 ? 0.0 : 8.0),
+                  child: TierMilestoneCard(
+                    key: ValueKey(t.key),
+                    label: t.label,
+                    threshold: t.threshold,
+                    price: t.price,
+                    isUnlocked: isTierUnlocked,
+                    isActive: isActiveTier,
+                    isKg: isKg,
+                    variant: v,
+                    primaryGreen: primaryGreen,
+                    secondaryGreen: secondaryGreen,
+                    onUnlocked: () {
+                      _showUnlockCelebration(t.label);
+                    },
+                    onTap: () {
+                      if (isTierUnlocked) {
+                        HapticFeedback.lightImpact();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_outline,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "You have unlocked ${t.label}! Enjoying ₹${t.price.toStringAsFixed(0)}/${isKg ? 'kg' : 'lit.'} pricing. 🎉",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: primaryGreen,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      } else {
+                        _showUnlockTierSheet(v, t, quantity, isKg);
+                      }
+                    },
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int getRequiredQtyForTier(Variant v, String tierKey) {
+    int qty = 1;
+    while (true) {
+      final double vol = v.packVolume * qty;
+      bool unlocked = false;
+      if (tierKey == "10_30") {
+        unlocked = vol >= 10.0;
+      } else if (tierKey == "30_50") {
+        unlocked = vol > 30.0;
+      } else if (tierKey == "50_plus") {
+        unlocked = vol > 50.0;
+      }
+      if (unlocked) {
+        return qty;
+      }
+      qty++;
+      if (qty > 10000) break;
+    }
+    return qty;
+  }
+
+  double getUnitPriceForQty(Variant v, int qty) {
+    double unitPrice = v.price;
+    if (qty > 0) {
+      final double totalVolume = v.packVolume * qty;
+      if (totalVolume > 50.0) {
+        unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
+      } else if (totalVolume > 30.0) {
+        unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
+      } else if (totalVolume >= 10.0) {
+        unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
+      }
+    }
+    return unitPrice;
+  }
+
+  void _showUnlockTierSheet(Variant v, TierInfo t, int currentQty, bool isKg) {
+    final int requiredQty = getRequiredQtyForTier(v, t.key);
+    final int diffQty = requiredQty - currentQty;
+
+    final double currentUnitPrice = getUnitPriceForQty(v, currentQty);
+    final double targetUnitPrice = t.price;
+    final double basePrice = v.price;
+
+    final String unitLabel = isKg ? 'kg' : 'lit.';
+    final double currentVol = v.packVolume * currentQty;
+    final double targetVol = v.packVolume * requiredQty;
+
+    final double regularCostForRequired =
+        requiredQty * (basePrice * v.packVolume);
+    final double discountedCostForRequired =
+        requiredQty * (targetUnitPrice * v.packVolume);
+    final double savings = regularCostForRequired - discountedCostForRequired;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            16,
+            24,
+            24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: primaryGreen.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.lock_open_rounded,
+                      color: primaryGreen,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Unlock ${t.label} Pricing!",
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Get wholesale rates on bulk volume",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [secondaryGreen.withOpacity(0.5), Colors.white],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: primaryGreen.withOpacity(0.15)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Regular Price",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "₹${currentUnitPrice.toStringAsFixed(0)} / $unitLabel",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade700,
+                                decoration: TextDecoration.lineThrough,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          color: primaryGreen,
+                          size: 20,
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryGreen,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                "WHOLESALE RATE",
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "₹${targetUnitPrice.toStringAsFixed(0)} / $unitLabel",
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: primaryGreen,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (savings > 0) ...[
+                      const Divider(height: 24, thickness: 1),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.stars_rounded,
+                            color: accentOrange,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Total Bulk Savings: ₹${savings.toStringAsFixed(0)}!",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: accentOrange,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                "Required Volume Progression",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Stack(
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double fillPercent = (currentVol / t.threshold)
+                            .clamp(0.0, 1.0);
+                        return Container(
+                          width: constraints.maxWidth * fillPercent,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                primaryGreen.withOpacity(0.5),
+                                primaryGreen,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Current: ${currentVol.toStringAsFixed(1)} $unitLabel ($currentQty packs)",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    "Target: ${t.threshold.toStringAsFixed(1)} $unitLabel ($requiredQty packs)",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: primaryGreen,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200, width: 0.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.orange.shade800,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "Adding $diffQty more packs of this size unlocks ₹${(targetUnitPrice - currentUnitPrice).abs().toStringAsFixed(0)} discount per $unitLabel on ALL units!",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.bold,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(
+                          color: Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        "KEEP CURRENT",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _syncVariantWithCart(v, requiredQty);
+                        HapticFeedback.mediumImpact();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 4,
+                        shadowColor: primaryGreen.withOpacity(0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        "ADD $diffQty & SAVE",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -2103,70 +2858,151 @@ class _SmallBtn extends StatelessWidget {
   }
 }
 
-class _ActionBtn extends StatelessWidget {
+class _ActionBtn extends StatefulWidget {
   final String label;
   final VoidCallback onPressed;
   final bool isOutlined;
   final Color color;
   final bool small;
+  final IconData? icon;
   const _ActionBtn({
     required this.label,
     required this.onPressed,
     this.isOutlined = false,
     required this.color,
     this.small = false,
+    this.icon,
   });
+
+  @override
+  State<_ActionBtn> createState() => _ActionBtnState();
+}
+
+class _ActionBtnState extends State<_ActionBtn>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 80),
+      lowerBound: 0.94,
+      upperBound: 1.0,
+      value: 1.0,
+    );
+    _scaleAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails details) {
+    _controller.animateTo(0.94);
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    _controller.animateTo(1.0);
+  }
+
+  void _onTapCancel() {
+    _controller.animateTo(1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: small ? 40 : 60,
-      child: isOutlined
-          ? OutlinedButton(
-              onPressed: onPressed,
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: color, width: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+    final double buttonHeight = widget.small ? 38 : 52;
+    final double buttonRadius = widget.small ? 19 : 26;
+    final Color contentColor = widget.isOutlined ? widget.color : Colors.white;
+
+    final BoxDecoration decoration = widget.isOutlined
+        ? BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: widget.color, width: 2),
+            borderRadius: BorderRadius.circular(buttonRadius),
+          )
+        : BoxDecoration(
+            color: widget.color,
+            borderRadius: BorderRadius.circular(buttonRadius),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withOpacity(0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                    fontSize: small ? 11 : 13,
-                    letterSpacing: 0.5,
+            ],
+          );
+
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      onTap: widget.onPressed,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: SizedBox(
+          height: buttonHeight,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            decoration: decoration,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.icon != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: TweenAnimationBuilder<Color?>(
+                        duration: const Duration(milliseconds: 250),
+                        tween: ColorTween(
+                          begin: contentColor,
+                          end: contentColor,
+                        ),
+                        builder: (context, color, child) {
+                          return Icon(
+                            widget.icon,
+                            size: widget.small ? 14 : 18,
+                            color: color,
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: widget.icon == null ? 20 : 0,
+                      right: 20,
+                    ),
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      style: TextStyle(
+                        color: contentColor,
+                        fontWeight: FontWeight.w900,
+                        fontSize: widget.small ? 11.5 : 14,
+                        letterSpacing: 0.8,
+                      ),
+                      child: Text(widget.label, maxLines: 1),
+                    ),
                   ),
-                ),
-              ),
-            )
-          : ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-                elevation: 8,
-                shadowColor: color.withOpacity(0.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    letterSpacing: 0.5,
-                  ),
-                ),
+                ],
               ),
             ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -2255,7 +3091,7 @@ class _QuantityPickerSheetState extends State<_QuantityPickerSheet> {
                     style: const TextStyle(
                       fontSize: 40,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF006D32),
+                      color: Color(0xFF298E4D),
                     ),
                     decoration: const InputDecoration(border: InputBorder.none),
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -2277,9 +3113,9 @@ class _QuantityPickerSheetState extends State<_QuantityPickerSheet> {
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF006D32),
+                  backgroundColor: const Color(0xFF298E4D),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
                 child: const Text(
@@ -2326,4 +3162,621 @@ class ParsedSize {
   final String configuration;
 
   ParsedSize(this.packSize, this.configuration);
+}
+
+class TierInfo {
+  final String label;
+  final double threshold;
+  final double price;
+  final String key;
+
+  TierInfo({
+    required this.label,
+    required this.threshold,
+    required this.price,
+    required this.key,
+  });
+}
+
+class TierMilestoneCard extends StatefulWidget {
+  final String label;
+  final double threshold;
+  final double price;
+  final bool isUnlocked;
+  final bool isActive;
+  final bool isKg;
+  final Variant variant;
+  final Color primaryGreen;
+  final Color secondaryGreen;
+
+  final VoidCallback? onUnlocked;
+  final VoidCallback? onTap;
+
+  const TierMilestoneCard({
+    Key? key,
+    required this.label,
+    required this.threshold,
+    required this.price,
+    required this.isUnlocked,
+    this.isActive = false,
+    required this.isKg,
+    required this.variant,
+    required this.primaryGreen,
+    required this.secondaryGreen,
+    this.onUnlocked,
+    this.onTap,
+  }) : super(key: key);
+
+  @override
+  _TierMilestoneCardState createState() => _TierMilestoneCardState();
+}
+
+class _TierMilestoneCardState extends State<TierMilestoneCard>
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem<double>(
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 1.15,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40.0,
+      ),
+      TweenSequenceItem<double>(
+        tween: Tween<double>(
+          begin: 1.15,
+          end: 0.95,
+        ).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 30.0,
+      ),
+      TweenSequenceItem<double>(
+        tween: Tween<double>(
+          begin: 0.95,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30.0,
+      ),
+    ]).animate(_controller);
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+
+    _shakeAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 0.0, end: 6.0),
+            weight: 15,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 6.0, end: -6.0),
+            weight: 20,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: -6.0, end: 4.0),
+            weight: 15,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 4.0, end: -4.0),
+            weight: 15,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: -4.0, end: 2.0),
+            weight: 15,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 2.0, end: 0.0),
+            weight: 20,
+          ),
+        ]).animate(
+          CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
+        );
+
+    if (widget.isUnlocked) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TierMilestoneCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isUnlocked && !oldWidget.isUnlocked) {
+      _controller.forward(from: 0.0);
+      if (widget.onUnlocked != null) {
+        widget.onUnlocked!();
+      }
+    } else if (!widget.isUnlocked && oldWidget.isUnlocked) {
+      _controller.reverse(from: 1.0);
+    } else if (widget.isUnlocked) {
+      _controller.value = 1.0;
+    } else {
+      _controller.value = 0.0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _shakeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String unitLabel = widget.isKg ? 'kg' : 'lit.';
+    final formattedPrice = widget.price % 1 == 0
+        ? widget.price.toStringAsFixed(0)
+        : widget.price.toStringAsFixed(2);
+    final String perUnitStr = "₹$formattedPrice/$unitLabel";
+
+    return GestureDetector(
+      onTap: () {
+        if (!widget.isUnlocked) {
+          _shakeController.forward(from: 0.0);
+          HapticFeedback.vibrate();
+        }
+        if (widget.onTap != null) {
+          widget.onTap!();
+        }
+      },
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_controller, _shakeAnimation]),
+        builder: (context, child) {
+          final double animValue = _controller.value;
+
+          final Color backgroundColor = Color.lerp(
+            Colors.grey.shade100,
+            widget.secondaryGreen,
+            animValue,
+          )!;
+
+          final Color borderColor = Color.lerp(
+            Colors.grey.shade300,
+            widget.primaryGreen,
+            animValue,
+          )!;
+
+          final Color textColor = Color.lerp(
+            Colors.grey.shade700,
+            widget.primaryGreen,
+            animValue,
+          )!;
+
+          final Color subtextColor = Color.lerp(
+            Colors.grey.shade500,
+            widget.primaryGreen.withOpacity(0.85),
+            animValue,
+          )!;
+
+          final double shadowOpacity = animValue * 0.15;
+
+          final double cardOpacity = !widget.isUnlocked
+              ? 1.0
+              : widget.isActive
+              ? 1.0
+              : 0.55;
+
+          return Transform.translate(
+            offset: Offset(_shakeAnimation.value, 0),
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Opacity(
+                opacity: cardOpacity,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: borderColor,
+                      width: animValue > 0.5 ? 1.5 : 1.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.primaryGreen.withOpacity(shadowOpacity),
+                        blurRadius: 6 * animValue,
+                        spreadRadius: 1 * animValue,
+                        offset: Offset(0, 2 * animValue),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Opacity(
+                            opacity: (1.0 - animValue).clamp(0.0, 1.0),
+                            child: Icon(
+                              Icons.lock_outline_rounded,
+                              color: Colors.grey.shade500,
+                              size: 13,
+                            ),
+                          ),
+                          Opacity(
+                            opacity: animValue.clamp(0.0, 1.0),
+                            child: Icon(
+                              Icons.verified_rounded,
+                              color: widget.primaryGreen,
+                              size: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 5),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            widget.label,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: textColor,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            perUnitStr,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: subtextColor,
+                              decoration:
+                                  (widget.isUnlocked && !widget.isActive)
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FullscreenImageGallery extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+  final String productId;
+
+  const _FullscreenImageGallery({
+    required this.images,
+    required this.initialIndex,
+    required this.productId,
+  });
+
+  @override
+  State<_FullscreenImageGallery> createState() =>
+      _FullscreenImageGalleryState();
+}
+
+class _FullscreenImageGalleryState extends State<_FullscreenImageGallery> {
+  late PageController _pageController;
+  late int _currentIndex;
+  double _currentScale = 1.0;
+
+  double _dragOffset = 0.0;
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  double get _dragScale =>
+      (1.0 - (_dragOffset.abs() / 1500.0)).clamp(0.75, 1.0);
+  double get _dragOpacity =>
+      (1.0 - (_dragOffset.abs() / 400.0)).clamp(0.0, 1.0);
+
+  void _onVerticalDragStart(DragStartDetails details) {
+    if (_currentScale <= 1.01) {
+      _isDragging = true;
+    }
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    if (!_isDragging) return;
+    setState(() {
+      _dragOffset += details.primaryDelta ?? 0.0;
+    });
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    if (!_isDragging) return;
+    if (_dragOffset.abs() > 100.0) {
+      Navigator.pop(context);
+    } else {
+      setState(() {
+        _dragOffset = 0.0;
+        _isDragging = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double opacity = 0.95 * _dragOpacity;
+    final double blurSigma = 10.0 * _dragOpacity;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background Color overlay with dynamic opacity
+          Positioned.fill(
+            child: Container(color: Colors.black.withOpacity(opacity)),
+          ),
+
+          // Background Blur with dynamic blur sigma
+          if (blurSigma > 0.1)
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+                child: const SizedBox.shrink(),
+              ),
+            ),
+
+          // Main Gallery PageView wrapped in vertical drag gesture detector and smooth scale/translate transform
+          Positioned.fill(
+            child: GestureDetector(
+              onVerticalDragStart: _onVerticalDragStart,
+              onVerticalDragUpdate: _onVerticalDragUpdate,
+              onVerticalDragEnd: _onVerticalDragEnd,
+              behavior: HitTestBehavior.opaque,
+              child: Transform.translate(
+                offset: Offset(0, _dragOffset),
+                child: Transform.scale(
+                  scale: _dragScale,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: widget.images.length,
+                    physics: _currentScale > 1.01 || _isDragging
+                        ? const NeverScrollableScrollPhysics()
+                        : const BouncingScrollPhysics(),
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentIndex = index;
+                        _currentScale = 1.0; // Reset scale on page change
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      final String url = widget.images[index];
+                      final String heroTag = widget.images.length == 1
+                          ? 'product_${widget.productId}'
+                          : 'product_image_${widget.productId}_$index';
+
+                      return Hero(
+                        tag: heroTag,
+                        child: _FullscreenImageItem(
+                          imageUrl: url,
+                          onScaleChanged: (scale) {
+                            if (scale != _currentScale) {
+                              setState(() {
+                                _currentScale = scale;
+                              });
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Header Controls: Close button (fades out as you drag)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            right: 16,
+            child: Opacity(
+              opacity: _dragOpacity,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black45,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white12, width: 1),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    CupertinoIcons.xmark,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom Index Indicator (fades out as you drag)
+          if (widget.images.length > 1)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 24,
+              left: 0,
+              right: 0,
+              child: Opacity(
+                opacity: _dragOpacity,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white12, width: 1),
+                    ),
+                    child: Text(
+                      "${_currentIndex + 1} / ${widget.images.length}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FullscreenImageItem extends StatefulWidget {
+  final String imageUrl;
+  final ValueChanged<double> onScaleChanged;
+
+  const _FullscreenImageItem({
+    required this.imageUrl,
+    required this.onScaleChanged,
+  });
+
+  @override
+  State<_FullscreenImageItem> createState() => _FullscreenImageItemState();
+}
+
+class _FullscreenImageItemState extends State<_FullscreenImageItem>
+    with SingleTickerProviderStateMixin {
+  late TransformationController _transformationController;
+  TapDownDetails? _doubleTapDetails;
+
+  late AnimationController _animationController;
+  Animation<Matrix4>? _zoomAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController = TransformationController();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _handleDoubleTap() {
+    final Matrix4 startMatrix = _transformationController.value;
+    final Matrix4 endMatrix;
+
+    if (startMatrix != Matrix4.identity()) {
+      // Zoom out to normal
+      endMatrix = Matrix4.identity();
+    } else {
+      // Zoom in to double tap location
+      final position = _doubleTapDetails!.localPosition;
+      final double scale = 2.5;
+      final x = -position.dx * (scale - 1);
+      final y = -position.dy * (scale - 1);
+
+      endMatrix = Matrix4.identity()
+        ..translate(x, y)
+        ..scale(scale);
+    }
+
+    _zoomAnimation = Matrix4Tween(begin: startMatrix, end: endMatrix).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.fastOutSlowIn,
+      ),
+    );
+
+    _animationController.addListener(_onZoomAnimationUpdate);
+    _animationController.forward(from: 0.0).then((_) {
+      _animationController.removeListener(_onZoomAnimationUpdate);
+    });
+  }
+
+  void _onZoomAnimationUpdate() {
+    if (_zoomAnimation != null) {
+      _transformationController.value = _zoomAnimation!.value;
+      widget.onScaleChanged(
+        _transformationController.value.getMaxScaleOnAxis(),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (details) => _doubleTapDetails = details,
+      onDoubleTap: _handleDoubleTap,
+      child: InteractiveViewer(
+        transformationController: _transformationController,
+        minScale: 1.0,
+        maxScale: 4.0,
+        onInteractionUpdate: (details) {
+          final double currentScale = _transformationController.value
+              .getMaxScaleOnAxis();
+          widget.onScaleChanged(currentScale);
+        },
+        onInteractionEnd: (details) {
+          final double currentScale = _transformationController.value
+              .getMaxScaleOnAxis();
+          widget.onScaleChanged(currentScale);
+        },
+        child: Center(
+          child: CachedNetworkImage(
+            imageUrl: widget.imageUrl,
+            fit: BoxFit.contain,
+            placeholder: (context, url) => const Center(
+              child: CupertinoActivityIndicator(color: Colors.white),
+            ),
+            errorWidget: (context, url, error) => const Icon(
+              Icons.broken_image_rounded,
+              color: Colors.white54,
+              size: 40,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

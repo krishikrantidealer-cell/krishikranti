@@ -71,6 +71,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               discountAmount = cartService.discountAmount;
             });
 
+            // Play distinct success haptic vibration (produces audible motor hum/sound)
+            HapticFeedback.vibrate();
+            Future.delayed(const Duration(milliseconds: 150), () {
+              HapticFeedback.vibrate();
+            });
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text("🎉 Coupon '$code' Applied!"),

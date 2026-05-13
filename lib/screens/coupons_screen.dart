@@ -35,11 +35,12 @@ class _CouponsScreenState extends State<CouponsScreen> {
   void _handleApply(String code) async {
     final cartService = Provider.of<CartService>(context, listen: false);
     HapticFeedback.mediumImpact();
-    
+
     // Show loading
     showCupertinoDialog(
       context: context,
-      builder: (context) => const Center(child: CupertinoActivityIndicator(color: Colors.white)),
+      builder: (context) =>
+          const Center(child: CupertinoActivityIndicator(color: Colors.white)),
     );
 
     try {
@@ -47,6 +48,12 @@ class _CouponsScreenState extends State<CouponsScreen> {
       if (mounted) {
         Navigator.pop(context); // Close loading
         Navigator.pop(context); // Close CouponsScreen
+
+        // Play distinct success haptic vibration (produces audible motor hum/sound)
+        HapticFeedback.vibrate();
+        await Future.delayed(const Duration(milliseconds: 150));
+        HapticFeedback.vibrate();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Coupon applied successfully!"),
@@ -76,7 +83,11 @@ class _CouponsScreenState extends State<CouponsScreen> {
         elevation: 0,
         title: const Text(
           "Available Coupons",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 18),
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
         leading: IconButton(
@@ -87,15 +98,15 @@ class _CouponsScreenState extends State<CouponsScreen> {
       body: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
           : _coupons.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: _coupons.length,
-                  itemBuilder: (context, index) => _CouponCard(
-                    coupon: _coupons[index],
-                    onApply: () => _handleApply(_coupons[index].code),
-                  ),
-                ),
+          ? _buildEmptyState()
+          : ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: _coupons.length,
+              itemBuilder: (context, index) => _CouponCard(
+                coupon: _coupons[index],
+                onApply: () => _handleApply(_coupons[index].code),
+              ),
+            ),
     );
   }
 
@@ -104,11 +115,18 @@ class _CouponsScreenState extends State<CouponsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(CupertinoIcons.ticket_fill, size: 64, color: Colors.grey.shade300),
+          Icon(
+            CupertinoIcons.ticket_fill,
+            size: 64,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 16),
           Text(
             "No coupons available right now",
-            style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -151,7 +169,11 @@ class _CouponCard extends StatelessWidget {
                     color: primaryGreen.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(CupertinoIcons.ticket_fill, color: primaryGreen, size: 28),
+                  child: const Icon(
+                    CupertinoIcons.ticket_fill,
+                    color: primaryGreen,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -159,7 +181,10 @@ class _CouponCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(6),
@@ -188,7 +213,7 @@ class _CouponCard extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Dotted Divider
           _DashedDivider(),
 
@@ -224,13 +249,22 @@ class _CouponCard extends StatelessWidget {
                   onPressed: onApply,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryGreen,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                   ),
                   child: const Text(
                     "APPLY",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -258,7 +292,9 @@ class _DashedDivider extends StatelessWidget {
             return const SizedBox(
               width: dashWidth,
               height: dashHeight,
-              child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFFEEEEEE))),
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: Color(0xFFEEEEEE)),
+              ),
             );
           }),
         );

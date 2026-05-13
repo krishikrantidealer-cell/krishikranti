@@ -124,3 +124,8 @@ flutter_native_splash:
   android_gravity: center
   ios_content_mode: center
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/images/logo.png"

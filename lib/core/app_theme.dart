@@ -8,9 +8,9 @@ class AppTheme {
       useMaterial3: true,
       fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF2E7D32), // Deep green seed
-        primary: const Color(0xFF2E7D32),
-        secondary: const Color(0xFF689F38),
+        seedColor: const Color(0xFF298E4D), // Brand green seed
+        primary: const Color(0xFF298E4D),
+        secondary: const Color(0xFFFA9527), // Brand orange secondary
         surface: Colors.white,
       ),
       textTheme:
@@ -19,11 +19,11 @@ class AppTheme {
           ).copyWith(
             displayLarge: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1B5E20),
+              color: const Color(0xFF298E4D),
             ),
             headlineMedium: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1B5E20),
+              color: const Color(0xFF298E4D),
             ),
             titleLarge: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.bold,
@@ -33,7 +33,7 @@ class AppTheme {
             bodyMedium: GoogleFonts.plusJakartaSans(color: Colors.black54),
             labelLarge: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF2E7D32),
+              color: const Color(0xFF298E4D),
             ),
           ),
 
@@ -76,7 +76,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF298E4D), width: 1.5),
         ),
       ),
 
@@ -92,18 +92,18 @@ class AppTheme {
         backgroundColor: Colors.white,
         elevation: 0,
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        indicatorColor: const Color(0xFF2E7D32).withValues(alpha: 0.1),
+        indicatorColor: const Color(0xFF298E4D).withValues(alpha: 0.1),
         height: 65,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           return GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF2E7D32),
+            color: const Color(0xFF298E4D),
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: Color(0xFF2E7D32), size: 24);
+            return const IconThemeData(color: Color(0xFF298E4D), size: 24);
           }
           return const IconThemeData(color: Colors.black45, size: 24);
         }),

@@ -9,6 +9,8 @@ class ProductRepository {
   static final Map<String, Future<dynamic>> _productsCache = {};
   static final Map<String, DateTime> _cacheTimestamps = {};
   static const Duration _cacheDuration = Duration(minutes: 5);
+  static final Map<String, Product> _detailsMemoryCache = {};
+  static final Map<String, DateTime> _detailsCacheTimestamps = {};
   static SharedPreferences? _prefs;
 
   Future<void> _initPrefs() async {
@@ -138,18 +140,64 @@ class ProductRepository {
     }
   }
 
-  Future<Product> getProductDetail(String id) async {
+  Future<Product> getProductDetail(String id, {bool forceRefresh = false}) async {
+    final cacheKey = 'product_detail_$id';
+    await _initPrefs();
+
+    // 1. Force refresh: clear memory and disk cache first
+    if (forceRefresh) {
+      _detailsMemoryCache.remove(id);
+      _detailsCacheTimestamps.remove(id);
+      await _prefs?.remove(cacheKey);
+    }
+
+    // 2. Check Memory Cache with TTL expiration check
+    if (_detailsMemoryCache.containsKey(id)) {
+      final timestamp = _detailsCacheTimestamps[id];
+      if (timestamp != null &&
+          DateTime.now().difference(timestamp) < _cacheDuration) {
+        return _detailsMemoryCache[id]!;
+      }
+    }
+
+    // 3. Check Disk Cache (SharedPreferences)
+    if (!_detailsMemoryCache.containsKey(id)) {
+      final diskData = _prefs?.getString(cacheKey);
+      if (diskData != null) {
+        try {
+          final decoded = jsonDecode(diskData);
+          final product = Product.fromJson(decoded['product']);
+          _detailsMemoryCache[id] = product;
+          _detailsCacheTimestamps[id] = DateTime.now();
+          return product;
+        } catch (_) {}
+      }
+    }
+
+    // 4. Fetch Fresh Data from API
     try {
       final response = await HttpService.get(ApiConstants.productDetail(id));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return Product.fromJson(data['product']);
+        
+        // Persist to disk cache
+        await _initPrefs();
+        _prefs?.setString(cacheKey, response.body);
+
+        final product = Product.fromJson(data['product']);
+        _detailsMemoryCache[id] = product;
+        _detailsCacheTimestamps[id] = DateTime.now();
+        return product;
       } else {
         throw Exception('Failed to load product details');
       }
     } catch (e) {
       rethrow;
     }
+  }
+
+  Product? getProductDetailFromCache(String id) {
+    return _detailsMemoryCache[id];
   }
 
   Future<List<Category>> getCategories({bool forceRefresh = false}) async {

@@ -168,9 +168,10 @@ class Variant {
 
   factory Variant.fromJson(Map<String, dynamic> json) {
     final double basePrice = Product._parseDouble(json['price']);
+    final String sizeStr = json['size'] ?? '';
     return Variant(
       id: Product._parseId(json['_id']),
-      size: json['size'] ?? '',
+      size: sizeStr,
       price: basePrice,
       compareAtPrice: Product._parseDouble(json['compareAtPrice']),
       price10_30: json['price10_30'] != null
