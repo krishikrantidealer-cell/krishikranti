@@ -95,9 +95,38 @@ class OrderRepository {
     }
   }
 
+  Future<Map<String, dynamic>> initializePayment({
+    required String paymentMethod,
+    int? partialPercent,
+  }) async {
+    try {
+      final response = await HttpService.post(
+        '${ApiConstants.orders}/initialize',
+        body: {
+          'paymentMethod': paymentMethod == 'online' ? 'Online' : 'Partial',
+          if (partialPercent != null) 'partialPercent': partialPercent,
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return Map<String, dynamic>.from(data['razorpayOrder']);
+      } else {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to initialize payment');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<Order> placeOrder({
     required String paymentMethod,
     required Map<String, dynamic> shippingAddress,
+    String? razorpayPaymentId,
+    String? razorpayOrderId,
+    String? razorpaySignature,
+    double? advanceAmount,
+    double? remainingAmount,
   }) async {
     try {
       final response = await HttpService.post(
@@ -105,6 +134,11 @@ class OrderRepository {
         body: {
           'paymentMethod': paymentMethod,
           'shippingAddress': shippingAddress,
+          if (razorpayPaymentId != null) 'razorpayPaymentId': razorpayPaymentId,
+          if (razorpayOrderId != null) 'razorpayOrderId': razorpayOrderId,
+          if (razorpaySignature != null) 'razorpaySignature': razorpaySignature,
+          if (advanceAmount != null) 'advanceAmount': advanceAmount,
+          if (remainingAmount != null) 'remainingAmount': remainingAmount,
         },
       );
       if (response.statusCode == 201) {
@@ -115,6 +149,22 @@ class OrderRepository {
       } else {
         final data = jsonDecode(response.body);
         throw Exception(data['message'] ?? 'Failed to place order');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Order> cancelOrder(String orderId) async {
+    try {
+      final response = await HttpService.post("${ApiConstants.orders}/$orderId/cancel");
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await clearCache();
+        return Order.fromJson(data['order']);
+      } else {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to cancel order');
       }
     } catch (e) {
       rethrow;

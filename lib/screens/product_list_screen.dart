@@ -1786,13 +1786,16 @@ class _ProductCardState extends State<ProductCard>
             Positioned(
               top: 8,
               right: 8,
-              child: Hero(
-                tag: 'heart_${widget.product.id}',
-                child: AnimatedHeart(
-                  isFavorite: widget.isFavorite,
-                  onTap: widget.onFavoriteToggle,
-                  size: 16,
-                  backgroundColor: Colors.white.withOpacity(0.85),
+              child: HeroMode(
+                enabled: !widget.isPopping,
+                child: Hero(
+                  tag: 'heart_${widget.product.id}',
+                  child: AnimatedHeart(
+                    isFavorite: widget.isFavorite,
+                    onTap: widget.onFavoriteToggle,
+                    size: 16,
+                    backgroundColor: Colors.white.withOpacity(0.85),
+                  ),
                 ),
               ),
             ),
@@ -2122,13 +2125,16 @@ class _ProductCardState extends State<ProductCard>
             Positioned(
               top: 8,
               right: 8,
-              child: Hero(
-                tag: 'heart_${widget.product.id}',
-                child: AnimatedHeart(
-                  isFavorite: widget.isFavorite,
-                  onTap: widget.onFavoriteToggle,
-                  size: 16,
-                  backgroundColor: Colors.white.withOpacity(0.85),
+              child: HeroMode(
+                enabled: !widget.isPopping,
+                child: Hero(
+                  tag: 'heart_${widget.product.id}',
+                  child: AnimatedHeart(
+                    isFavorite: widget.isFavorite,
+                    onTap: widget.onFavoriteToggle,
+                    size: 16,
+                    backgroundColor: Colors.white.withOpacity(0.85),
+                  ),
                 ),
               ),
             ),

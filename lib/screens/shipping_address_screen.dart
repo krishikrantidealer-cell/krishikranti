@@ -6,7 +6,7 @@ import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/edit_address_screen.dart';
-import 'package:krishikranti/screens/payment_screen.dart';
+import 'package:krishikranti/screens/checkout_screen.dart';
 import 'package:krishikranti/core/address_service.dart';
 
 class ShippingAddressScreen extends StatefulWidget {
@@ -24,46 +24,70 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
   @override
   void initState() {
     super.initState();
+    final addressService = Provider.of<AddressService>(context, listen: false);
+    final profileService = Provider.of<ProfileService>(context, listen: false);
+
+    if (addressService.addresses.isNotEmpty) {
+      selectedAddressId = addressService.addresses
+          .firstWhere(
+            (a) => a.isDefault,
+            orElse: () => addressService.addresses.first,
+          )
+          .id;
+      _isInitializing = false;
+    } else if (profileService.user != null) {
+      final profile = profileService.user!;
+      final initialAddress = AddressModel(
+        id: "default_home",
+        name: profile.name.isNotEmpty ? profile.name : "Home / Shop",
+        villageArea: profile.address?.villageArea ?? "",
+        cityTehsil: profile.address?.cityTehsil ?? "",
+        state: profile.address?.state ?? "",
+        pincode: profile.address?.pincode ?? "",
+        phoneNumber: profile.phoneNumber,
+        isDefault: true,
+      );
+      addressService.setInitialLocalAddress(initialAddress);
+      selectedAddressId = initialAddress.id;
+      _isInitializing = false;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final addressService = Provider.of<AddressService>(
-        context,
-        listen: false,
-      );
-      final profileService = Provider.of<ProfileService>(
-        context,
-        listen: false,
-      );
+      if (addressService.addresses.isEmpty ||
+          addressService.addresses.first.id == "default_home") {
+        await addressService.fetchAddresses(background: true);
 
-      await addressService.fetchAddresses();
+        if (mounted) {
+          if (addressService.addresses.isEmpty && profileService.user != null) {
+            // Promote profile address to first shipping address
+            final profile = profileService.user!;
+            final initialAddress = AddressModel(
+              id: "",
+              name: profile.name.isNotEmpty ? profile.name : "Home / Shop",
+              villageArea: profile.address?.villageArea ?? "",
+              cityTehsil: profile.address?.cityTehsil ?? "",
+              state: profile.address?.state ?? "",
+              pincode: profile.address?.pincode ?? "",
+              phoneNumber: profile.phoneNumber,
+              isDefault: true,
+            );
+            await addressService.addAddress(initialAddress);
+          }
 
-      if (mounted) {
-        if (addressService.addresses.isEmpty && profileService.user != null) {
-          // Promote profile address to first shipping address
-          final profile = profileService.user!;
-          final initialAddress = AddressModel(
-            id: "",
-            name: "Home / Shop",
-            villageArea: profile.address?.villageArea ?? "",
-            cityTehsil: profile.address?.cityTehsil ?? "",
-            state: profile.address?.state ?? "",
-            pincode: profile.address?.pincode ?? "",
-            phoneNumber: profile.phoneNumber,
-            isDefault: true,
-          );
-          await addressService.addAddress(initialAddress);
+          if (addressService.addresses.isNotEmpty) {
+            setState(() {
+              selectedAddressId = addressService.addresses
+                  .firstWhere(
+                    (a) => a.isDefault,
+                    orElse: () => addressService.addresses.first,
+                  )
+                  .id;
+            });
+          }
+          setState(() => _isInitializing = false);
         }
-
-        if (addressService.addresses.isNotEmpty) {
-          setState(() {
-            selectedAddressId = addressService.addresses
-                .firstWhere(
-                  (a) => a.isDefault,
-                  orElse: () => addressService.addresses.first,
-                )
-                .id;
-          });
-        }
-        setState(() => _isInitializing = false);
+      } else {
+        addressService.fetchAddresses(background: true);
       }
     });
   }
@@ -72,6 +96,7 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final addressService = Provider.of<AddressService>(context);
+    final profileService = Provider.of<ProfileService>(context);
     final cartService = Provider.of<CartService>(context, listen: false);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -241,7 +266,9 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                                             Row(
                                               children: [
                                                 Text(
-                                                  address.name,
+                                                  (address.name.isNotEmpty && address.name != 'Home / Shop')
+                                                      ? address.name
+                                                      : (profileService.name.isNotEmpty ? profileService.name : 'Home / Shop'),
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 16,
@@ -287,7 +314,7 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
-                                              address.phoneNumber,
+                                              address.phoneNumber.isNotEmpty ? address.phoneNumber : profileService.phone,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 14,
@@ -423,7 +450,7 @@ class _ShippingAddressScreenState extends State<ShippingAddressScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const PaymentScreen(),
+                                  builder: (context) => const CheckoutScreen(),
                                 ),
                               );
                             }

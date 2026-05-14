@@ -8,7 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
-import 'package:krishikranti/screens/shipping_address_screen.dart';
+import 'package:krishikranti/screens/checkout_screen.dart';
 import 'package:krishikranti/screens/cart_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -2262,7 +2262,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         HapticFeedback.mediumImpact();
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const ShippingAddressScreen()),
+          MaterialPageRoute(builder: (_) => const CheckoutScreen()),
         );
       } else {
         _showError("Please select a pack size");
@@ -2273,7 +2273,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     HapticFeedback.mediumImpact();
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ShippingAddressScreen()),
+      MaterialPageRoute(builder: (_) => const CheckoutScreen()),
     );
   }
 
@@ -3422,33 +3422,43 @@ class _TierMilestoneCardState extends State<TierMilestoneCard>
                         ],
                       ),
                       const SizedBox(width: 5),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            widget.label,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: textColor,
-                              letterSpacing: -0.2,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                widget.label,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  color: textColor,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            perUnitStr,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: subtextColor,
-                              decoration:
-                                  (widget.isUnlocked && !widget.isActive)
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
+                            const SizedBox(height: 1),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                perUnitStr,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: subtextColor,
+                                  decoration:
+                                      (widget.isUnlocked && !widget.isActive)
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),

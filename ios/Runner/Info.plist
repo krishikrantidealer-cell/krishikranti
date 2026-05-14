@@ -49,5 +49,14 @@
 	<string>This app needs camera access to upload license images for KYC verification.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs photo library access to upload license images from your gallery for KYC verification.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>upi</string>
+		<string>tez</string>
+		<string>phonepe</string>
+		<string>paytmmp</string>
+		<string>bhim</string>
+		<string>amazonpay</string>
+	</array>
 </dict>
 </plist>

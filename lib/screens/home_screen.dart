@@ -320,121 +320,122 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      backgroundColor: const Color(
-        0xFFF8FAF8,
-      ), // Ultra-light greenish tint for premium feel
-      body: Stack(
-        children: [
-          // Background soft blobs for a modern look
-          Positioned(
-            top: -100,
-            right: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.colorScheme.primary.withValues(alpha: 0.05),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAF8),
+        body: Stack(
+          children: [
+            // Background subtle modern decor
+            Positioned(
+              top: -100,
+              right: -50,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                ),
               ),
             ),
-          ),
 
-          SafeArea(
-            child: RefreshIndicator(
-              onRefresh: () => _fetchDiscoveryData(forceRefresh: true),
-              color: theme.colorScheme.primary,
-              child: ListenableBuilder(
-                listenable: _favoriteService,
-                builder: (context, child) {
-                  return CustomScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    slivers: [
-                      // Glassmorphic App Bar / Header
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                          child: _buildHeader(context, theme, l10n),
-                        ),
-                      ),
-
-                      // Floating Search Bar with animations
-                      SliverPersistentHeader(
-                        pinned: true,
-                        delegate: _SliverSearchDelegate(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: _buildSearchBar(context, theme, l10n),
+            SafeArea(
+              top: false,
+              child: RefreshIndicator(
+                onRefresh: () => _fetchDiscoveryData(forceRefresh: true),
+                color: theme.colorScheme.primary,
+                child: ListenableBuilder(
+                  listenable: _favoriteService,
+                  builder: (context, child) {
+                    return CustomScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      slivers: [
+                        // Unified Pinned Gradient Header & Search Bar
+                        SliverPersistentHeader(
+                          pinned: true,
+                          delegate: _SliverHeaderDelegate(
+                            header: _buildHeader(context, theme, l10n),
+                            searchBar: _buildSearchBar(context, theme, l10n),
+                            topPadding: MediaQuery.paddingOf(context).top,
                           ),
                         ),
-                      ),
 
-                      // Banner Section with slight elevation
-                      SliverPadding(
-                        padding: const EdgeInsets.only(top: 4),
-                        sliver: SliverToBoxAdapter(
-                          child: _buildBanner(context, theme),
+                        // Banner Section
+                        SliverPadding(
+                          padding: const EdgeInsets.only(top: 10),
+                          sliver: SliverToBoxAdapter(
+                            child: _buildBanner(context, theme),
+                          ),
                         ),
-                      ),
 
-                      // Categories Section with Staggered Grid
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                        sliver: SliverToBoxAdapter(
-                          child: _sectionTitle(theme, l10n.categories, () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CatalogueScreen(),
-                              ),
-                            );
-                          }, l10n),
+                        // Categories Section
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+                          sliver: SliverToBoxAdapter(
+                            child: _sectionTitle(
+                              theme,
+                              l10n.categories,
+                              () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const CatalogueScreen(),
+                                  ),
+                                );
+                              },
+                              l10n,
+                              subtitle: "Explore top agricultural sectors",
+                            ),
+                          ),
                         ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: _buildCategories(context, theme),
-                      ),
+                        SliverToBoxAdapter(
+                          child: _buildCategories(context, theme),
+                        ),
 
-                      // Featured Products
-                      SliverToBoxAdapter(
-                        child: _buildFeaturedProducts(context, theme, l10n),
-                      ),
+                        // Featured Products
+                        SliverToBoxAdapter(
+                          child: _buildFeaturedProducts(context, theme, l10n),
+                        ),
 
-                      // Shop by Crop (Collections)
-                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                      SliverToBoxAdapter(
-                        child: _buildShopByCrop(context, theme, l10n),
-                      ),
+                        // Shop by Crop (Collections)
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                        SliverToBoxAdapter(
+                          child: _buildShopByCrop(context, theme, l10n),
+                        ),
 
-                      // Best Offers
-                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                      SliverToBoxAdapter(
-                        child: _buildBestOffers(context, theme, l10n),
-                      ),
+                        // Best Offers
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                        SliverToBoxAdapter(
+                          child: _buildBestOffers(context, theme, l10n),
+                        ),
 
-                      // Why Choose Us
-                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                      SliverToBoxAdapter(
-                        child: _buildWhyChooseUs(context, theme, l10n),
-                      ),
+                        // Why Choose Us
+                        const SliverToBoxAdapter(child: SizedBox(height: 28)),
+                        SliverToBoxAdapter(
+                          child: _buildWhyChooseUs(context, theme, l10n),
+                        ),
 
-                      // Footer
-                      SliverToBoxAdapter(
-                        child: _buildFooter(context, theme, l10n),
-                      ),
+                        // Footer
+                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                        SliverToBoxAdapter(
+                          child: _buildFooter(context, theme, l10n),
+                        ),
 
-                      // Bottom spacing
-                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                    ],
-                  );
-                },
+                        // Bottom spacing
+                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -459,21 +460,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 );
               },
               child: Container(
-                width: 52,
-                height: 52,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withValues(alpha: 0.7),
-                    ],
+                    colors: [Colors.white, Colors.white.withValues(alpha: 0.8)],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -488,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       profile.avatarLetter,
                       style: TextStyle(
                         color: theme.colorScheme.primary,
-                        fontSize: 22,
+                        fontSize: 18,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -496,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,11 +504,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     children: [
                       Text(
                         _getTimeBasedGreeting(l10n),
-                        style: TextStyle(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.8,
-                          ),
-                          fontSize: 11,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.2,
                         ),
@@ -519,20 +515,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       Text(
                         DateFormat('• d MMM').format(DateTime.now()),
                         style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 11,
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 1),
                   Text(
                     profile.name,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                      color: Colors.black87,
-                      letterSpacing: -0.7,
+                      fontSize: 17,
+                      color: Colors.white,
+                      letterSpacing: -0.4,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -561,14 +558,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             );
           },
           style: IconButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary,
-            padding: const EdgeInsets.all(10),
+            backgroundColor: Colors.white.withValues(alpha: 0.25),
+            padding: const EdgeInsets.all(8),
           ),
           icon: count == 0
               ? const Icon(
                   Icons.shopping_cart_outlined,
                   color: Colors.white,
-                  size: 24,
+                  size: 22,
                 )
               : Badge(
                   label: Text(count > 99 ? '99+' : count.toString()),
@@ -576,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   child: const Icon(
                     Icons.shopping_cart_outlined,
                     color: Colors.white,
-                    size: 24,
+                    size: 22,
                   ),
                 ),
         );
@@ -598,15 +595,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       },
       child: Container(
-        height: 54,
+        height: 46,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -675,6 +672,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Column(
       children: [
         CarouselSlider.builder(
+          key: ValueKey(imagesToDisplay.length),
           itemCount: imagesToDisplay.length,
           itemBuilder: (context, index, realIndex) {
             final String imageUrl = imagesToDisplay[index];
@@ -716,17 +714,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     child: imageUrl.startsWith('http')
                         ? CachedNetworkImage(
                             imageUrl: imageUrl,
@@ -752,7 +750,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             );
           },
           options: CarouselOptions(
-            height: 160,
+            height: 165,
             viewportFraction: 1.0,
             autoPlay: imagesToDisplay.length > 1,
             autoPlayInterval: const Duration(seconds: 5),
@@ -777,15 +775,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 : 0;
             return Column(
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     imagesToDisplay.length,
                     (i) => AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.all(4),
-                      width: safeIndex == i ? 18 : 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: safeIndex == i ? 20 : 6,
                       height: 6,
                       decoration: BoxDecoration(
                         color: safeIndex == i
@@ -808,51 +806,116 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ThemeData theme,
     String title,
     VoidCallback onSeeAll,
-    AppLocalizations l10n,
-  ) {
+    AppLocalizations l10n, {
+    String? subtitle,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.only(top: 2),
-              width: 32,
-              height: 3,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
-        ),
-        TextButton(
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            onSeeAll();
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          child: const Row(
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                "See All",
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              Container(
+                width: 5,
+                height: subtitle != null ? 28 : 20,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      const Color(0xFF38B058),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(width: 4),
-              Icon(Icons.arrow_forward_rounded, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5,
+                        color: const Color(0xFF111827),
+                        height: 1.1,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6B7280),
+                          letterSpacing: 0.3,
+                          height: 1.0,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onSeeAll();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "See All",
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 10,
+                    color: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -864,6 +927,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: GridView.builder(
+          padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: 6,
@@ -876,7 +940,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           itemBuilder: (context, index) => Container(
             decoration: BoxDecoration(
               color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
             ),
           ),
         ),
@@ -884,16 +948,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       child: GridView.builder(
+        padding: EdgeInsets.zero,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _categories.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 2.3,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 2.2,
         ),
         itemBuilder: (context, index) {
           final cat = _categories[index];
@@ -941,30 +1006,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-          child: _sectionTitle(theme, "Featured Products", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ProductListScreen(
-                  category: "Featured",
-                  isCollection: false,
+          padding: const EdgeInsets.fromLTRB(16, 28, 16, 8),
+          child: _sectionTitle(
+            theme,
+            "Featured Products",
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProductListScreen(
+                    category: "Featured",
+                    isCollection: false,
+                  ),
                 ),
-              ),
-            );
-          }, l10n),
+              );
+            },
+            l10n,
+            subtitle: "Premium farming essentials",
+          ),
         ),
         SizedBox(
-          height: 265,
+          height: 275,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
             itemCount: _featuredProducts.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            separatorBuilder: (context, index) => const SizedBox(width: 14),
             itemBuilder: (context, index) {
               final product = _featuredProducts[index];
               return SizedBox(
-                width: 165,
+                width: 170,
                 child: ProductCard(
                   product: product,
                   id: product.id,
@@ -1049,19 +1120,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _sectionTitle(theme, "Shop by Crop", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    const CatalogueScreen(isShowingCollections: true),
-              ),
-            );
-          }, l10n),
+          child: _sectionTitle(
+            theme,
+            "Shop by Crop",
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      const CatalogueScreen(isShowingCollections: true),
+                ),
+              );
+            },
+            l10n,
+            subtitle: "Solutions for your crops",
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         SizedBox(
-          height: 120,
+          height: 125,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -1087,19 +1164,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Column(
                   children: [
                     Container(
-                      width: 72,
-                      height: 72,
+                      width: 76,
+                      height: 76,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
                           colors: [
-                            theme.colorScheme.primary.withValues(alpha: 0.2),
+                            theme.colorScheme.primary.withValues(alpha: 0.25),
                             theme.colorScheme.primary.withValues(alpha: 0.05),
                           ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                         border: Border.all(
                           color: theme.colorScheme.primary.withValues(
-                            alpha: 0.1,
+                            alpha: 0.15,
                           ),
                           width: 2,
                         ),
@@ -1111,7 +1190,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -1197,18 +1276,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _sectionTitle(theme, "Best Offers", () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    const ProductListScreen(category: "Offers"),
-              ),
-            );
-          }, l10n),
+          child: _sectionTitle(
+            theme,
+            "Best Offers",
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      const ProductListScreen(category: "Offers"),
+                ),
+              );
+            },
+            l10n,
+            subtitle: "Exclusive deals & discounts",
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         CarouselSlider.builder(
+          key: ValueKey(offers.length),
           itemCount: offers.length,
           itemBuilder: (context, index, realIndex) {
             final offer = offers[index];
@@ -1227,17 +1313,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     child: CachedNetworkImage(
                       imageUrl: offer['image']!,
                       fit: BoxFit.cover,
@@ -1293,15 +1379,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 : 0;
             return Column(
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     offers.length,
                     (i) => AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.all(4),
-                      width: safeIndex == i ? 18 : 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: safeIndex == i ? 20 : 6,
                       height: 6,
                       decoration: BoxDecoration(
                         color: safeIndex == i
@@ -1334,10 +1420,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
             color: theme.colorScheme.primary.withValues(alpha: 0.05),
@@ -1352,7 +1439,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           return Column(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
@@ -1360,15 +1447,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Icon(
                   item['icon'] as IconData,
                   color: theme.colorScheme.primary,
-                  size: 24,
+                  size: 26,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 item['title'] as String,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: Colors.black87,
                   letterSpacing: -0.2,
@@ -1409,10 +1496,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
             child: Column(
               children: [
-                // Logo - Increased visibility
+                // Logo
                 Image.asset(
                   'assets/images/app_logo.png',
                   height: 80,
@@ -1426,13 +1513,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-                // WhatsApp Support Button - Compact & Premium
+                // WhatsApp Support Button
                 Center(
                   child: SizedBox(
-                    width: 210,
-                    height: 40,
+                    width: 220,
+                    height: 44,
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         final url = Uri.parse("https://wa.me/919399022060");
@@ -1446,12 +1533,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           );
                         }
                       },
-                      icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                      icon: const Icon(Icons.chat_bubble_outline, size: 18),
                       label: const Text(
                         "WhatsApp Support",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -1459,17 +1546,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(22),
                         ),
-                        elevation: 2,
+                        elevation: 3,
                         shadowColor: Colors.black12,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                // Premium small row - Reduced sizes
+                // Premium small row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -1486,14 +1573,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // Copyright
                 Text(
                   "© 2026 Krishi Dealer",
                   style: TextStyle(
                     color: Colors.grey.shade500,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1508,9 +1595,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildFooterIconLabel(IconData icon, String label, ThemeData theme) {
     return Column(
       children: [
-        Icon(icon, size: 16, color: Colors.grey.shade400),
-        const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 9, color: Colors.grey.shade500)),
+        Icon(icon, size: 18, color: Colors.grey.shade400),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -1586,17 +1680,18 @@ class _ProductCardState extends State<ProductCard> {
         );
       },
       child: AnimatedScale(
-        scale: _isPressed ? 0.98 : 1.0,
+        scale: _isPressed ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 100),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
@@ -1611,28 +1706,33 @@ class _ProductCardState extends State<ProductCard> {
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.zero,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
                         ),
                       ),
-                      child: Hero(
-                        tag: "product_${widget.id}",
-                        child: ProgressiveImage(
-                          thumbnailUrl: displayProduct.thumbnail,
-                          imageUrl: displayProduct.images.isNotEmpty
-                              ? displayProduct.images.first
-                              : displayProduct.thumbnail,
-                          fit: BoxFit.contain,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                        child: Hero(
+                          tag: "product_${widget.id}",
+                          child: ProgressiveImage(
+                            thumbnailUrl: displayProduct.thumbnail,
+                            imageUrl: displayProduct.images.isNotEmpty
+                                ? displayProduct.images.first
+                                : displayProduct.thumbnail,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ),
                     Positioned(
                       top: 10,
                       left: 10,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (widget.tag != null) ...[
                             Container(
@@ -1653,7 +1753,7 @@ class _ProductCardState extends State<ProductCard> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(height: 6),
                           ],
                           if (displayProduct.averageRating > 0)
                             ClipRRect(
@@ -1661,9 +1761,12 @@ class _ProductCardState extends State<ProductCard> {
                               child: BackdropFilter(
                                 filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.72),
+                                    color: Colors.white.withOpacity(0.75),
                                     borderRadius: BorderRadius.circular(100),
                                     border: Border.all(
                                       color: Colors.white.withOpacity(0.6),
@@ -1671,7 +1774,7 @@ class _ProductCardState extends State<ProductCard> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.02),
+                                        color: Colors.black.withOpacity(0.04),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -1683,15 +1786,16 @@ class _ProductCardState extends State<ProductCard> {
                                       const Icon(
                                         Icons.star_rounded,
                                         color: Colors.orange,
-                                        size: 11,
+                                        size: 12,
                                       ),
                                       const SizedBox(width: 2),
                                       Text(
-                                        displayProduct.averageRating.toStringAsFixed(1),
+                                        displayProduct.averageRating
+                                            .toStringAsFixed(1),
                                         style: const TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.w900,
-                                          fontSize: 9.5,
+                                          fontSize: 10,
                                           letterSpacing: -0.2,
                                         ),
                                       ),
@@ -1704,8 +1808,8 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                     ),
                     Positioned(
-                      top: 6,
-                      right: 6,
+                      top: 8,
+                      right: 8,
                       child: Hero(
                         tag: 'heart_${widget.id}',
                         child: AnimatedHeart(
@@ -1720,9 +1824,9 @@ class _ProductCardState extends State<ProductCard> {
 
               // Details Section
               Expanded(
-                flex: 4,
+                flex: 5,
                 child: Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1730,7 +1834,7 @@ class _ProductCardState extends State<ProductCard> {
                         widget.category.toUpperCase(),
                         style: TextStyle(
                           color: theme.colorScheme.primary,
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                         ),
@@ -1746,6 +1850,7 @@ class _ProductCardState extends State<ProductCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         widget.weight,
                         style: TextStyle(
@@ -1767,10 +1872,10 @@ class _ProductCardState extends State<ProductCard> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primary,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.add_rounded,
@@ -1832,42 +1937,34 @@ class _CategoryCardState extends State<CategoryCard> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedNetworkImage(
-                  imageUrl: widget.image,
-                  fit: BoxFit.fill,
-                  placeholder: (context, url) =>
-                      Container(color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => CachedNetworkImage(
-                    imageUrl: widget.fallbackImage,
-                    fit: BoxFit.fill,
-                    placeholder: (context, url) =>
-                        Container(color: Colors.grey[200]),
-                    errorWidget: (context, url, error) => Container(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      child: Center(
-                        child: Icon(
-                          widget.icon,
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.2,
-                          ),
-                          size: 40,
-                        ),
-                      ),
+            child: CachedNetworkImage(
+              imageUrl: widget.image,
+              fit: BoxFit.fill,
+              placeholder: (context, url) => Container(color: Colors.grey[200]),
+              errorWidget: (context, url, error) => CachedNetworkImage(
+                imageUrl: widget.fallbackImage,
+                fit: BoxFit.fill,
+                placeholder: (context, url) =>
+                    Container(color: Colors.grey[200]),
+                errorWidget: (context, url, error) => Container(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  child: Center(
+                    child: Icon(
+                      widget.icon,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      size: 40,
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -1876,10 +1973,16 @@ class _CategoryCardState extends State<CategoryCard> {
   }
 }
 
-class _SliverSearchDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
+class _SliverHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget header;
+  final Widget searchBar;
+  final double topPadding;
 
-  _SliverSearchDelegate({required this.child});
+  _SliverHeaderDelegate({
+    required this.header,
+    required this.searchBar,
+    required this.topPadding,
+  });
 
   @override
   Widget build(
@@ -1887,14 +1990,37 @@ class _SliverSearchDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(color: const Color(0xFFF8FAF8), child: child);
+    final double headerOpacity = (1.0 - (shrinkOffset / 60)).clamp(0.0, 1.0);
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF20823C), Color(0xFF38B058)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (headerOpacity > 0)
+            Positioned(
+              top: topPadding + 10 - (shrinkOffset * 0.4),
+              left: 16,
+              right: 16,
+              child: Opacity(opacity: headerOpacity, child: header),
+            ),
+          Positioned(bottom: 12, left: 16, right: 16, child: searchBar),
+        ],
+      ),
+    );
   }
 
   @override
-  double get maxExtent => 70;
+  double get maxExtent => 130 + topPadding;
 
   @override
-  double get minExtent => 70;
+  double get minExtent => 70 + topPadding;
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>

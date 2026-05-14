@@ -21,11 +21,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
   void _showLogoutDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     HapticFeedback.heavyImpact();
@@ -73,7 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Color primaryGreen = theme.primaryColor;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: const Color(0xFFF8F9FA),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: Consumer<ProfileService>(
@@ -92,246 +87,295 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
+                        // Compact Curved Gradient Header
                         Container(
-                          height: 140,
+                          height: 115,
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: primaryGreen,
-                            borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(45),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                primaryGreen,
+                                primaryGreen.withValues(alpha: 0.8),
+                                const Color(0xFF0F5132),
+                              ],
                             ),
+                            // borderRadius: const BorderRadius.vertical(
+                            //   bottom: Radius.circular(36),
+                            // ),
                           ),
                           child: Stack(
                             children: [
                               Positioned(
                                 top: -30,
-                                right: -30,
+                                right: -20,
                                 child: _BlurredCircle(
-                                  size: 160,
-                                  color: Colors.white.withValues(alpha: 0.1),
+                                  size: 140,
+                                  color: Colors.white.withValues(alpha: 0.12),
                                 ),
                               ),
                               Positioned(
-                                bottom: -20,
-                                left: -20,
+                                bottom: -15,
+                                left: -15,
                                 child: _BlurredCircle(
-                                  size: 100,
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  size: 90,
+                                  color: Colors.black.withValues(alpha: 0.1),
                                 ),
                               ),
                             ],
                           ),
                         ),
+
+                        // Animated Main Profile Card (Compact)
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 45, 20, 0),
-                          child: Stack(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(22),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                    width: 1.5,
+                          padding: const EdgeInsets.fromLTRB(16, 60, 16, 0),
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween<double>(begin: 0.0, end: 1.0),
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeOutQuart,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(opacity: value, child: child),
+                              );
+                            },
+                            child: Stack(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: primaryGreen.withValues(
+                                          alpha: 0.06,
+                                        ),
+                                        blurRadius: 25,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.03,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primaryGreen.withValues(
-                                        alpha: 0.04,
-                                      ),
-                                      blurRadius: 40,
-                                      offset: const Offset(0, 20),
-                                    ),
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.03,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 5),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        Container(
-                                          width: 72,
-                                          height: 72,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                              colors: [
-                                                primaryGreen.withValues(
-                                                  alpha: 0.1,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  primaryGreen.withValues(
+                                                    alpha: 0.2,
+                                                  ),
+                                                  primaryGreen.withValues(
+                                                    alpha: 0.05,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            width: 50,
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                color: primaryGreen.withValues(
+                                                  alpha: 0.2,
                                                 ),
-                                                primaryGreen.withValues(
-                                                  alpha: 0.02,
+                                                width: 2,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: primaryGreen
+                                                      .withValues(alpha: 0.12),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 3),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 60,
-                                          height: 60,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.white,
-                                            border: Border.all(
-                                              color: primaryGreen.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                              width: 2,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              profile.avatarLetter,
-                                              style: TextStyle(
-                                                color: primaryGreen,
-                                                fontSize: 26,
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        FutureBuilder<bool>(
-                                          future: AuthService.isKycComplete(),
-                                          builder: (context, snapshot) {
-                                            if (snapshot.data == true) {
-                                              return Positioned(
-                                                bottom: 0,
-                                                right: 0,
-                                                child: _VerifiedBadge(
-                                                  primaryGreen: primaryGreen,
+                                            child: Center(
+                                              child: Text(
+                                                profile.avatarLetter,
+                                                style: TextStyle(
+                                                  color: primaryGreen,
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w900,
                                                 ),
-                                              );
-                                            }
-                                            return const SizedBox.shrink();
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            profile.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800,
-                                              color: Color(0xFF121212),
-                                              letterSpacing: -0.5,
-                                              height: 1.1,
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                CupertinoIcons.bag_fill,
-                                                size: 10,
-                                                color: primaryGreen,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  profile.storeName,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Colors.grey.shade500,
-                                                    height: 1.1,
+                                          FutureBuilder<bool>(
+                                            future: AuthService.isKycComplete(),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.data == true) {
+                                                return Positioned(
+                                                  bottom: 0,
+                                                  right: 0,
+                                                  child: _VerifiedBadge(
+                                                    primaryGreen: primaryGreen,
                                                   ),
-                                                ),
-                                              ),
-                                            ],
+                                                );
+                                              }
+                                              return const SizedBox.shrink();
+                                            },
                                           ),
-                                          if (profile.city.isNotEmpty) ...[
+                                        ],
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              profile.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF1A1A1A),
+                                                letterSpacing: -0.4,
+                                                height: 1.1,
+                                              ),
+                                            ),
                                             const SizedBox(height: 4),
                                             Row(
-                                              mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(
-                                                  CupertinoIcons.location_solid,
-                                                  size: 10,
-                                                  color: primaryGreen,
+                                                Container(
+                                                  padding: const EdgeInsets.all(
+                                                    3,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: primaryGreen
+                                                        .withValues(alpha: 0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  child: Icon(
+                                                    CupertinoIcons.bag_fill,
+                                                    size: 10,
+                                                    color: primaryGreen,
+                                                  ),
                                                 ),
                                                 const SizedBox(width: 6),
                                                 Expanded(
                                                   child: Text(
-                                                    "${profile.city}${profile.state.isNotEmpty ? ', ${profile.state}' : ''}",
+                                                    profile.storeName,
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     style: TextStyle(
-                                                      fontSize: 12,
+                                                      fontSize: 13,
                                                       fontWeight:
-                                                          FontWeight.w600,
+                                                          FontWeight.w700,
                                                       color:
-                                                          Colors.grey.shade600,
+                                                          Colors.grey.shade700,
                                                     ),
                                                   ),
                                                 ),
                                               ],
                                             ),
+                                            if (profile.city.isNotEmpty) ...[
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    CupertinoIcons
+                                                        .location_solid,
+                                                    size: 12,
+                                                    color: Colors.grey.shade500,
+                                                  ),
+                                                  const SizedBox(width: 5),
+                                                  Expanded(
+                                                    child: Text(
+                                                      "${profile.city}${profile.state.isNotEmpty ? ', ${profile.state}' : ''}",
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: Colors
+                                                            .grey
+                                                            .shade600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ],
-                                        ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Positioned(
-                                top: 12,
-                                right: 12,
-                                child: _EditButton(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const EditProfileScreen(),
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: _EditPillButton(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const EditProfileScreen(),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
+
+                  // Quick Stats Row & Action Lists (Compact)
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         FutureBuilder<bool>(
                           future: AuthService.isKycComplete(),
                           builder: (context, snapshot) {
-                            if (snapshot.data == true)
+                            if (snapshot.data == true) {
                               return const SizedBox.shrink();
+                            }
                             return _ModernKycAlert(l10n: l10n);
                           },
                         ),
 
-                        // --- COMPACT GROUPED CARDS ---
-                        _ModernSectionHeader(title: l10n.myOrders),
+                        // --- UNIFIED GENERAL ACTIONS ---
+                        _ModernSectionHeader(title: "GENERAL OPTIONS"),
                         _GroupedActionCard(
                           children: [
                             _ActionTile(
@@ -366,16 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   builder: (_) => const FavoritesScreen(),
                                 ),
                               ),
-                              showDivider: false,
                             ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        _ModernSectionHeader(title: "PREFERENCES"),
-                        _GroupedActionCard(
-                          children: [
                             _ActionTile(
                               icon: CupertinoIcons.globe,
                               title: l10n.language,
@@ -411,21 +446,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 24),
                         _LogoutButton(
                           onTap: () => _showLogoutDialog(context),
                           label: l10n.logout,
                         ),
                         const SizedBox(height: 24),
                         Center(
-                          child: Text(
-                            "KRISHI KRANTI • VERSION 2.0.1",
-                            style: TextStyle(
-                              color: Colors.grey.shade400,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2.0,
-                            ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  CupertinoIcons.leaf_arrow_circlepath,
+                                  color: Colors.grey.shade500,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "KRISHI KRANTI • VERSION 2.0.1",
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Empowering Agri Dealers Across India",
+                                style: TextStyle(
+                                  color: Colors.grey.shade400,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ]),
@@ -441,7 +502,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// --- COMPACT UI COMPONENTS ---
+// --- ADVANCED COMPACT UI COMPONENTS ---
+
+class _QuickStatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final Color backgroundColor;
+
+  const _QuickStatCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 14),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.grey.shade500,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF1E1E1E),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _GroupedActionCard extends StatelessWidget {
   final List<Widget> children;
@@ -451,12 +585,12 @@ class _GroupedActionCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.01),
-            blurRadius: 10,
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -497,7 +631,7 @@ class _ActionTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.08),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: color, size: 18),
@@ -508,15 +642,22 @@ class _ActionTile extends StatelessWidget {
                     title,
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF2D2D2D),
                     ),
                   ),
                 ),
-                const Icon(
-                  CupertinoIcons.chevron_right,
-                  size: 14,
-                  color: Color(0xFFC0C0C0),
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 12,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),
@@ -565,38 +706,52 @@ class _VerifiedBadge extends StatelessWidget {
       child: Icon(
         CupertinoIcons.checkmark_seal_fill,
         color: primaryGreen,
-        size: 18,
+        size: 16,
       ),
     );
   }
 }
 
-class _EditButton extends StatelessWidget {
+class _EditPillButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _EditButton({required this.onTap});
+  const _EditPillButton({required this.onTap});
   @override
   Widget build(BuildContext context) {
     return _ScaleBtn(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: Image.asset(
-          'assets/icons/edit.png',
-          width: 18,
-          height: 18,
-          color: Colors.grey.shade700,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/icons/edit.png',
+              width: 12,
+              height: 12,
+              color: Colors.grey.shade700,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              "Edit",
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -609,7 +764,7 @@ class _ModernSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
+      padding: const EdgeInsets.fromLTRB(6, 16, 6, 10),
       child: Row(
         children: [
           Container(
@@ -626,8 +781,8 @@ class _ModernSectionHeader extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w900,
-              color: Colors.grey.shade500,
-              letterSpacing: 1.5,
+              color: Colors.grey.shade600,
+              letterSpacing: 1.2,
             ),
           ),
         ],
@@ -644,25 +799,41 @@ class _ModernKycAlert extends StatelessWidget {
     return _ScaleBtn(
       onTap: () => Navigator.pushNamed(context, '/kyc'),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
               const Color(0xFFFFF3E0),
-              const Color(0xFFFFF3E0).withValues(alpha: 0.5),
+              const Color(0xFFFFE0B2).withValues(alpha: 0.7),
             ],
           ),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.15)),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(
                 CupertinoIcons.shield_lefthalf_fill,
@@ -670,7 +841,7 @@ class _ModernKycAlert extends StatelessWidget {
                 size: 22,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -679,7 +850,7 @@ class _ModernKycAlert extends StatelessWidget {
                     "Identity Verification",
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 15,
+                      fontSize: 14,
                       color: Color(0xFFE65100),
                     ),
                   ),
@@ -690,15 +861,23 @@ class _ModernKycAlert extends StatelessWidget {
                       fontSize: 12,
                       color: Color(0xFFEF6C00),
                       fontWeight: FontWeight.w600,
+                      height: 1.1,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              CupertinoIcons.chevron_right,
-              color: Colors.orange,
-              size: 14,
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                CupertinoIcons.chevron_right,
+                color: Colors.white,
+                size: 14,
+              ),
             ),
           ],
         ),
@@ -717,21 +896,28 @@ class _LogoutButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
+        padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
+          color: Colors.red.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.15)),
         ),
         child: Center(
-          child: Text(
-            label.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.red,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(CupertinoIcons.power, color: Colors.red, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
           ),
         ),
       ),

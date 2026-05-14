@@ -48,10 +48,14 @@ class AddressModel {
     );
   }
 
-  factory AddressModel.fromJson(Map<String, dynamic> json) {
+  factory AddressModel.fromJson(Map<String, dynamic> json, {String? fallbackName}) {
+    String addrName = json['name'] ?? '';
+    if ((addrName == 'Home / Shop' || addrName.isEmpty) && fallbackName != null && fallbackName.isNotEmpty) {
+      addrName = fallbackName;
+    }
     return AddressModel(
       id: json['_id'] ?? '',
-      name: json['name'] ?? '',
+      name: addrName,
       villageArea: json['villageArea'] ?? '',
       cityTehsil: json['cityTehsil'] ?? '',
       state: json['state'],
@@ -75,26 +79,51 @@ class AddressModel {
 class AddressService extends ChangeNotifier {
   List<AddressModel> _addresses = [];
   bool _isLoading = false;
+  String _cachedUserName = '';
 
   List<AddressModel> get addresses => _addresses;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchAddresses() async {
-    _isLoading = true;
-    notifyListeners();
+  void setInitialLocalAddress(AddressModel address) {
+    if (_addresses.isEmpty) {
+      _addresses = [address];
+      _cachedUserName = address.name;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchAddresses({bool background = false}) async {
+    if (!background) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
       final response = await HttpService.get(ApiConstants.profile);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List addrJson = data['user']['shippingAddresses'] ?? [];
-        _addresses = addrJson.map((j) => AddressModel.fromJson(j)).toList();
+        final userObj = data['user'] ?? {};
+        final String fName = userObj['firstName'] ?? '';
+        final String lName = userObj['lastName'] ?? '';
+        final String fullName = fName.isNotEmpty ? "$fName $lName".trim() : (userObj['name'] ?? '');
+        if (fullName.isNotEmpty) {
+          _cachedUserName = fullName;
+        }
+
+        final List addrJson = userObj['shippingAddresses'] ?? [];
+        if (addrJson.isNotEmpty) {
+          _addresses = addrJson.map((j) => AddressModel.fromJson(j, fallbackName: _cachedUserName)).toList();
+        }
       }
     } catch (e) {
       debugPrint("Error fetching addresses: $e");
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!background) {
+        _isLoading = false;
+        notifyListeners();
+      } else {
+        notifyListeners();
+      }
     }
   }
 
@@ -107,7 +136,7 @@ class AddressService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List addrJson = data['addresses'];
-        _addresses = addrJson.map((j) => AddressModel.fromJson(j)).toList();
+        _addresses = addrJson.map((j) => AddressModel.fromJson(j, fallbackName: _cachedUserName)).toList();
         notifyListeners();
         return true;
       }
@@ -124,7 +153,7 @@ class AddressService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List addrJson = data['addresses'];
-        _addresses = addrJson.map((j) => AddressModel.fromJson(j)).toList();
+        _addresses = addrJson.map((j) => AddressModel.fromJson(j, fallbackName: _cachedUserName)).toList();
         notifyListeners();
         return true;
       }
@@ -148,7 +177,7 @@ class AddressService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List addrJson = data['addresses'];
-        _addresses = addrJson.map((j) => AddressModel.fromJson(j)).toList();
+        _addresses = addrJson.map((j) => AddressModel.fromJson(j, fallbackName: _cachedUserName)).toList();
         notifyListeners();
         return true;
       } else {

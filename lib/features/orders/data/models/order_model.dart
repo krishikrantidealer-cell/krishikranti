@@ -13,6 +13,16 @@ class Order {
   final String? awbNumber;
   final String? courierName;
   final String? trackingUrl;
+  final double? advanceAmount;
+  final double? remainingAmount;
+  final DateTime? placedAt;
+  final DateTime? processingAt;
+  final DateTime? shippedAt;
+  final DateTime? outForDeliveryAt;
+  final DateTime? deliveredAt;
+  final DateTime? cancelledAt;
+  final DateTime? rtoAt;
+  final String? courierStatus;
 
   Order({
     required this.id,
@@ -29,13 +39,24 @@ class Order {
     this.awbNumber,
     this.courierName,
     this.trackingUrl,
+    this.advanceAmount,
+    this.remainingAmount,
+    this.placedAt,
+    this.processingAt,
+    this.shippedAt,
+    this.outForDeliveryAt,
+    this.deliveredAt,
+    this.cancelledAt,
+    this.rtoAt,
+    this.courierStatus,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
       id: json['_id'] ?? '',
       orderId: json['orderId'] ?? '',
-      items: (json['items'] as List?)
+      items:
+          (json['items'] as List?)
               ?.map((i) => OrderItem.fromJson(i))
               .toList() ??
           [],
@@ -43,13 +64,43 @@ class Order {
       discountAmount: (json['discountAmount'] ?? 0).toDouble(),
       couponCode: json['couponCode'],
       shippingAddress: ShippingAddress.fromJson(json['shippingAddress'] ?? {}),
-      paymentMethod: json['paymentMethod'] ?? 'COD',
+      paymentMethod: json['paymentMethod'] ?? 'Online',
       paymentStatus: json['paymentStatus'] ?? 'Pending',
       orderStatus: json['orderStatus'] ?? 'Pending',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ).toLocal(),
       awbNumber: json['awbNumber'],
       courierName: json['courierName'],
       trackingUrl: json['trackingUrl'],
+      advanceAmount: json['advanceAmount'] != null
+          ? (json['advanceAmount'] as num).toDouble()
+          : null,
+      remainingAmount: json['remainingAmount'] != null
+          ? (json['remainingAmount'] as num).toDouble()
+          : null,
+      placedAt: json['placedAt'] != null
+          ? DateTime.parse(json['placedAt']).toLocal()
+          : null,
+      processingAt: json['processingAt'] != null
+          ? DateTime.parse(json['placedAt'] ?? json['processingAt']).toLocal()
+          : null,
+      shippedAt: json['shippedAt'] != null
+          ? DateTime.parse(json['shippedAt']).toLocal()
+          : null,
+      outForDeliveryAt: json['outForDeliveryAt'] != null
+          ? DateTime.parse(json['outForDeliveryAt']).toLocal()
+          : null,
+      deliveredAt: json['deliveredAt'] != null
+          ? DateTime.parse(json['deliveredAt']).toLocal()
+          : null,
+      cancelledAt: json['cancelledAt'] != null
+          ? DateTime.parse(json['cancelledAt']).toLocal()
+          : null,
+      rtoAt: json['rtoAt'] != null
+          ? DateTime.parse(json['rtoAt']).toLocal()
+          : null,
+      courierStatus: json['courierStatus'],
     );
   }
 }
@@ -76,7 +127,9 @@ class OrderItem {
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
       id: json['_id'] ?? '',
-      productId: json['product'] ?? '',
+      productId: json['product'] is Map
+          ? (json['product']['_id'] ?? '')
+          : (json['product'] ?? ''),
       variantId: json['variantId'] ?? '',
       title: json['title'] ?? '',
       image: json['image'],
@@ -87,20 +140,29 @@ class OrderItem {
 }
 
 class ShippingAddress {
+  final String? name;
+  final String? phoneNumber;
   final String? villageArea;
   final String? cityTehsil;
+  final String? state;
   final String? pincode;
 
   ShippingAddress({
+    this.name,
+    this.phoneNumber,
     this.villageArea,
     this.cityTehsil,
+    this.state,
     this.pincode,
   });
 
   factory ShippingAddress.fromJson(Map<String, dynamic> json) {
     return ShippingAddress(
+      name: json['name'],
+      phoneNumber: json['phoneNumber'],
       villageArea: json['villageArea'],
       cityTehsil: json['cityTehsil'],
+      state: json['state'],
       pincode: json['pincode'],
     );
   }

@@ -774,7 +774,7 @@ class CartService extends ChangeNotifier {
 
   int get totalCount => _items.fold(0, (sum, item) => sum + item.qty);
 
-  Future<void> clear() async {
+  Future<void> clear({bool syncWithServer = true}) async {
     for (var timer in _addDebounceTimers.values) {
       timer.cancel();
     }
@@ -792,13 +792,15 @@ class CartService extends ChangeNotifier {
     _dataVersion++;
     notifyListeners();
 
-    try {
-      final response = await HttpService.delete(ApiConstants.cart);
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception("Failed to clear cart on server");
+    if (syncWithServer) {
+      try {
+        final response = await HttpService.delete(ApiConstants.cart);
+        if (response.statusCode != 200 && response.statusCode != 204) {
+          throw Exception("Failed to clear cart on server");
+        }
+      } catch (_) {
+        await syncWithBackend();
       }
-    } catch (_) {
-      await syncWithBackend();
     }
   }
 }

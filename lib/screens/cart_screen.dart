@@ -9,9 +9,11 @@ import 'package:provider/provider.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
-import 'package:krishikranti/screens/shipping_address_screen.dart';
+import 'package:krishikranti/screens/checkout_screen.dart';
+import 'package:krishikranti/widgets/checkout_stepper.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -25,6 +27,8 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
   String? _lastAppliedCoupon;
   bool _showCelebration = false;
   bool _isFirstBuild = true;
+  bool _isMultiSelectMode = false;
+  final Set<String> _selectedVariantIds = {};
 
   void _triggerCelebration() {
     if (mounted) {
@@ -76,7 +80,8 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
 
         // Auto-detect newly applied coupons and trigger the full-screen celebratory animation!
         final appliedCoupon = cartService.appliedCoupon;
-        if (!_isFirstBuild) {
+        final isFirstRun = _isFirstBuild;
+        if (!isFirstRun) {
           if (appliedCoupon != null && appliedCoupon != _lastAppliedCoupon) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _triggerCelebration();
@@ -89,7 +94,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle.dark,
           child: Scaffold(
-            backgroundColor: const Color(0xFFF8F9FA),
+            backgroundColor: Colors.white,
             extendBody: true,
             appBar: AppBar(
               backgroundColor: Colors.white.withValues(alpha: 0.6),
@@ -102,12 +107,52 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   child: Container(color: Colors.transparent),
                 ),
               ),
-              leading: Center(
-                child: _TopIconButton(
-                  icon: CupertinoIcons.chevron_left,
-                  onTap: () => Navigator.pop(context),
-                ),
-              ),
+              leadingWidth: _isMultiSelectMode ? 110 : null,
+              leading: _isMultiSelectMode
+                  ? Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(left: 16),
+                      child: TextButton(
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          setState(() {
+                            final nonFreeItems = items
+                                .where((i) => !i.isFree)
+                                .toList();
+                            if (_selectedVariantIds.length ==
+                                nonFreeItems.length) {
+                              _selectedVariantIds.clear();
+                            } else {
+                              _selectedVariantIds.addAll(
+                                nonFreeItems.map((i) => i.variantId),
+                              );
+                            }
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          _selectedVariantIds.length ==
+                                  items.where((i) => !i.isFree).length
+                              ? "Deselect All"
+                              : "Select All",
+                          style: const TextStyle(
+                            color: Color(0xFF298E4D),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: _TopIconButton(
+                        icon: CupertinoIcons.chevron_left,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                    ),
               title: Text(
                 l10n.cart,
                 style: const TextStyle(
@@ -119,12 +164,27 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               ),
               centerTitle: true,
               actions: [
-                if (!isEmpty)
-                  _TopIconButton(
-                    icon: CupertinoIcons.trash,
-                    onTap: () => _showClearCartDialog(context, cartService),
-                    margin: const EdgeInsets.only(right: 16),
+                if (!isEmpty) ...[
+                  TextButton(
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        _isMultiSelectMode = !_isMultiSelectMode;
+                        _selectedVariantIds.clear();
+                      });
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.black87,
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        letterSpacing: 0.8,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    child: Text(_isMultiSelectMode ? "DONE" : "EDIT"),
                   ),
+                ],
               ],
             ),
             body: Stack(
@@ -133,86 +193,129 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 _buildAnimatedBlobs(theme),
 
                 isEmpty
-                    ? _buildEmptyState(l10n)
-                    : CustomScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          // Header & Swipe Instruction
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-                            sliver: SliverToBoxAdapter(
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "${items.length} ${items.length == 1 ? 'ITEM' : 'ITEMS'}",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 10,
-                                      color: Colors.grey.shade500,
-                                      letterSpacing: 1.0,
+                    ? _buildEmptyState(l10n, isFirstRun)
+                    : AnimationLimiter(
+                        key: const ValueKey('cart_anim_limiter'),
+                        child: CustomScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          slivers: [
+                            const SliverToBoxAdapter(
+                              child: CheckoutStepper(activeStep: 0),
+                            ),
+                            // Header & Swipe Instruction
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                              sliver: SliverToBoxAdapter(
+                                child: AnimationConfiguration.staggeredList(
+                                  position: 0,
+                                  duration: isFirstRun
+                                      ? const Duration(milliseconds: 375)
+                                      : Duration.zero,
+                                  child: SlideAnimation(
+                                    verticalOffset: isFirstRun ? 30.0 : 0.0,
+                                    child: FadeInAnimation(
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "${items.length} ${items.length == 1 ? 'ITEM' : 'ITEMS'}",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 10,
+                                              color: Colors.grey.shade500,
+                                              letterSpacing: 1.0,
+                                            ),
+                                          ),
+                                          const _AnimatedSecureBadge(),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.swipe_left_rounded,
-                                        size: 15,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        "SWIPE LEFT TO REMOVE",
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 9,
-                                          color: Colors.grey.shade500,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                          // 1. Active Cart Items
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: _buildAnimatedItem(
-                                    index,
-                                    items[index],
-                                    cartService,
+                            // 1. Active Cart Items
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate((
+                                  context,
+                                  index,
+                                ) {
+                                  return AnimationConfiguration.staggeredList(
+                                    position: index + 1,
+                                    duration: isFirstRun
+                                        ? const Duration(milliseconds: 375)
+                                        : Duration.zero,
+                                    child: SlideAnimation(
+                                      verticalOffset: isFirstRun ? 30.0 : 0.0,
+                                      child: FadeInAnimation(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                          ),
+                                          child: _buildCartItem(
+                                            index,
+                                            items[index],
+                                            cartService,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }, childCount: items.length),
+                              ),
+                            ),
+
+                            // 4. Main Offers Tile
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                              sliver: SliverToBoxAdapter(
+                                child: AnimationConfiguration.staggeredList(
+                                  position: items.length + 1,
+                                  duration: isFirstRun
+                                      ? const Duration(milliseconds: 375)
+                                      : Duration.zero,
+                                  child: SlideAnimation(
+                                    verticalOffset: isFirstRun ? 30.0 : 0.0,
+                                    child: FadeInAnimation(
+                                      child: _CouponTile(
+                                        cartService: cartService,
+                                      ),
+                                    ),
                                   ),
-                                );
-                              }, childCount: items.length),
+                                ),
+                              ),
                             ),
-                          ),
 
-                          // 4. Main Offers Tile
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                            sliver: SliverToBoxAdapter(
-                              child: _CouponTile(cartService: cartService),
+                            // 5. Detailed Professional Bill Breakdown Card
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                160,
+                              ),
+                              sliver: SliverToBoxAdapter(
+                                child: AnimationConfiguration.staggeredList(
+                                  position: items.length + 2,
+                                  duration: isFirstRun
+                                      ? const Duration(milliseconds: 375)
+                                      : Duration.zero,
+                                  child: SlideAnimation(
+                                    verticalOffset: isFirstRun ? 30.0 : 0.0,
+                                    child: FadeInAnimation(
+                                      child: _BillDetailsCard(
+                                        cartService: cartService,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-
-                          // 5. Detailed Professional Bill Breakdown Card
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 160),
-                            sliver: SliverToBoxAdapter(
-                              child: _BillDetailsCard(cartService: cartService),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                 if (!isEmpty)
                   Positioned(
@@ -342,155 +445,113 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAnimatedItem(int index, CartItem item, CartService cartService) {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 500 + (index * 60)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value.clamp(0.0, 1.0),
-          child: Transform.scale(
-            scale: 0.95 + (0.05 * value),
-            child: Transform.translate(
-              offset: Offset(0, 30 * (1 - value)),
-              child: Dismissible(
-                key: Key('cart_item_${item.productId}_${item.variant}_$index'),
-                direction: item.isFree
-                    ? DismissDirection.none
-                    : DismissDirection.endToStart,
-                onDismissed: (_) {
-                  cartService.removeItem(item.variantId);
-                  HapticFeedback.mediumImpact();
-                },
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFFED4337).withValues(alpha: 0.85),
-                        const Color(0xFFED4337),
+  Widget _buildCartItem(int index, CartItem item, CartService cartService) {
+    final isSelected = _selectedVariantIds.contains(item.variantId);
+    return _CartItemRow(
+      item: item,
+      index: index,
+      cartService: cartService,
+      isMultiSelectMode: _isMultiSelectMode,
+      isSelected: isSelected,
+      onTap: _isMultiSelectMode && !item.isFree
+          ? () {
+              HapticFeedback.lightImpact();
+              setState(() {
+                if (_selectedVariantIds.contains(item.variantId)) {
+                  _selectedVariantIds.remove(item.variantId);
+                } else {
+                  _selectedVariantIds.add(item.variantId);
+                }
+              });
+            }
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductDetailScreen(
+                    product: Product(
+                      id: item.productId,
+                      title: item.productName,
+                      thumbnail: item.productImage,
+                      images: [item.productImage],
+                      variants: [
+                        Variant(
+                          id: item.productId,
+                          size: item.variant,
+                          price: item.price,
+                          compareAtPrice: 0.0,
+                        ),
                       ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      technicalName: item.technicalName,
                     ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFED4337).withValues(alpha: 0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const Text(
-                        "Remove",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        CupertinoIcons.trash_fill,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ],
+                    thumbnailUrl: item.productImage,
                   ),
                 ),
-                child: _CartItemRow(
-                  item: item,
-                  index: index,
-                  cartService: cartService,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProductDetailScreen(
-                          product: Product(
-                            id: item.productId,
-                            title: item.productName,
-                            thumbnail: item.productImage,
-                            images: [item.productImage],
-                            variants: [
-                              Variant(
-                                id: item.productId,
-                                size: item.variant,
-                                price: item.price,
-                                compareAtPrice: 0.0,
-                              ),
-                            ],
-                            technicalName: item.technicalName,
-                          ),
-                          thumbnailUrl: item.productImage,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+              );
+            },
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations l10n) {
+  Widget _buildEmptyState(AppLocalizations l10n, bool isFirstRun) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Lottie.asset(
-              'assets/animations/EmptyCart.json',
-              height: 240,
-              repeat: true,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              "Your cart feels light",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
-                letterSpacing: -1,
+        child: AnimationLimiter(
+          key: const ValueKey('empty_cart_anim_limiter'),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: AnimationConfiguration.toStaggeredList(
+              duration: isFirstRun
+                  ? const Duration(milliseconds: 500)
+                  : Duration.zero,
+              childAnimationBuilder: (w) => SlideAnimation(
+                verticalOffset: isFirstRun ? 40.0 : 0.0,
+                child: FadeInAnimation(child: w),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Discover premium agricultural products and start your growing journey today.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade500,
-                height: 1.6,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 36),
-            _buildModernButton(
-              onPressed: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const ProductListScreen(category: "All"),
+              children: [
+                Lottie.asset(
+                  'assets/animations/EmptyCart.json',
+                  height: 240,
+                  repeat: true,
                 ),
-              ),
-              text: "Begin Exploring",
-              icon: CupertinoIcons.sparkles,
-              isSmall: false,
+                const SizedBox(height: 24),
+                const Text(
+                  "Your cart feels light",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
+                    letterSpacing: -1,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Discover premium agricultural products and start your growing journey today.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade500,
+                    height: 1.6,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 36),
+                _buildModernButton(
+                  onPressed: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const ProductListScreen(category: "All"),
+                    ),
+                  ),
+                  text: "Begin Exploring",
+                  icon: CupertinoIcons.sparkles,
+                  isSmall: false,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -551,152 +612,133 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
     CartService cartService,
     ThemeData theme,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.6),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 25,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-              child: _buildFloatingCheckoutButton(
-                onPressed: () async {
-                  if (cartService.items.isNotEmpty) {
-                    HapticFeedback.heavyImpact();
-
-                    // Sync Guard: Ensure all background adds are finished
-                    if (cartService.pendingSyncTask != null) {
-                      await cartService.pendingSyncTask;
-                    }
-
-                    if (context.mounted) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ShippingAddressScreen(),
+    if (_isMultiSelectMode) {
+      final selectedCount = _selectedVariantIds.length;
+      return SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: GestureDetector(
+            onTap: selectedCount == 0
+                ? null
+                : () {
+                    _showBulkDeleteConfirmationDialog(context, cartService);
+                  },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: double.infinity,
+              height: 60,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: selectedCount == 0
+                      ? [Colors.grey.shade400, Colors.grey.shade400]
+                      : [const Color(0xFFED4337), const Color(0xFFD32F2F)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: selectedCount == 0
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: const Color(0xFFED4337).withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
                         ),
-                      );
-                    }
-                  }
-                },
-                text: "CONTINUE TO CHECKOUT",
-                icon: CupertinoIcons.arrow_right,
-                itemCount: cartService.totalCount,
+                      ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    CupertinoIcons.trash,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    selectedCount == 0
+                        ? "SELECT ITEMS TO DELETE"
+                        : "DELETE SELECTED ($selectedCount)",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+      );
+    }
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: _PremiumFloatingCheckoutButton(
+          onPressed: () async {
+            if (cartService.items.isNotEmpty) {
+              HapticFeedback.heavyImpact();
+
+              // Sync Guard: Ensure all background adds are finished
+              if (cartService.pendingSyncTask != null) {
+                await cartService.pendingSyncTask;
+              }
+
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CheckoutScreen(),
+                  ),
+                );
+              }
+            }
+          },
+          text: "CONTINUE TO CHECKOUT",
+          icon: CupertinoIcons.arrow_right,
+          itemCount: cartService.totalCount,
         ),
       ),
     );
   }
 
-  Widget _buildFloatingCheckoutButton({
-    required VoidCallback onPressed,
-    required String text,
-    required IconData icon,
-    required int itemCount,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        onPressed();
-      },
-      child: Container(
-        height: 60,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF298E4D), Color(0xFF2E9E57)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF298E4D).withValues(alpha: 0.35),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: const Color(0xFF2E9E57).withValues(alpha: 0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+  void _showBulkDeleteConfirmationDialog(
+    BuildContext context,
+    CartService cartService,
+  ) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text("Remove ${_selectedVariantIds.length} items?"),
+        content: const Text(
+          "Are you sure you want to delete the selected items from your cart?",
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            children: [
-              // 1. Beautiful item count badge on the left
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  "$itemCount",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // 2. Main title text
-              Expanded(
-                child: Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // 3. Animated Arrow on the right
-              Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const _AnimatedArrow(),
-              ),
-            ],
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
           ),
-        ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              HapticFeedback.heavyImpact();
+              for (final variantId in _selectedVariantIds) {
+                cartService.removeItem(variantId);
+              }
+              setState(() {
+                _selectedVariantIds.clear();
+                _isMultiSelectMode = false;
+              });
+              Navigator.pop(context);
+            },
+            child: const Text("Delete"),
+          ),
+        ],
       ),
     );
   }
@@ -728,65 +770,219 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
   }
 }
 
-class _AnimatedArrow extends StatefulWidget {
-  const _AnimatedArrow();
+class _PremiumFloatingCheckoutButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  final String text;
+  final IconData icon;
+  final int itemCount;
+
+  const _PremiumFloatingCheckoutButton({
+    required this.onPressed,
+    required this.text,
+    required this.icon,
+    required this.itemCount,
+  });
 
   @override
-  State<_AnimatedArrow> createState() => _AnimatedArrowState();
+  State<_PremiumFloatingCheckoutButton> createState() =>
+      _PremiumFloatingCheckoutButtonState();
 }
 
-class _AnimatedArrowState extends State<_AnimatedArrow>
+class _PremiumFloatingCheckoutButtonState
+    extends State<_PremiumFloatingCheckoutButton>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
+  late final AnimationController _shineController;
+  late final Animation<double> _shineAlignAnimation;
+
+  double _tapScale = 1.0;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _animation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.0,
-          end: 4.0,
-        ).chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 4.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeInCubic)),
-        weight: 50,
-      ),
-    ]).animate(_controller);
 
-    _controller.repeat();
+    // Subtle glossy sweep animation every 4.5 seconds
+    _shineController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    _shineAlignAnimation = Tween<double>(begin: -2.5, end: 2.5).animate(
+      CurvedAnimation(parent: _shineController, curve: Curves.easeInOutCubic),
+    );
+
+    _startShineLoop();
+  }
+
+  void _startShineLoop() async {
+    while (mounted) {
+      await Future.delayed(const Duration(seconds: 4, milliseconds: 500));
+      if (mounted) {
+        await _shineController.forward(from: 0.0);
+      }
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _shineController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(_animation.value, 0),
-          child: child,
-        );
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() {
+          _tapScale = 0.95; // Snappy tactile feedback scale
+        });
+        HapticFeedback.lightImpact();
       },
-      child: const Icon(
-        CupertinoIcons.arrow_right,
-        color: Color(0xFF298E4D),
-        size: 18,
+      onTapUp: (_) {
+        setState(() {
+          _tapScale = 1.0;
+        });
+        widget.onPressed();
+      },
+      onTapCancel: () {
+        setState(() {
+          _tapScale = 1.0;
+        });
+      },
+      child: AnimatedBuilder(
+        animation: _shineController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _tapScale,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOutCubic,
+              height: 60,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF298E4D), Color(0xFF2E9E57)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF298E4D).withValues(alpha: 0.35),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF2E9E57).withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: Stack(
+                  children: [
+                    // Shine Sweep Layer
+                    Positioned.fill(
+                      child: ShaderMask(
+                        shaderCallback: (bounds) {
+                          return LinearGradient(
+                            begin: Alignment(
+                              _shineAlignAnimation.value - 0.5,
+                              -1,
+                            ),
+                            end: Alignment(_shineAlignAnimation.value + 0.5, 1),
+                            colors: [
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white.withValues(
+                                alpha: 0.25,
+                              ), // Highly subtle
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                            stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
+                          ).createShader(bounds);
+                        },
+                        blendMode: BlendMode.srcATop,
+                        child: Container(color: Colors.transparent),
+                      ),
+                    ),
+                    // Button Content
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          children: [
+                            // 1. Beautiful item count badge on the left
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                transitionBuilder: (child, animation) {
+                                  return ScaleTransition(
+                                    scale: animation,
+                                    child: child,
+                                  );
+                                },
+                                child: Text(
+                                  "${widget.itemCount}",
+                                  key: ValueKey<int>(widget.itemCount),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // 2. Main title text
+                            Expanded(
+                              child: Text(
+                                widget.text,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // 3. Lottie Animated Arrow on the right
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Lottie.asset(
+                                'assets/animations/arrow.json',
+                                width: 32,
+                                height: 32,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -862,7 +1058,9 @@ class _CouponTile extends StatelessWidget {
                   ),
                   Text(
                     isApplied
-                        ? "You saved ₹${cartService.discountAmount.toStringAsFixed(0)} with ${cartService.appliedCoupon}"
+                        ? (cartService.appliedCoupon == "DEALERDHAMAKA"
+                              ? "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁"
+                              : "You saved ₹${cartService.discountAmount.toStringAsFixed(0)} with ${cartService.appliedCoupon}")
                         : "View available coupons and offers",
                     style: TextStyle(
                       color: isApplied
@@ -929,12 +1127,16 @@ class _CartItemRow extends StatelessWidget {
   final int index;
   final CartService cartService;
   final VoidCallback onTap;
+  final bool isMultiSelectMode;
+  final bool isSelected;
 
   const _CartItemRow({
     required this.item,
     required this.index,
     required this.cartService,
     required this.onTap,
+    this.isMultiSelectMode = false,
+    this.isSelected = false,
   });
 
   @override
@@ -969,10 +1171,38 @@ class _CartItemRow extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                if (isMultiSelectMode) ...[
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF298E4D)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF298E4D)
+                            : Colors.grey.shade400,
+                        width: 1.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: isSelected
+                        ? const Icon(
+                            CupertinoIcons.checkmark,
+                            color: Colors.white,
+                            size: 11,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 // 1. Compact Image Container (62x62)
                 Hero(
                   tag: 'cart_image_${item.productName}_$index',
@@ -1034,101 +1264,148 @@ class _CartItemRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                // 2. Details Column
+                const SizedBox(width: 14),
+                // 2. Details Column (fully expands to fill space)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Product Title
-                      Text(
-                        item.productName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                          color: Colors.black87,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      // Badges Row
+                      // Top Row: Title & Details Column on left, Delete Button on right
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (isFree) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF298E4D),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    CupertinoIcons.gift_fill,
-                                    size: 8,
-                                    color: Colors.white,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Product Title
+                                Text(
+                                  item.productName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                    letterSpacing: -0.2,
                                   ),
-                                  SizedBox(width: 2),
-                                  Text(
-                                    "GIFT",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 7.5,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 3),
+                                // Badges and Technical Name Row
+                                Row(
+                                  children: [
+                                    if (isFree) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 1.5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF298E4D),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              CupertinoIcons.gift_fill,
+                                              size: 8,
+                                              color: Colors.white,
+                                            ),
+                                            SizedBox(width: 2),
+                                            Text(
+                                              "GIFT",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 7.5,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    if (item.variant.isNotEmpty) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 1.5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: primaryColor.withValues(
+                                            alpha: 0.08,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          item.variant,
+                                          style: TextStyle(
+                                            color: primaryColor,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 8,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    if (item.technicalName.isNotEmpty)
+                                      Expanded(
+                                        child: Text(
+                                          item.technicalName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                          ],
-                          if (item.variant.isNotEmpty) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: primaryColor.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                item.variant,
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 8,
+                          ),
+                          if (!isFree && !isMultiSelectMode) ...[
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                HapticFeedback.mediumImpact();
+                                cartService.removeItem(item.variantId);
+                              },
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFED4337,
+                                  ).withValues(alpha: 0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  CupertinoIcons.trash,
+                                  color: Color(0xFFED4337),
+                                  size: 13,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 4),
                           ],
-                          if (item.technicalName.isNotEmpty)
-                            Expanded(
-                              child: Text(
-                                item.technicalName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.grey.shade400,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
-                      const SizedBox(height: 5),
-                      // Price Details
+                      const SizedBox(height: 8),
+                      // Bottom Row: Price on left, Quantity Selector on right
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          // Price Details
                           Text(
                             isFree
                                 ? "FREE"
@@ -1141,117 +1418,50 @@ class _CartItemRow extends StatelessWidget {
                                   : Colors.black,
                             ),
                           ),
+                          // Compact Quantity Selector
+                          _ModernQtySelector(
+                            qty: item.qty,
+                            isFree: isFree,
+                            isSyncing: cartService.syncingVariantIds.contains(
+                              item.variantId,
+                            ),
+                            onMinus: () {
+                              if (item.qty > 1) {
+                                cartService.updateQty(
+                                  item.variantId,
+                                  item.qty - 1,
+                                );
+                                HapticFeedback.lightImpact();
+                              } else {
+                                HapticFeedback.mediumImpact();
+                                cartService.removeItem(item.variantId);
+                              }
+                            },
+                            onPlus: () {
+                              cartService.updateQty(
+                                item.variantId,
+                                item.qty + 1,
+                              );
+                              HapticFeedback.lightImpact();
+                            },
+                            onQtyChanged: (newQty) {
+                              if (newQty <= 0) {
+                                cartService.removeItem(item.variantId);
+                                HapticFeedback.mediumImpact();
+                              } else {
+                                cartService.updateQty(item.variantId, newQty);
+                                HapticFeedback.lightImpact();
+                              }
+                            },
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                // 3. Compact Quantity Selector
-                _ModernQtySelector(
-                  qty: item.qty,
-                  isFree: isFree,
-                  isSyncing: cartService.syncingVariantIds.contains(
-                    item.variantId,
-                  ),
-                  onMinus: () {
-                    if (item.qty > 1) {
-                      cartService.updateQty(item.variantId, item.qty - 1);
-                      HapticFeedback.lightImpact();
-                    } else {
-                      HapticFeedback.mediumImpact();
-                      cartService.removeItem(item.variantId);
-                    }
-                  },
-                  onPlus: () {
-                    cartService.updateQty(item.variantId, item.qty + 1);
-                    HapticFeedback.lightImpact();
-                  },
-                  onQtyChanged: (newQty) {
-                    if (newQty <= 0) {
-                      cartService.removeItem(item.variantId);
-                      HapticFeedback.mediumImpact();
-                    } else {
-                      cartService.updateQty(item.variantId, newQty);
-                      HapticFeedback.lightImpact();
-                    }
-                  },
-                ),
-                // 4. Animated Left Swipe hint indicator
-                if (!isFree) ...[
-                  const SizedBox(width: 6),
-                  const _AnimatedSwipeHint(),
-                ],
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AnimatedSwipeHint extends StatefulWidget {
-  const _AnimatedSwipeHint();
-
-  @override
-  State<_AnimatedSwipeHint> createState() => _AnimatedSwipeHintState();
-}
-
-class _AnimatedSwipeHintState extends State<_AnimatedSwipeHint>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-    _animation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.0,
-          end: -5.0,
-        ).chain(CurveTween(curve: Curves.easeOutCubic)),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: -5.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeInCubic)),
-        weight: 50,
-      ),
-    ]).animate(_controller);
-
-    _controller.repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(_animation.value, 0),
-          child: child,
-        );
-      },
-      child: Opacity(
-        opacity: 0.35,
-        child: Icon(
-          CupertinoIcons.chevron_left_2,
-          size: 13,
-          color: Colors.grey.shade400,
         ),
       ),
     );
@@ -1513,11 +1723,17 @@ class _ModernQtySelector extends StatelessWidget {
 }
 
 class _TopIconButton extends StatefulWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final VoidCallback onTap;
   final EdgeInsets? margin;
 
-  const _TopIconButton({required this.icon, required this.onTap, this.margin});
+  const _TopIconButton({
+    this.icon,
+    this.assetPath,
+    required this.onTap,
+    this.margin,
+  });
 
   @override
   State<_TopIconButton> createState() => _TopIconButtonState();
@@ -1559,7 +1775,7 @@ class _TopIconButtonState extends State<_TopIconButton>
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -1571,9 +1787,70 @@ class _TopIconButtonState extends State<_TopIconButton>
                 ),
               ],
             ),
-            child: Icon(widget.icon, size: 18, color: Colors.black),
+            child: widget.assetPath != null
+                ? Image.asset(
+                    widget.assetPath!,
+                    width: 18,
+                    height: 18,
+                    color: Colors.black,
+                  )
+                : Icon(widget.icon, size: 18, color: Colors.black),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AnimatedSecureBadge extends StatelessWidget {
+  const _AnimatedSecureBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF298E4D).withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF298E4D).withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Crisp static shield and checkmark stack
+          Stack(
+            alignment: Alignment.center,
+            children: const [
+              Icon(
+                CupertinoIcons.shield_fill,
+                size: 13,
+                color: Color(0xFF298E4D),
+              ),
+              Positioned(
+                top: 3.2,
+                child: Icon(
+                  CupertinoIcons.checkmark,
+                  size: 6,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 5),
+          // Clean, solid forest-green secure text
+          const Text(
+            "SECURE CHECKOUT",
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 9,
+              color: Color(0xFF298E4D),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1662,7 +1939,7 @@ class _BillDetailsCard extends StatelessWidget {
             isBold: true,
             fontSize: 16,
           ),
-          if (discount > 0) ...[
+          if (discount > 0 || cartService.appliedCoupon == "DEALERDHAMAKA") ...[
             const SizedBox(height: 18),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1676,15 +1953,19 @@ class _BillDetailsCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    CupertinoIcons.checkmark_seal_fill,
-                    color: Color(0xFF298E4D),
+                  Icon(
+                    cartService.appliedCoupon == "DEALERDHAMAKA"
+                        ? CupertinoIcons.gift_fill
+                        : CupertinoIcons.checkmark_seal_fill,
+                    color: const Color(0xFF298E4D),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      "Yay! You saved ₹${discount.toStringAsFixed(0)} on this purchase!",
+                      cartService.appliedCoupon == "DEALERDHAMAKA"
+                          ? "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁"
+                          : "Yay! You saved ₹${discount.toStringAsFixed(0)} on this purchase!",
                       style: const TextStyle(
                         color: Color(0xFF298E4D),
                         fontSize: 11,

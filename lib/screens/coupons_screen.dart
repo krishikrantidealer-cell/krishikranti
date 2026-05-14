@@ -77,21 +77,23 @@ class _CouponsScreenState extends State<CouponsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
         title: const Text(
           "Available Coupons",
           style: TextStyle(
             color: Colors.black,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
             fontSize: 18,
+            letterSpacing: -0.5,
           ),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.xmark, color: Colors.black),
+          icon: const Icon(CupertinoIcons.chevron_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -142,18 +144,19 @@ class _CouponCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryGreen = Color(0xFF1B5E20);
+    const primaryGreen = Color(0xFF298E4D);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -166,7 +169,7 @@ class _CouponCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: primaryGreen.withValues(alpha: 0.1),
+                    color: primaryGreen.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
@@ -182,18 +185,19 @@ class _CouponCard extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                          horizontal: 10,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: primaryGreen.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           coupon.code,
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
-                            fontSize: 14,
+                            fontSize: 12,
+                            color: primaryGreen,
                             letterSpacing: 1.2,
                           ),
                         ),
@@ -234,15 +238,27 @@ class _CouponCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    if (coupon.isFirstOrderOnly)
-                      const Text(
-                        "New Users Only",
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                    if (coupon.isFirstOrderOnly) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          "New Users Only",
+                          style: TextStyle(
+                            color: Colors.amber,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
+                    ],
                   ],
                 ),
                 ElevatedButton(

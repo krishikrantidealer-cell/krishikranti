@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/favorite_service.dart';
+import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/widgets/animated_heart.dart';
+import 'package:krishikranti/widgets/progressive_image.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -24,7 +28,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   void initState() {
     super.initState();
-    // Use microtask to ensure sync doesn't clash with the initial build frame
     Future.microtask(() => _favoriteService.syncWithBackend());
   }
 
@@ -41,50 +44,67 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           return true;
         },
         child: Scaffold(
-          backgroundColor: const Color(0xFFF8FAF8),
-        body: ListenableBuilder(
-          listenable: _favoriteService,
-          builder: (context, _) {
-            final favorites = _favoriteService.favorites;
+          backgroundColor: const Color(0xFFF8F9FA),
+          body: ListenableBuilder(
+            listenable: _favoriteService,
+            builder: (context, _) {
+              final favorites = _favoriteService.favorites;
 
-            if (favorites.isEmpty && !_favoriteService.isSyncing) {
-              return _buildEmptyState(context, l10n);
-            }
+              if (favorites.isEmpty && !_favoriteService.isSyncing) {
+                return _buildEmptyState(context, l10n);
+              }
 
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(context, favorites.length, l10n),
-                if (_favoriteService.isSyncing && favorites.isEmpty)
-                  const SliverFillRemaining(
-                    child: Center(child: CupertinoActivityIndicator()),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 12,
-                            mainAxisExtent: 245,
-                          ),
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final product = favorites[index];
-                        return _buildAdvancedCard(
-                          context,
-                          index,
-                          product,
-                          theme,
-                        );
-                      }, childCount: favorites.length),
-                    ),
+              return AnimationLimiter(
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
                   ),
-              ],
-            );
-          },
-        ),
+                  slivers: [
+                    _buildSliverAppBar(context, favorites.length, l10n, theme),
+                    if (_favoriteService.isSyncing && favorites.isEmpty)
+                      const SliverFillRemaining(
+                        child: Center(child: CupertinoActivityIndicator()),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 12,
+                                mainAxisExtent: 228,
+                              ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final product = favorites[index];
+                            return AnimationConfiguration.staggeredGrid(
+                              position: index,
+                              duration: const Duration(milliseconds: 375),
+                              columnCount: 2,
+                              child: ScaleAnimation(
+                                child: FadeInAnimation(
+                                  child: RepaintBoundary(
+                                    child: _FavoriteProductCard(
+                                      product: product,
+                                      isPopping: _isPopping,
+                                      favoriteService: _favoriteService,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }, childCount: favorites.length),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -94,60 +114,92 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     BuildContext context,
     int count,
     AppLocalizations l10n,
+    ThemeData theme,
   ) {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: Colors.white.withValues(alpha: 0.9),
+      backgroundColor: Colors.white.withOpacity(0.92),
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(
-          CupertinoIcons.chevron_left,
-          color: Colors.black87,
-          size: 22,
-        ),
+        icon: const Icon(CupertinoIcons.back, color: Colors.black87, size: 24),
         onPressed: () {
           setState(() => _isPopping = true);
           Navigator.pop(context);
         },
       ),
-      title: Text(
-        l10n.favorites,
-        style: const TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.w600,
-          fontSize: 18,
-          letterSpacing: -0.5,
-        ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.favorites,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing: -0.5,
+            ),
+          ),
+          if (count > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
       actions: [
         if (count > 0)
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: IconButton(
-              icon: const Icon(
-                CupertinoIcons.trash,
-                color: Colors.redAccent,
-                size: 20,
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  CupertinoIcons.trash,
+                  color: Colors.red.shade400,
+                  size: 18,
+                ),
               ),
-              onPressed: () {
-                _showClearConfirmation(context);
-              },
+              onPressed: () => _showClearConfirmation(context),
             ),
           ),
       ],
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(color: Colors.transparent),
+        ),
+      ),
     );
   }
 
   void _showClearConfirmation(BuildContext context) {
+    HapticFeedback.lightImpact();
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text("Clear Wishlist"),
+        title: const Text("Clear Favorites"),
         content: const Text(
-          "Are you sure you want to remove all items from your favorites?",
+          "Are you sure you want to remove all items from your wishlist?",
         ),
         actions: [
           CupertinoDialogAction(
@@ -157,9 +209,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () {
+              HapticFeedback.heavyImpact();
               _favoriteService.clearAll();
               Navigator.pop(context);
-              HapticFeedback.heavyImpact();
             },
             child: const Text("Clear All"),
           ),
@@ -168,246 +220,123 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildAdvancedCard(
-    BuildContext context,
-    int index,
-    FavoriteProduct product,
-    ThemeData theme,
-  ) {
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 400 + (index * 80)),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
-            child: child,
-          ),
-        );
-      },
-      child: GestureDetector(
-        onTap: () {
-          final heavyProduct = Product(
-            id: product.id,
-            title: product.name,
-            thumbnail: product.imageUrl,
-            minPrice: double.tryParse(product.price) ?? 0,
-            images: [product.imageUrl],
-            brandName: product.category,
-            variants: [
-              Variant(
-                id: "v_${product.id}",
-                size: product.weight,
-                price: double.tryParse(product.price) ?? 0,
-                compareAtPrice: 0,
-              ),
-            ],
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductDetailScreen(
-                product: heavyProduct,
-                thumbnailUrl: product.imageUrl,
+  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Lottie.asset(
+                  'assets/animations/favorites_empty.json',
+                  height: 200,
+                  repeat: true,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      CupertinoIcons.heart_slash,
+                      size: 60,
+                      color: Colors.red.shade300,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "Your Wishlist is Empty",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: Colors.black,
+                letterSpacing: -0.5,
               ),
             ),
-          );
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade100),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 12,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
-                        child: HeroMode(
-                          enabled: !_isPopping,
-                          child: Hero(
-                            tag: 'product_${product.id}',
-                            transitionOnUserGestures: true,
-                            child: Container(
-                              color: Colors.white,
-                              padding: const EdgeInsets.all(10),
-                              child: Image.network(
-                                product.imageUrl,
-                                fit: BoxFit.contain,
-                                key: ValueKey('fav_img_${product.id}'),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Hero(
-                        tag: 'heart_${product.id}',
-                        child: AnimatedHeart(
-                          isFavorite: true,
-                          onTap: () => _favoriteService.toggleFavorite(product),
-                          size: 14,
-                        ),
-                      ),
+            const SizedBox(height: 10),
+            Text(
+              "Save your favorite farming essentials and access them instantly anytime.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 36),
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF298E4D), Color(0xFF1E6C3A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF298E4D).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-              ),
-              Expanded(
-                flex: 8,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              height: 1.1,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            product.weight,
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                child: ElevatedButton(
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const ProductListScreen(category: "All"),
                       ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.search,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
                       Text(
-                        "₹${product.price}",
+                        "Explore Shop",
                         style: TextStyle(
-                          color: theme.colorScheme.primary,
+                          color: Colors.white,
+                          fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          fontSize: 15,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Lottie.asset(
-              'assets/animations/favorites_empty.json',
-              height: 220,
-              repeat: true,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "Your heart is empty!",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Colors.black87,
-                letterSpacing: -1,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Save your favorite farming essentials here and access them anytime instantly.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey.shade600,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 40),
-            _buildModernButton(
-              context,
-              onPressed: () => Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const ProductListScreen(category: "All"),
-                ),
-              ),
-              text: "Explore Shop",
-              icon: CupertinoIcons.search,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernButton(
-    BuildContext context, {
-    required VoidCallback onPressed,
-    required String text,
-    required IconData icon,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        onPressed();
-      },
-      child: Container(
-        width: double.infinity,
-        height: 58,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -417,35 +346,313 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 }
 
-class _TopIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
+class _FavoriteProductCard extends StatefulWidget {
+  final FavoriteProduct product;
+  final bool isPopping;
+  final FavoriteService favoriteService;
 
-  const _TopIconButton({required this.icon, required this.onTap});
+  const _FavoriteProductCard({
+    required this.product,
+    required this.isPopping,
+    required this.favoriteService,
+  });
+
+  @override
+  State<_FavoriteProductCard> createState() => _FavoriteProductCardState();
+}
+
+class _FavoriteProductCardState extends State<_FavoriteProductCard> {
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        height: 44,
-        width: 44,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    final theme = Theme.of(context);
+    final heavyProduct = Product(
+      id: widget.product.id,
+      title: widget.product.name,
+      thumbnail: widget.product.imageUrl,
+      minPrice: double.tryParse(widget.product.price) ?? 0,
+      images: [widget.product.imageUrl],
+      brandName: widget.product.category,
+      variants: [
+        Variant(
+          id: "v_${widget.product.id}",
+          size: widget.product.weight,
+          price: double.tryParse(widget.product.price) ?? 0,
+          compareAtPrice: 0,
         ),
-        child: Icon(icon, color: Colors.black87, size: 22),
-      ),
+      ],
+    );
+
+    return Consumer<CartService>(
+      builder: (context, cart, child) {
+        final isInCart = cart.items.any(
+          (item) => item.productId == widget.product.id,
+        );
+
+        return GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                transitionDuration: const Duration(milliseconds: 400),
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    ProductDetailScreen(
+                      product: heavyProduct,
+                      thumbnailUrl: widget.product.imageUrl,
+                    ),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+              ),
+            );
+          },
+          child: AnimatedScale(
+            scale: _isPressed ? 0.96 : 1.0,
+            duration: const Duration(milliseconds: 120),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100, width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 12,
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            color: Colors.white,
+                            child: HeroMode(
+                              enabled: !widget.isPopping,
+                              child: Hero(
+                                tag: 'product_${widget.product.id}',
+                                child: ProgressiveImage(
+                                  thumbnailUrl: widget.product.imageUrl,
+                                  imageUrl: widget.product.imageUrl,
+                                  fit: BoxFit.contain,
+                                  padding: 10.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                widget.product.category.toUpperCase(),
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: HeroMode(
+                              enabled: !widget.isPopping,
+                              child: Hero(
+                                tag: 'heart_${widget.product.id}',
+                                child: AnimatedHeart(
+                                  isFavorite: true,
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    widget.favoriteService.toggleFavorite(
+                                      widget.product,
+                                    );
+                                  },
+                                  size: 14,
+                                  backgroundColor: Colors.white.withOpacity(
+                                    0.85,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 9,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.product.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
+                                    height: 1.15,
+                                    color: Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.product.weight,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    "₹${widget.product.price}",
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 15,
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    Navigator.push(
+                                      context,
+                                      PageRouteBuilder(
+                                        transitionDuration: const Duration(
+                                          milliseconds: 400,
+                                        ),
+                                        pageBuilder:
+                                            (
+                                              context,
+                                              animation,
+                                              secondaryAnimation,
+                                            ) => ProductDetailScreen(
+                                              product: heavyProduct,
+                                              thumbnailUrl:
+                                                  widget.product.imageUrl,
+                                            ),
+                                        transitionsBuilder:
+                                            (
+                                              context,
+                                              animation,
+                                              secondaryAnimation,
+                                              child,
+                                            ) {
+                                              return FadeTransition(
+                                                opacity: animation,
+                                                child: child,
+                                              );
+                                            },
+                                      ),
+                                    );
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: isInCart
+                                            ? [
+                                                const Color(0xFF2E7D32),
+                                                const Color(0xFF1B5E20),
+                                              ]
+                                            : [
+                                                theme.colorScheme.primary,
+                                                theme.colorScheme.primary
+                                                    .withOpacity(0.85),
+                                              ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: theme.colorScheme.primary
+                                              .withOpacity(0.2),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          isInCart ? "Added" : "Add",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          isInCart
+                                              ? CupertinoIcons.check_mark
+                                              : CupertinoIcons.cart_badge_plus,
+                                          color: Colors.white,
+                                          size: 10,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
