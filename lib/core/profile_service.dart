@@ -142,4 +142,18 @@ class ProfileService extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<void> updateFcmToken(String token) async {
+    try {
+      final response = await HttpService.post(
+        ApiConstants.fcmToken,
+        body: {"fcmToken": token},
+      );
+      if (response.statusCode == 200) {
+        debugPrint("✅ FCM Token successfully synced with server.");
+      }
+    } catch (e) {
+      debugPrint("❌ Error syncing FCM Token: $e");
+    }
+  }
 }

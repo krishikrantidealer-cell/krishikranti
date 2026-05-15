@@ -6,6 +6,7 @@ import '../widgets/wavy_painter.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
+import 'package:krishikranti/core/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashPage extends StatefulWidget {
@@ -27,7 +28,7 @@ class _SplashPageState extends State<SplashPage> {
     Timer(const Duration(seconds: 3), () async {
       if (mounted) {
         final loggedIn = await AuthService.isLoggedIn();
-        
+
         if (loggedIn) {
           final profileDone = await AuthService.isProfileComplete();
           final kycDone = await AuthService.isKycComplete();
@@ -45,7 +46,7 @@ class _SplashPageState extends State<SplashPage> {
           // If not logged in, check if language was already selected
           final prefs = await SharedPreferences.getInstance();
           final hasLanguage = prefs.getString('language_code') != null;
-          
+
           if (mounted) {
             if (hasLanguage) {
               // Returning user, go to Login
@@ -62,11 +63,11 @@ class _SplashPageState extends State<SplashPage> {
 
   void initialization() async {
     // Proactively "ping" the backend to wake up the Render server
-    // This happens while the user is seeing the splash animation.
     HttpService.get(ApiConstants.baseUrl).catchError((_) => null);
 
-    // This is where you'd perform initial app setup (e.g., loading config)
-    // For now, we just remove the native splash screen handoff.
+    // Sync Push Notification Token with backend once app is ready
+    NotificationService.syncToken();
+
     FlutterNativeSplash.remove();
   }
 

@@ -14,6 +14,7 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/widgets/animated_heart.dart';
+import 'package:krishikranti/widgets/breathing_mic_icon.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/screens/profile_screen.dart';
@@ -26,6 +27,10 @@ import 'package:krishikranti/screens/catalogue_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:krishikranti/widgets/category_card.dart';
+import 'package:krishikranti/widgets/product_card.dart';
+import 'package:krishikranti/widgets/trust_badges.dart';
+import 'package:krishikranti/widgets/support_floating_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -414,20 +419,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: _buildBestOffers(context, theme, l10n),
                         ),
 
-                        // Why Choose Us
-                        const SliverToBoxAdapter(child: SizedBox(height: 28)),
-                        SliverToBoxAdapter(
-                          child: _buildWhyChooseUs(context, theme, l10n),
-                        ),
-
-                        // Footer
-                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                        // Combined Trust & Footer Section
+                        const SliverToBoxAdapter(child: SizedBox(height: 32)),
                         SliverToBoxAdapter(
                           child: _buildFooter(context, theme, l10n),
                         ),
 
                         // Bottom spacing
-                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                        const SliverToBoxAdapter(child: SizedBox(height: 100)),
                       ],
                     );
                   },
@@ -436,6 +435,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAdvancedSupportButton(BuildContext context, ThemeData theme) {
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.heavyImpact();
+        final url = Uri.parse("https://wa.me/919399022060");
+        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+          await launchUrl(url, mode: LaunchMode.platformDefault);
+        }
+      },
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.elasticOut,
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: value,
+            child: Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF25D366), Color(0xFF128C7E)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF25D366).withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    "Expert Help",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -586,75 +646,103 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SearchScreen()),
-        );
-      },
-      child: Container(
-        height: 46,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SearchScreen()),
+            );
+          },
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            Icon(
-              Icons.search_rounded,
-              color: theme.colorScheme.primary,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                transitionBuilder: (Widget child, Animation<double> animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.5),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Icon(
+                  CupertinoIcons.search,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position:
+                                  Tween<Offset>(
+                                    begin: const Offset(0.0, 0.5),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutCubic,
+                                    ),
+                                  ),
+                              child: child,
+                            ),
+                          );
+                        },
+                    child: Text(
+                      _searchHints[_currentHintIndex],
+                      key: ValueKey<int>(_currentHintIndex),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  );
-                },
-                child: Text(
-                  _searchHints[_currentHintIndex],
-                  key: ValueKey<int>(_currentHintIndex),
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
+                Container(
+                  width: 1,
+                  height: 20,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: Colors.grey.withValues(alpha: 0.2),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const SearchScreen(startVoiceSearch: true),
+                      ),
+                    );
+                  },
+                  child: BreathingMicIcon(
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.tune_rounded,
-                color: theme.colorScheme.primary,
-                size: 18,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -962,23 +1050,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         itemBuilder: (context, index) {
           final cat = _categories[index];
-          return CategoryCard(
-            en: cat.name,
-            hi: _getSubtitleForCategory(cat.name),
-            icon: _getIconForCategory(cat.name),
-            image: _getImageForCategory(cat, index),
-            fallbackImage: _getFallbackImageForCategory(cat.name),
-            onTap: () {
-              // Trigger pre-fetch (cached in repository)
-              _productRepository.getProducts(categoryId: cat.id, limit: 20);
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProductListScreen(
-                    category: cat.name,
-                    categoryId: cat.id,
-                    categoryData: cat,
+          // STAGGERED GRID ANIMATION
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(milliseconds: 400 + (index * 100)),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: 0.8 + (0.2 * value),
+                child: Opacity(
+                  opacity: value,
+                  child: CategoryCard(
+                    en: cat.name,
+                    hi: _getSubtitleForCategory(cat.name),
+                    icon: _getIconForCategory(cat.name),
+                    image: _getImageForCategory(cat, index),
+                    fallbackImage: _getFallbackImageForCategory(cat.name),
+                    onTap: () {
+                      _productRepository.getProducts(
+                        categoryId: cat.id,
+                        limit: 20,
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductListScreen(
+                            category: cat.name,
+                            categoryId: cat.id,
+                            categoryData: cat,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               );
@@ -1037,15 +1140,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               return SizedBox(
                 width: 170,
                 child: ProductCard(
+                  key: ValueKey(product.id),
                   product: product,
-                  id: product.id,
-                  name: product.title,
-                  category: product.brandName ?? "Product",
-                  weight: product.variants.isNotEmpty
-                      ? product.variants.first.size
-                      : "N/A",
-                  price: product.price.toStringAsFixed(0),
-                  imageUrl: product.thumbnail,
+                  category: "Featured",
                   isFavorite: _favoriteService.isFavorite(product.id),
                   onFavoriteToggle: () {
                     _favoriteService.toggleFavorite(
@@ -1061,6 +1158,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                     );
                   },
+                  index: index,
                 ),
               );
             },
@@ -1406,68 +1504,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildWhyChooseUs(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    final items = [
-      {'title': 'Trusted by Farmers', 'icon': Icons.verified_user_outlined},
-      {'title': 'Fast Delivery', 'icon': Icons.local_shipping_outlined},
-      {'title': '100% Genuine', 'icon': Icons.workspace_premium_outlined},
-    ];
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: items.map((item) {
-          return Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  item['icon'] as IconData,
-                  color: theme.colorScheme.primary,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                item['title'] as String,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black87,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
   Widget _buildFooter(
     BuildContext context,
     ThemeData theme,
@@ -1475,501 +1511,209 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        color: Colors.white,
         border: Border(
-          top: BorderSide(
-            color: Colors.white.withValues(alpha: 0.6),
-            width: 1.5,
-          ),
+          top: BorderSide(color: Colors.grey.shade100, width: 1.5),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, -5),
-          ),
-        ],
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-            child: Column(
-              children: [
-                // Logo
-                Image.asset(
-                  'assets/images/app_logo.png',
-                  height: 80,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => Text(
-                    "Krishi Dealer",
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
+      child: Column(
+        children: [
+          // Trust Badges - Larger & More Visual
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildTrustItem(
+                Icons.security_outlined,
+                "Secure",
+                Colors.green.shade600,
+              ),
+              _buildTrustItem(
+                Icons.local_shipping_outlined,
+                "Fast",
+                Colors.blue.shade600,
+              ),
+              _buildTrustItem(
+                Icons.workspace_premium_outlined,
+                "Organic",
+                Colors.orange.shade600,
+              ),
+              _buildTrustItem(
+                Icons.verified_user_outlined,
+                "Trusted",
+                Colors.purple.shade600,
+              ),
+            ],
+          ),
 
-                // WhatsApp Support Button
-                Center(
-                  child: SizedBox(
-                    width: 220,
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final url = Uri.parse("https://wa.me/919399022060");
-                        if (!await launchUrl(
-                          url,
-                          mode: LaunchMode.externalApplication,
-                        )) {
-                          await launchUrl(
-                            url,
-                            mode: LaunchMode.platformDefault,
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                      label: const Text(
-                        "WhatsApp Support",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        elevation: 3,
-                        shadowColor: Colors.black12,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
+          const SizedBox(height: 32),
 
-                // Premium small row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          // Brand & Support Row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFooterIconLabel(
-                      Icons.security,
-                      "Secure Payment",
-                      theme,
+                    Image.asset(
+                      'assets/images/app_logo.png',
+                      height: 38,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.eco_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 28,
+                      ),
                     ),
-                    _buildFooterIconLabel(Icons.replay, "Easy Return", theme),
-                    _buildFooterIconLabel(
-                      Icons.headset_mic,
-                      "24/7 Support",
-                      theme,
+                    const SizedBox(height: 12),
+                    Text(
+                      "Empowering Indian Farmers since 2026.",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade600,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _buildSocialIcon(Icons.facebook_rounded),
+                        const SizedBox(width: 16),
+                        _buildSocialIcon(Icons.camera_alt_rounded),
+                        const SizedBox(width: 16),
+                        _buildSocialIcon(Icons.play_circle_filled_rounded),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-
-                // Copyright
-                Text(
-                  "© 2026 Krishi Dealer",
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 4,
+                child: InkWell(
+                  onTap: () async {
+                    final url = Uri.parse("https://wa.me/919399022060");
+                    if (!await launchUrl(
+                      url,
+                      mode: LaunchMode.externalApplication,
+                    )) {
+                      await launchUrl(url, mode: LaunchMode.platformDefault);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF25D366).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF25D366).withOpacity(0.1),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.chat_bubble_rounded,
+                          color: Color(0xFF25D366),
+                          size: 18,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          "Expert Help",
+                          style: TextStyle(
+                            color: Color(0xFF128C7E),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+
+          const SizedBox(height: 24),
+
+          // Bottom Compact Bar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "© 2026 Krishikranti Organics",
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade100),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.eco_rounded,
+                      size: 10,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "v2.4.0",
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildFooterIconLabel(IconData icon, String label, ThemeData theme) {
+  Widget _buildTrustItem(IconData icon, String label, Color color) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 18, color: Colors.grey.shade400),
-        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.06),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 28, color: color),
+        ),
+        const SizedBox(height: 8),
         Text(
           label,
           style: TextStyle(
             fontSize: 10,
-            color: Colors.grey.shade500,
-            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade800,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
           ),
         ),
       ],
     );
   }
-}
 
-class ProductCard extends StatefulWidget {
-  final Product? product;
-  final String id, name, category, weight, price, imageUrl;
-  final bool isFavorite;
-  final VoidCallback onFavoriteToggle;
-  final String? tag;
-
-  const ProductCard({
-    super.key,
-    this.product,
-    required this.id,
-    required this.name,
-    required this.category,
-    required this.weight,
-    required this.price,
-    required this.imageUrl,
-    this.isFavorite = false,
-    required this.onFavoriteToggle,
-    this.tag,
-  });
-
-  @override
-  State<ProductCard> createState() => _ProductCardState();
-}
-
-class _ProductCardState extends State<ProductCard> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final displayProduct =
-        widget.product ??
-        Product(
-          id: widget.id,
-          title: widget.name,
-          thumbnail: widget.imageUrl,
-          images: [widget.imageUrl],
-          variants: [
-            Variant(
-              id: "v_${widget.id}",
-              size: widget.weight,
-              price:
-                  double.tryParse(
-                    widget.price.replaceAll(RegExp(r'[^0-9.]'), ''),
-                  ) ??
-                  0.0,
-              compareAtPrice: 0.0,
-            ),
-          ],
-        );
-
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(
-              product: displayProduct,
-              thumbnailUrl: widget.imageUrl,
-            ),
-          ),
-        );
-      },
-      child: AnimatedScale(
-        scale: _isPressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image Section
-              Expanded(
-                flex: 6,
-                child: Stack(
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.zero,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                        child: Hero(
-                          tag: "product_${widget.id}",
-                          child: ProgressiveImage(
-                            thumbnailUrl: displayProduct.thumbnail,
-                            imageUrl: displayProduct.images.isNotEmpty
-                                ? displayProduct.images.first
-                                : displayProduct.thumbnail,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (widget.tag != null) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade700,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                widget.tag!.toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                          ],
-                          if (displayProduct.averageRating > 0)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(100),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.75),
-                                    borderRadius: BorderRadius.circular(100),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.6),
-                                      width: 1,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.04),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.star_rounded,
-                                        color: Colors.orange,
-                                        size: 12,
-                                      ),
-                                      const SizedBox(width: 2),
-                                      Text(
-                                        displayProduct.averageRating
-                                            .toStringAsFixed(1),
-                                        style: const TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 10,
-                                          letterSpacing: -0.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Hero(
-                        tag: 'heart_${widget.id}',
-                        child: AnimatedHeart(
-                          isFavorite: widget.isFavorite,
-                          onTap: widget.onFavoriteToggle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Details Section
-              Expanded(
-                flex: 5,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.category.toUpperCase(),
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: -0.2,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.weight,
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const Spacer(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "₹${widget.price}",
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.add_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class CategoryCard extends StatefulWidget {
-  final String en, hi, image, fallbackImage;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const CategoryCard({
-    required this.en,
-    required this.hi,
-    required this.image,
-    required this.fallbackImage,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  State<CategoryCard> createState() => _CategoryCardState();
-}
-
-class _CategoryCardState extends State<CategoryCard> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
-      onTapCancel: () => setState(() => _isPressed = false),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        widget.onTap();
-      },
-      child: AnimatedScale(
-        scale: _isPressed ? 0.96 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: CachedNetworkImage(
-              imageUrl: widget.image,
-              fit: BoxFit.fill,
-              placeholder: (context, url) => Container(color: Colors.grey[200]),
-              errorWidget: (context, url, error) => CachedNetworkImage(
-                imageUrl: widget.fallbackImage,
-                fit: BoxFit.fill,
-                placeholder: (context, url) =>
-                    Container(color: Colors.grey[200]),
-                errorWidget: (context, url, error) => Container(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  child: Center(
-                    child: Icon(
-                      widget.icon,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                      size: 40,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  Widget _buildSocialIcon(IconData icon) {
+    return Icon(icon, size: 24, color: Colors.grey.shade400);
   }
 }
 

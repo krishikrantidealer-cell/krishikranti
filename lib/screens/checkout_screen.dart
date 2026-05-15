@@ -17,6 +17,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:krishikranti/screens/order_success_screen.dart';
 import 'package:krishikranti/screens/order_secured_screen.dart';
+import 'package:krishikranti/core/notification_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -55,24 +56,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           )
           .id;
       _isInitializingAddress = false;
-    } else if (profileService.user != null) {
-      final profile = profileService.user!;
-      final initialAddress = AddressModel(
-        id: "default_home",
-        name: profile.name.isNotEmpty ? profile.name : "Home / Shop",
-        villageArea: profile.address?.villageArea ?? "",
-        cityTehsil: profile.address?.cityTehsil ?? "",
-        state: profile.address?.state ?? "",
-        pincode: profile.address?.pincode ?? "",
-        phoneNumber: profile.phoneNumber,
-        isDefault: true,
-      );
-      addressService.setInitialLocalAddress(initialAddress);
-      selectedAddressId = initialAddress.id;
-      _isInitializingAddress = false;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Handle local initialization first
+      if (addressService.addresses.isEmpty && profileService.user != null) {
+        final profile = profileService.user!;
+        final initialAddress = AddressModel(
+          id: "default_home",
+          name: profile.name.isNotEmpty ? profile.name : "Home / Shop",
+          villageArea: profile.address?.villageArea ?? "",
+          cityTehsil: profile.address?.cityTehsil ?? "",
+          state: profile.address?.state ?? "",
+          pincode: profile.address?.pincode ?? "",
+          phoneNumber: profile.phoneNumber,
+          isDefault: true,
+        );
+        addressService.setInitialLocalAddress(initialAddress);
+        if (mounted) {
+          setState(() {
+            selectedAddressId = initialAddress.id;
+            _isInitializingAddress = false;
+          });
+        }
+      }
+
+      // Handle server fetch logic
       if (addressService.addresses.isEmpty ||
           addressService.addresses.first.id == "default_home") {
         await addressService.fetchAddresses(background: true);
@@ -353,6 +362,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       // 2. Clear Cart locally (it was already cleared on the server as part of order creation!)
       await cartService.clear(syncWithServer: false);
+
+      // 3. Trigger Local Notification
+      NotificationService.showNotification(
+        title: "Order Placed Successfully! 🎉",
+        body:
+            "Your order has been received and is being processed. Thank you for shopping with KrishiKranti!",
+        payload: jsonEncode({'action_route': '/my_orders'}),
+      );
 
       if (!mounted) return;
       setState(() => _isProcessing = false);

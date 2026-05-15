@@ -13,6 +13,7 @@ import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
+import 'package:krishikranti/widgets/breathing_mic_icon.dart';
 
 class CatalogueScreen extends StatefulWidget {
   final bool isShowingCollections;
@@ -32,6 +33,15 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   List<BannerModel> _categoryCardBanners = [];
   final HomeRepository _homeRepository = HomeRepository();
   bool _routeIsCurrent = false;
+  int _currentHintIndex = 0;
+  Timer? _hintTimer;
+  final List<String> _searchHints = [
+    "Search for crops...",
+    "Search for seeds...",
+    "Search for fertilizers...",
+    "Search for machinery...",
+    "Search for organic...",
+  ];
 
   @override
   void initState() {
@@ -42,6 +52,17 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     } else {
       _fetchCategories();
     }
+    _startHintTimer();
+  }
+
+  void _startHintTimer() {
+    _hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentHintIndex = (_currentHintIndex + 1) % _searchHints.length;
+        });
+      }
+    });
   }
 
   @override
@@ -246,6 +267,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _hintTimer?.cancel();
     super.dispose();
   }
 
@@ -306,26 +328,87 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                     ),
                     child: Container(
                       height: 44,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(
+                          color: Colors.grey.shade200,
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
                       child: Row(
                         children: [
                           Icon(
                             CupertinoIcons.search,
-                            size: 18,
-                            color: Colors.grey.shade500,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
-                          const SizedBox(width: 10),
-                          Text(
-                            "Search for products...",
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 500),
+                              transitionBuilder:
+                                  (Widget child, Animation<double> animation) {
+                                    final offsetAnimation =
+                                        Tween<Offset>(
+                                          begin: const Offset(0.0, 0.8),
+                                          end: Offset.zero,
+                                        ).animate(
+                                          CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOutBack,
+                                          ),
+                                        );
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position: offsetAnimation,
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                              child: Text(
+                                _searchHints[_currentHintIndex],
+                                key: ValueKey<int>(_currentHintIndex),
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SearchScreen(
+                                    startVoiceSearch: true,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              margin: const EdgeInsets.only(left: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: BreathingMicIcon(
+                                size: 20,
+                                color: Colors.grey.shade500,
+                              ),
                             ),
                           ),
                         ],

@@ -22,6 +22,7 @@ import 'package:krishikranti/screens/contact_us_screen.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/address_service.dart';
+import 'package:krishikranti/screens/order_detail_screen.dart';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -98,6 +99,12 @@ class MyApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         if (settings.name == '/cart') {
           return MaterialPageRoute(builder: (context) => const CartScreen());
+        }
+        if (settings.name != null && settings.name!.startsWith('/order_details/')) {
+          final orderId = settings.name!.replaceFirst('/order_details/', '');
+          return MaterialPageRoute(
+            builder: (context) => OrderDetailScreen(orderId: orderId),
+          );
         }
         return null;
       },

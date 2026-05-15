@@ -13,6 +13,9 @@ class ApiConstants {
   static const String homeDiscovery = '$baseUrl/api/products/discovery';
   static String productDetail(String id) => '$baseUrl/api/products/$id';
 
+  // Notifications
+  static const String fcmToken = '$baseUrl/api/users/fcm-token';
+
   // Cart & Coupon Endpoints
   static const String cart = '$baseUrl/api/cart';
   static const String cartItems = '$baseUrl/api/cart/items';

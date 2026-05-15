@@ -10,9 +10,14 @@ import 'package:krishikranti/features/orders/data/models/order_model.dart';
 import 'package:intl/intl.dart';
 
 class OrderDetailScreen extends StatefulWidget {
-  final Order order;
+  final Order? order;
+  final String? orderId;
 
-  const OrderDetailScreen({super.key, required this.order});
+  const OrderDetailScreen({
+    super.key,
+    this.order,
+    this.orderId,
+  }) : assert(order != null || orderId != null, 'Either order or orderId must be provided');
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
@@ -23,8 +28,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   late AnimationController _entranceController;
   late AnimationController _pulseController;
   late AnimationController _timelineController;
-  late Order _currentOrder;
+  Order? _currentOrder;
+  bool _isLoading = false;
   bool _isCancelling = false;
+  String? _error;
 
   @override
   void initState() {
@@ -43,8 +50,43 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       duration: const Duration(milliseconds: 1200),
     );
 
+    if (_currentOrder != null) {
+      _startAnimations();
+    } else if (widget.orderId != null) {
+      _fetchOrderDetails();
+    }
+  }
+
+  Future<void> _fetchOrderDetails() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final orderRepo = OrderRepository();
+      final order = await orderRepo.getOrderDetails(widget.orderId!);
+      if (mounted) {
+        setState(() {
+          _currentOrder = order;
+          _isLoading = false;
+        });
+        _startAnimations();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _startAnimations() {
     _entranceController.forward().then((_) {
-      final status = _currentOrder.orderStatus.toLowerCase();
+      if (_currentOrder == null) return;
+      final status = _currentOrder!.orderStatus.toLowerCase();
       int targetStep = 0;
       if (status == 'processing') {
         targetStep = 1;
@@ -126,7 +168,55 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final statusColor = _getStatusColor(_currentOrder.orderStatus, theme);
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text("Order Details"),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.white,
+        ),
+        body: const Center(
+          child: CupertinoActivityIndicator(radius: 15),
+        ),
+      );
+    }
+
+    if (_error != null || _currentOrder == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text("Order Details"),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.exclamationmark_triangle,
+                    size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(_error ?? "Failed to load order",
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _fetchOrderDetails,
+                  child: const Text("Retry"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final statusColor = _getStatusColor(_currentOrder!.orderStatus, theme);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -235,21 +325,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   DateTime _getStepTimestamp(int index) {
     switch (index) {
       case 0:
-        return _currentOrder.placedAt ?? _currentOrder.createdAt;
+        return _currentOrder!.placedAt ?? _currentOrder!.createdAt;
       case 1:
-        return _currentOrder.processingAt ??
-            _currentOrder.createdAt.add(const Duration(hours: 2));
+        return _currentOrder!.processingAt ??
+            _currentOrder!.createdAt.add(const Duration(hours: 2));
       case 2:
-        return _currentOrder.shippedAt ??
-            _currentOrder.createdAt.add(const Duration(hours: 4));
+        return _currentOrder!.shippedAt ??
+            _currentOrder!.createdAt.add(const Duration(hours: 4));
       case 3:
-        return _currentOrder.outForDeliveryAt ??
-            _currentOrder.createdAt.add(const Duration(hours: 6));
+        return _currentOrder!.outForDeliveryAt ??
+            _currentOrder!.createdAt.add(const Duration(hours: 6));
       case 4:
-        return _currentOrder.deliveredAt ??
-            _currentOrder.createdAt.add(const Duration(hours: 8));
+        return _currentOrder!.deliveredAt ??
+            _currentOrder!.createdAt.add(const Duration(hours: 8));
       default:
-        return _currentOrder.createdAt;
+        return _currentOrder!.createdAt;
     }
   }
 
@@ -270,7 +360,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     ];
 
     int currentStep = 0;
-    final status = _currentOrder.orderStatus.toLowerCase();
+    final status = _currentOrder!.orderStatus.toLowerCase();
     if (status == 'processing') {
       currentStep = 1;
     } else if (status == 'shipped') {
@@ -283,8 +373,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     bool isCancelled = status == "cancelled";
 
     final hasTrackingInfo =
-        _currentOrder.awbNumber?.isNotEmpty == true ||
-        _currentOrder.trackingUrl?.isNotEmpty == true;
+        _currentOrder!.awbNumber?.isNotEmpty == true ||
+        _currentOrder!.trackingUrl?.isNotEmpty == true;
 
     return Container(
       width: double.infinity,
@@ -314,7 +404,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Order #${_currentOrder.orderId}",
+                      "Order #${_currentOrder!.orderId}",
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
@@ -323,7 +413,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "Placed on ${DateFormat('dd MMM yyyy, hh:mm a').format(_currentOrder.placedAt ?? _currentOrder.createdAt)}",
+                      "Placed on ${DateFormat('dd MMM yyyy, hh:mm a').format(_currentOrder!.placedAt ?? _currentOrder!.createdAt)}",
                       style: TextStyle(
                         color: Colors.grey.shade500,
                         fontSize: 11,
@@ -358,7 +448,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _currentOrder.orderStatus.toUpperCase(),
+                      _currentOrder!.orderStatus.toUpperCase(),
                       style: TextStyle(
                         color: statusColor,
                         fontSize: 10,
@@ -415,7 +505,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "Cancelled on ${DateFormat('dd MMM yyyy, hh:mm a').format(_currentOrder.cancelledAt ?? _currentOrder.createdAt)}",
+                          "Cancelled on ${DateFormat('dd MMM yyyy, hh:mm a').format(_currentOrder!.cancelledAt ?? _currentOrder!.createdAt)}",
                           style: TextStyle(
                             color: Colors.red.shade600,
                             fontWeight: FontWeight.w600,
@@ -626,8 +716,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _currentOrder.courierName?.isNotEmpty == true
-                                ? "Courier: ${_currentOrder.courierName!}"
+                            _currentOrder!.courierName?.isNotEmpty == true
+                                ? "Courier: ${_currentOrder!.courierName!}"
                                 : "Delivery Partner: Shiprocket",
                             style: TextStyle(
                               fontSize: 12,
@@ -638,9 +728,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            _currentOrder.awbNumber?.isNotEmpty == true
-                                ? "AWB: ${_currentOrder.awbNumber!}"
-                                : "Tracking ID:${_currentOrder.orderId}",
+                            _currentOrder!.awbNumber?.isNotEmpty == true
+                                ? "AWB: ${_currentOrder!.awbNumber!}"
+                                : "Tracking ID:${_currentOrder!.orderId}",
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -656,21 +746,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                       child: ElevatedButton(
                         onPressed: () {
                           HapticFeedback.mediumImpact();
-                          if (_currentOrder.trackingUrl?.isNotEmpty == true) {
+                          if (_currentOrder!.trackingUrl?.isNotEmpty == true) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  "Redirecting to ${_currentOrder.trackingUrl}...",
+                                  "Redirecting to ${_currentOrder!.trackingUrl}...",
                                 ),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
-                          } else if (_currentOrder.awbNumber?.isNotEmpty ==
+                          } else if (_currentOrder!.awbNumber?.isNotEmpty ==
                               true) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  "Redirecting to https://shiprocket.co/tracking/${_currentOrder.awbNumber!}...",
+                                  "Redirecting to https://shiprocket.co/tracking/${_currentOrder!.awbNumber!}...",
                                 ),
                                 behavior: SnackBarBehavior.floating,
                               ),
@@ -733,7 +823,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Items Ordered (${_currentOrder.items.length})",
+            "Items Ordered (${_currentOrder!.items.length})",
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
@@ -746,13 +836,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.zero,
-            itemCount: _currentOrder.items.length,
+            itemCount: _currentOrder!.items.length,
             separatorBuilder: (context, index) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1, color: Colors.grey.shade100),
             ),
             itemBuilder: (context, index) {
-              final item = _currentOrder.items[index];
+              final item = _currentOrder!.items[index];
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -891,8 +981,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _currentOrder.shippingAddress.name?.isNotEmpty == true
-                          ? _currentOrder.shippingAddress.name!
+                      _currentOrder!.shippingAddress.name?.isNotEmpty == true
+                          ? _currentOrder!.shippingAddress.name!
                           : "Shipping Address",
                       style: const TextStyle(
                         fontSize: 13,
@@ -903,24 +993,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     const SizedBox(height: 4),
                     Text(
                       [
-                        if (_currentOrder
+                        if (_currentOrder!
                                 .shippingAddress
                                 .villageArea
                                 ?.isNotEmpty ==
                             true)
-                          _currentOrder.shippingAddress.villageArea!,
-                        if (_currentOrder
+                          _currentOrder!.shippingAddress.villageArea!,
+                        if (_currentOrder!
                                 .shippingAddress
                                 .cityTehsil
                                 ?.isNotEmpty ==
                             true)
-                          _currentOrder.shippingAddress.cityTehsil!,
-                        _currentOrder.shippingAddress.state?.isNotEmpty == true
-                            ? _currentOrder.shippingAddress.state!
+                          _currentOrder!.shippingAddress.cityTehsil!,
+                        _currentOrder!.shippingAddress.state?.isNotEmpty == true
+                            ? _currentOrder!.shippingAddress.state!
                             : "Maharashtra",
-                        if (_currentOrder.shippingAddress.pincode?.isNotEmpty ==
+                        if (_currentOrder!.shippingAddress.pincode?.isNotEmpty ==
                             true)
-                          "Pin: ${_currentOrder.shippingAddress.pincode!}",
+                          "Pin: ${_currentOrder!.shippingAddress.pincode!}",
                       ].join(", "),
                       style: TextStyle(
                         fontSize: 12,
@@ -929,11 +1019,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         height: 1.3,
                       ),
                     ),
-                    if (_currentOrder.shippingAddress.phoneNumber?.isNotEmpty ==
+                    if (_currentOrder!.shippingAddress.phoneNumber?.isNotEmpty ==
                         true) ...[
                       const SizedBox(height: 4),
                       Text(
-                        "Phone: ${_currentOrder.shippingAddress.phoneNumber!}",
+                        "Phone: ${_currentOrder!.shippingAddress.phoneNumber!}",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -952,7 +1042,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   Widget _buildCompactPaymentSummary(ThemeData theme) {
-    bool isPartial = _currentOrder.paymentMethod.toLowerCase() == 'partial';
+    bool isPartial = _currentOrder!.paymentMethod.toLowerCase() == 'partial';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -983,19 +1073,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           const SizedBox(height: 12),
           _summaryRow(
             "Subtotal",
-            "₹${_currentOrder.totalAmount.toStringAsFixed(0)}",
+            "₹${_currentOrder!.totalAmount.toStringAsFixed(0)}",
           ),
           _summaryRow("Shipping Fee", "FREE", isGreen: true),
           _summaryRow("Tax (Included)", "₹0"),
           if (isPartial) ...[
             _summaryRow(
               "Paid Advance Deposit",
-              "₹${(_currentOrder.advanceAmount ?? 0).toStringAsFixed(0)}",
+              "₹${(_currentOrder!.advanceAmount ?? 0).toStringAsFixed(0)}",
               isGreen: true,
             ),
             _summaryRow(
               "Remaining Balance at Delivery",
-              "₹${(_currentOrder.remainingAmount ?? 0).toStringAsFixed(0)}",
+              "₹${(_currentOrder!.remainingAmount ?? 0).toStringAsFixed(0)}",
               isOrange: true,
             ),
           ],
@@ -1014,7 +1104,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 ),
               ),
               Text(
-                "₹${(isPartial ? (_currentOrder.advanceAmount ?? 0) : _currentOrder.totalAmount).toStringAsFixed(0)}",
+                "₹${(isPartial ? (_currentOrder!.advanceAmount ?? 0) : _currentOrder!.totalAmount).toStringAsFixed(0)}",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -1029,7 +1119,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                "Order Total: ₹${_currentOrder.totalAmount.toStringAsFixed(0)}",
+                "Order Total: ₹${_currentOrder!.totalAmount.toStringAsFixed(0)}",
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -1139,7 +1229,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   Widget _buildBottomActions(BuildContext context, ThemeData theme) {
-    final status = _currentOrder.orderStatus.toLowerCase();
+    final status = _currentOrder!.orderStatus.toLowerCase();
     final canCancel = status == 'pending' || status == 'processing';
 
     return ClipRRect(
@@ -1249,7 +1339,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         context,
                         listen: false,
                       );
-                      for (var item in _currentOrder.items) {
+                      for (var item in _currentOrder!.items) {
                         cartService.addItem(
                           productId: item.productId,
                           variantId: item.variantId,
@@ -1322,7 +1412,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       setState(() => _isCancelling = true);
       try {
         final updatedOrder = await OrderRepository().cancelOrder(
-          _currentOrder.id,
+          _currentOrder!.id,
         );
         if (mounted) {
           setState(() {
