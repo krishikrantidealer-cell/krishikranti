@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 
 class CheckoutStepper extends StatelessWidget {
   final int activeStep; // 0: Cart, 1: Checkout, 2: Payment
@@ -8,6 +9,7 @@ class CheckoutStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final Color activeColor = const Color(0xFF2E7D32);
     final Color inactiveColor = Colors.grey.shade300;
 
@@ -24,7 +26,7 @@ class CheckoutStepper extends StatelessWidget {
           _buildStepNode(
             index: 0,
             icon: CupertinoIcons.cart_fill,
-            label: "Cart",
+            label: l10n.stepCart,
             activeColor: activeColor,
             inactiveColor: inactiveColor,
           ),
@@ -32,7 +34,7 @@ class CheckoutStepper extends StatelessWidget {
           _buildStepNode(
             index: 1,
             icon: CupertinoIcons.location_solid,
-            label: "Checkout",
+            label: l10n.stepCheckout,
             activeColor: activeColor,
             inactiveColor: inactiveColor,
           ),
@@ -40,7 +42,7 @@ class CheckoutStepper extends StatelessWidget {
           _buildStepNode(
             index: 2,
             icon: CupertinoIcons.lock_shield_fill,
-            label: "Payment",
+            label: l10n.stepPayment,
             activeColor: activeColor,
             inactiveColor: inactiveColor,
           ),

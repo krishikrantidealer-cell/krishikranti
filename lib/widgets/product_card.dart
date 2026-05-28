@@ -6,7 +6,7 @@ import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
 import 'package:krishikranti/widgets/animated_heart.dart';
-import 'package:krishikranti/core/favorite_service.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -252,7 +252,7 @@ class _ProductCardState extends State<ProductCard>
                             ),
                           ],
                           Expanded(
-                            child: Text(
+                            child: TranslatableText(
                               widget.product.brandName?.toUpperCase() ??
                                   "AGRI PREMIUM",
                               maxLines: 1,
@@ -268,7 +268,7 @@ class _ProductCardState extends State<ProductCard>
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      TranslatableText(
                         widget.product.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -280,7 +280,7 @@ class _ProductCardState extends State<ProductCard>
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
+                      TranslatableText(
                         widget.product.technicalName ?? "High efficacy formula",
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -610,7 +610,7 @@ class _ProductCardState extends State<ProductCard>
                                   ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text(
+                                child: TranslatableText(
                                   widget.product.brandName?.toUpperCase() ??
                                       "PREMIUM GRADE",
                                   maxLines: 1,
@@ -627,7 +627,7 @@ class _ProductCardState extends State<ProductCard>
                           ],
                         ),
                         const SizedBox(height: 6),
-                        Text(
+                        TranslatableText(
                           widget.product.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -639,7 +639,7 @@ class _ProductCardState extends State<ProductCard>
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
+                        TranslatableText(
                           widget.product.technicalName ??
                               "Crop Safety Formulation",
                           maxLines: 1,

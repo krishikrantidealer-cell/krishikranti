@@ -13,6 +13,7 @@ import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/widgets/animated_heart.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -193,17 +194,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   void _showClearConfirmation(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     HapticFeedback.lightImpact();
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text("Clear Favorites"),
-        content: const Text(
-          "Are you sure you want to remove all items from your wishlist?",
-        ),
+        title: Text(l10n.clearWishlistTitle),
+        content: Text(l10n.clearWishlistConfirm),
         actions: [
           CupertinoDialogAction(
-            child: const Text("Cancel"),
+            child: Text(l10n.cancel),
             onPressed: () => Navigator.pop(context),
           ),
           CupertinoDialogAction(
@@ -213,7 +213,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               _favoriteService.clearAll();
               Navigator.pop(context);
             },
-            child: const Text("Clear All"),
+            child: Text(l10n.clearAll),
           ),
         ],
       ),
@@ -258,10 +258,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ],
             ),
             const SizedBox(height: 24),
-            const Text(
-              "Your Wishlist is Empty",
+            Text(
+              l10n.wishlistEmpty,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 color: Colors.black,
@@ -270,7 +270,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              "Save your favorite farming essentials and access them instantly anytime.",
+              l10n.saveFavoritesInstruction,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -317,18 +317,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         CupertinoIcons.search,
                         color: Colors.white,
                         size: 20,
                       ),
                       SizedBox(width: 8),
                       Text(
-                        "Explore Shop",
-                        style: TextStyle(
+                        l10n.exploreShop,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -367,6 +367,7 @@ class _FavoriteProductCardState extends State<_FavoriteProductCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final heavyProduct = Product(
       id: widget.product.id,
       title: widget.product.name,
@@ -467,7 +468,7 @@ class _FavoriteProductCardState extends State<_FavoriteProductCard> {
                                 ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text(
+                              child: TranslatableText(
                                 widget.product.category.toUpperCase(),
                                 style: TextStyle(
                                   color: theme.colorScheme.primary,
@@ -515,7 +516,7 @@ class _FavoriteProductCardState extends State<_FavoriteProductCard> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                TranslatableText(
                                   widget.product.name,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -527,7 +528,7 @@ class _FavoriteProductCardState extends State<_FavoriteProductCard> {
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                Text(
+                                TranslatableText(
                                   widget.product.weight,
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
@@ -621,7 +622,7 @@ class _FavoriteProductCardState extends State<_FavoriteProductCard> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          isInCart ? "Added" : "Add",
+                                          isInCart ? l10n.added : l10n.add,
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 10,

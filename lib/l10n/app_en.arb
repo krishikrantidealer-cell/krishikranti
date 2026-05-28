@@ -105,5 +105,541 @@
   "locationFailed": "Failed to get location. Please try again.",
   "edit": "Edit",
   "delete": "Delete",
-  "defaultLabel": "Default"
+  "defaultLabel": "Default",
+  "readAll": "Read all",
+  "tabAll": "All",
+  "tabOrders": "Orders",
+  "tabOffers": "Offers",
+  "noNotificationsYet": "No notifications yet",
+  "noOrderUpdatesYet": "No order updates yet",
+  "noOffersRightNow": "No offers right now",
+  "keepYouPosted": "We'll keep you posted with the latest updates.",
+  "exploreProducts": "Explore Products",
+  "goodMorning": "Good Morning",
+  "goodAfternoon": "Good Afternoon",
+  "goodEvening": "Good Evening",
+  "exploreTopSectors": "Explore top agricultural sectors",
+  "expertHelp": "Expert Help",
+  "exploreCollection": "Explore {collectionName}",
+  "@exploreCollection": {
+    "placeholders": {
+      "collectionName": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumFarmingEssentials": "Premium farming essentials",
+  "exclusiveDeals": "Exclusive deals & discounts",
+  "bestOffers": "Best Offers",
+  "collections": "Collections",
+  "footerBadgeSecure": "Secure",
+  "footerBadgeFast": "Fast",
+  "footerBadgeOrganic": "Organic",
+  "footerBadgeTrusted": "Trusted",
+  "empoweringFarmers": "Empowering Indian Farmers since 2026.",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "older": "Older",
+  "justNow": "Just now",
+  "searchHintFungicides": "Search for 'Fungicides'...",
+  "searchHintInsecticides": "Search for 'Insecticides'...",
+  "searchHintHerbicides": "Search for 'Herbicides'...",
+  "searchHintBioProducts": "Search for 'Bio-Products'...",
+  "searchHintPgrs": "Search for 'PGRs'...",
+  "searchHintFertilizers": "Search for 'Fertilizers'...",
+  "categoryInsecticides": "Insecticides",
+  "categoryFungicides": "Fungicides",
+  "categoryHerbicides": "Herbicides",
+  "categoryBioProducts": "Bio-Products",
+  "categoryPgrs": "PGRs",
+  "categoryFertilizers": "Fertilizers",
+  "categoryDefault": "Agri Products",
+  "wishlistEmpty": "Your Wishlist is Empty",
+  "saveFavoritesInstruction": "Save your favorite farming essentials and access them instantly anytime.",
+  "exploreShop": "Explore Shop",
+  "clearWishlistTitle": "Clear Favorites",
+  "clearWishlistConfirm": "Are you sure you want to remove all items from your wishlist?",
+  "clearAll": "Clear All",
+  "added": "Added",
+  "deselectAll": "Deselect All",
+  "selectAll": "Select All",
+  "done": "DONE",
+  "editLabel": "EDIT",
+  "itemCountLabel": "{count} {count, plural, =1{ITEM} other{ITEMS}}",
+  "@itemCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "secureCheckoutBadge": "SECURE CHECKOUT",
+  "couponApplied": "COUPON APPLIED!",
+  "couponActiveMessage": "Code '{coupon}' is active",
+  "@couponActiveMessage": {
+    "placeholders": {
+      "coupon": {
+        "type": "String"
+      }
+    }
+  },
+  "cartFeelsLight": "Your cart feels light",
+  "discoverAgriProducts": "Discover premium agricultural products and start your growing journey today.",
+  "beginExploring": "Begin Exploring",
+  "selectItemsToDelete": "SELECT ITEMS TO DELETE",
+  "deleteSelected": "DELETE SELECTED ({count})",
+  "@deleteSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "continueToCheckout": "CONTINUE TO CHECKOUT",
+  "removeItemsTitle": "Remove {count} items?",
+  "@removeItemsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "removeItemsConfirm": "Are you sure you want to delete the selected items from your cart?",
+  "clearCartTitle": "Clear Cart?",
+  "clearCartConfirm": "Are you sure you want to remove all items from your cart?",
+  "couponAppliedTitle": "Coupon Applied!",
+  "offersAndBenefits": "Offers & Benefits",
+  "freeGiftMessage": "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁",
+  "couponSavedMessage": "You saved ₹{amount} with {coupon}",
+  "@couponSavedMessage": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "coupon": {
+        "type": "String"
+      }
+    }
+  },
+  "viewCouponsAndOffers": "View available coupons and offers",
+  "giftLabel": "GIFT",
+  "freeLabel": "FREE",
+  "enterQuantity": "Enter Quantity",
+  "specifyQuantityHint": "Specify the number of items you'd like to order.",
+  "egQuantity": "e.g. 5",
+  "updateLabel": "UPDATE",
+  "billDetails": "BILL DETAILS",
+  "itemTotalSubtotal": "Item Total (Subtotal)",
+  "couponDiscount": "Coupon Discount",
+  "deliveryCharges": "Delivery Charges",
+  "totalAmountPayable": "Total Amount Payable",
+  "couponSavingsSuccess": "Yay! You saved ₹{amount} on this purchase!",
+  "@couponSavingsSuccess": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "tabActive": "Active",
+  "tabDelivered": "Delivered",
+  "tabCancelled": "Cancelled",
+  "tabRto": "RTO",
+  "overview": "Overview",
+  "activeOrdersLabel": "{count} Active {count, plural, =1{Order} other{Orders}}",
+  "@activeOrdersLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allOrdersHistory": "All Orders History",
+  "totalOrdersCount": "{count} Total",
+  "@totalOrdersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noOrdersYet": "No Orders Yet",
+  "noMatchingOrders": "No Matching Orders",
+  "orderJourneyBegins": "Your agricultural journey begins here. Explore our catalog and place your first order today!",
+  "noOrdersMatchingStatus": "We couldn't find any orders under the '{status}' status.",
+  "@noOrdersMatchingStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "startExploring": "Start Exploring",
+  "viewAllOrders": "View All Orders",
+  "understandingOrderStatus": "Understanding Order Status",
+  "whatEachStatusMeans": "Here is what each status means for your shipment:",
+  "processing": "Processing",
+  "processingDesc": "Your items are being inspected, packed, and prepared for dispatch.",
+  "shipped": "Shipped",
+  "shippedDesc": "Your package has left our facility and is in transit.",
+  "outForDelivery": "Out for Delivery",
+  "outForDeliveryDesc": "Your package is out for final delivery to your doorstep.",
+  "delivered": "Delivered",
+  "deliveredDesc": "The shipment has been successfully handed over.",
+  "cancelled": "Cancelled",
+  "cancelledDesc": "The order was cancelled. Payments will be refunded.",
+  "needImmediateHelp": "Need immediate help?",
+  "supportStaffReady": "Our 24/7 support staff is ready to assist you.",
+  "cancel": "Cancel",
+  "removeLabel": "REMOVE",
+  "orderIdLabel": "ORDER #",
+  "paid": "Paid",
+  "advancePaid": "Adv: ₹{amount}",
+  "@advancePaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "remainingDue": "Due: ₹{amount}",
+  "@remainingDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "itemsCount": "{count} {count, plural, =1{item} other{items}}",
+  "@itemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cancelledOn": "Cancelled on {date}",
+  "@cancelledOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "crops": "Crops",
+  "cropsCollection": "Crop Collection",
+  "shopByCrop": "Shop by Crop",
+  "browseCategories": "Browse Categories",
+  "cropsCount": "{count} {count, plural, =1{Crop} other{Crops}}",
+  "@cropsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "categoriesCount": "{count} {count, plural, =1{Category} other{Categories}}",
+  "@categoriesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchHintCrops": "Search for crops...",
+  "searchHintSeeds": "Search for seeds...",
+  "searchHintMachinery": "Search for machinery...",
+  "searchHintOrganic": "Search for organic...",
+  "badgeGenuine": "Genuine",
+  "badgeTested": "Tested",
+  "badgeExpress": "Express",
+  "recentSearches": "Recent Searches",
+  "whatAreYouLookingFor": "What are you looking for?",
+  "tryAdjustingSearch": "Try adjusting your search terms",
+  "quickDiscovery": "Quick Discovery",
+  "tryAgain": "Try Again",
+  "somethingWentWrong": "Oops! Something went wrong.",
+  "letsConnect": "Let's Connect",
+  "supportSubtitle": "We're here to help support your agro-business.",
+  "onlineSupportActive": "Online • Support Active",
+  "offlineResponseDelayed": "Offline • Response Delayed",
+  "supportHours": "Mon-Sat (9:00 AM - 7:00 PM)",
+  "fastResponse": "Fast response",
+  "quickChat": "Quick Chat",
+  "directLine": "Direct Line",
+  "officialMail": "Official Mail",
+  "sendQuickInquiry": "Send a Quick Inquiry",
+  "selectTopic": "SELECT TOPIC",
+  "messageDetails": "MESSAGE DETAILS",
+  "sendWhatsApp": "Send WhatsApp",
+  "whyTrustKrishiKranti": "Why Trust Krishi Kranti",
+  "dataPrivate": "Data Private",
+  "cibrcRegd": "CIB&RC Regd.",
+  "gstInvoice": "GST Invoice",
+  "panIndiaDelivery": "PAN-India Delivery",
+  "topicOrderIssue": "Order Issue",
+  "topicRefundPayment": "Refund / Payment",
+  "topicBecomeDealer": "Become a Dealer",
+  "topicProductQuery": "Product Query",
+  "topicKycHelp": "KYC Help",
+  "callUs": "Call Us",
+  "whatsapp": "WhatsApp",
+  "emailLabel": "Email",
+  "seedsLabel": "Seeds",
+  "toolsLabel": "Tools",
+  "availableCoupons": "Available Coupons",
+  "couponAppliedSuccessfully": "Coupon applied successfully!",
+  "noCouponsAvailable": "No coupons available right now",
+  "minPurchaseLabel": "Min Purchase: ₹{amount}",
+  "@minPurchaseLabel": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "newUsersOnly": "New Users Only",
+  "applyLabel": "APPLY",
+
+  "categoriesCount": "{count} Categories",
+  "@categoriesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "noItemsAvailable": "No items available",
+
+  "secureCheckout": "Secure Checkout",
+  "billingBreakdown": "Billing Breakdown",
+  "subtotalLabel": "Subtotal",
+  "couponDiscountLabel": "Coupon Discount",
+  "grandTotal": "Grand Total",
+  "advanceBookingDeposit": "Advance Booking Deposit ({percent}%)",
+  "@advanceBookingDeposit": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "remainingBalanceAtDelivery": "Remaining Balance at Delivery",
+  "dealerDhamakaBanner": "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁",
+  "couponSavingsBannerCheckout": "You saved ₹{amount} with this coupon 🎉",
+  "@couponSavingsBannerCheckout": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "hundredPercentSecure": "100% Secure",
+  "gstInvoice": "GST Invoice",
+  "fastDelivery": "Fast Delivery",
+  "paymentMode": "Payment Mode",
+  "payFullOnline": "Pay Full Online",
+  "payFullOnlineDesc": "Pay complete order amount safely via UPI/Cards",
+  "partialBookingAdvance": "Partial Booking Advance",
+  "partialBookingAdvanceDesc": "Book your order with a minor token deposit",
+  "chooseAdvanceAmount": "Choose Advance Amount",
+  "payableAmount": "Payable Amount:",
+  "bookingAdvanceLabel": "Booking Advance:",
+  "remainingBalanceDelivery": "Remaining Balance at Delivery:",
+  "addAddressToPay": "Add Address to Pay",
+  "proceedToPay": "Proceed to Pay",
+  "deliverTo": "DELIVER TO",
+  "changeAddress": "Change",
+  "defaultLabel": "Default",
+  "addShippingAddress": "Add Shipping Address",
+  "addShippingAddressHint": "Please add a shipping address to place order",
+  "selectShippingAddress": "Select Shipping Address",
+  "addNewAddress": "Add New Address",
+  "pleaseSelectPaymentMethod": "Please select a payment method",
+  "pleaseSelectAddress": "Please select a shipping address",
+  "paymentFailed": "Payment Failed: {message}",
+  "@paymentFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorLaunchingRazorpay": "Error launching Razorpay: {error}",
+  "@errorLaunchingRazorpay": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "paymentSetupFailed": "Payment setup failed: {error}",
+  "@paymentSetupFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "failedToPlaceOrder": "Failed to place order: {error}",
+  "@failedToPlaceOrder": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "orderSyncRequired": "Order Sync Required",
+  "orderSyncDescription": "Your payment was successful, but our server encountered an error while confirming your order details.",
+  "paymentRefKeepSafe": "Payment Reference (Keep Safe):",
+  "doNotCloseApp": "Please do NOT close the app. Tap 'Retry Now' below to complete and secure your order registration immediately.",
+  "copyId": "Copy ID",
+  "retryNow": "Retry Now",
+  "paymentRefCopied": "Payment reference copied to clipboard!",
+  "securingYourOrder": "Securing Your Order... 🔒",
+  "pciDssCompliant": "PCI-DSS compliant SSL security layer",
+  "processingStep1": "Scanning client environment sandbox... 🛡️",
+  "processingStep2": "Analyzing transaction injection vulnerabilities... 🔒",
+  "processingStep3": "Verifying secure API socket handshake... ⛓️",
+  "processingStep4": "Validating payload signature integrity... 🔑",
+  "processingStep5": "Finalizing end-to-end SSL encryption... 🚀",
+  "qtyLabel": "Qty: {qty}",
+  "@qtyLabel": {
+    "placeholders": {
+      "qty": { "type": "int" }
+    }
+  },
+  "goToMyOrders": "Go to My Orders ({seconds}s)",
+  "@goToMyOrders": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "orderSuccessMessage": "Thank you for your purchase. We are preparing your order for shipment. Let's get growing!",
+  "orderSecuredMessage": "Your booking deposit was received and your order is now secured. Let's get growing!",
+  "editProfile": "Edit Profile",
+  "profileUpdatedSuccessfully": "Profile updated successfully!",
+  "generalOptions": "General Options",
+  "identityVerification": "Identity Verification",
+  "empoweringAgriDealers": "Empowering Agri Dealers Across India",
+  "storeName": "Store Name",
+  "enterStoreName": "Enter your store name",
+  "useCurrentLocation": "Use Current Location",
+  "addressHint": "House no., Street, Area",
+  "address2Hint": "Landmark, Colony, etc.",
+
+  "sortAndFilter": "Sort & Filter",
+  "resetAll": "Reset All",
+  "sortBy": "SORT BY",
+  "filterBy": "FILTER BY",
+  "inStockOnly": "In Stock Only",
+  "inStockOnlyDesc": "Hide products that are currently unavailable",
+  "exclusiveOffersDeals": "Exclusive Offers & Deals",
+  "exclusiveOffersDealsDesc": "Show items with marked down dealer pricing",
+  "applyFilters": "Apply Filters",
+  "noProductsFound": "No Products Found",
+  "noProductsFoundDesc": "We couldn't find any products matching your current criteria or subcategory.",
+  "clearAllFilters": "Clear All Filters",
+  "exclusiveCollection": "Exclusive Collection",
+  "loadingLabel": "Loading...",
+  "itemsAvailable": "{count} items available",
+  "@itemsAvailable": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "selectPackagingQuantity": "Select Packaging & Quantity",
+  "expertChoice": "Expert Choice",
+  "fastActing": "Fast Acting",
+  "hundredPercentOriginal": "100% Original",
+  "addLabel": "ADD",
+  "totalItems": "Total Items: {count}",
+  "@totalItems": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "grandTotalLabel": "Grand Total: ₹{amount}",
+  "@grandTotalLabel": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "cancelLabel": "CANCEL",
+  "updateLabel2": "UPDATE",
+  "enterValueHint": "Enter value",
+  "details": "Details",
+  "specifications": "Specifications",
+  "productDescription": "Product Description",
+  "showMore": "Show More",
+  "showLess": "Show Less",
+  "wholesaleTierPricing": "Wholesale Tier Pricing",
+  "currentVolume": "Current Volume: {volume}",
+  "@currentVolume": {
+    "placeholders": {
+      "volume": { "type": "String" }
+    }
+  },
+  "goToCart": "GO TO CART",
+  "buyNow": "BUY NOW",
+  "pleaseSelectPackSize": "Please select a pack size",
+  "failedToRemoveItem": "Failed to remove item",
+  "failedToUpdateCart": "Failed to update cart: {error}",
+  "@failedToUpdateCart": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "unlockTierPricing": "Unlock {tier} Pricing!",
+  "@unlockTierPricing": {
+    "placeholders": {
+      "tier": { "type": "String" }
+    }
+  },
+  "getWholesaleRates": "Get wholesale rates on bulk volume",
+  "regularPrice": "Regular Price",
+  "wholesaleRate": "WHOLESALE RATE",
+  "totalBulkSavings": "Total Bulk Savings: ₹{savings}!",
+  "@totalBulkSavings": {
+    "placeholders": {
+      "savings": { "type": "String" }
+    }
+  },
+  "requiredVolumeProgression": "Required Volume Progression",
+  "currentProgress": "Current: {vol} ({packs} packs)",
+  "@currentProgress": {
+    "placeholders": {
+      "vol": { "type": "String" },
+      "packs": { "type": "int" }
+    }
+  },
+  "targetProgress": "Target: {vol} ({packs} packs)",
+  "@targetProgress": {
+    "placeholders": {
+      "vol": { "type": "String" },
+      "packs": { "type": "int" }
+    }
+  },
+  "addingMorePacksUnlocks": "Adding {diff} more packs of this size unlocks ₹{discount} discount per {unit} on ALL units!",
+  "@addingMorePacksUnlocks": {
+    "placeholders": {
+      "diff": { "type": "int" },
+      "discount": { "type": "String" },
+      "unit": { "type": "String" }
+    }
+  },
+  "keepCurrent": "KEEP CURRENT",
+  "addDiffAndSave": "ADD {diff} & SAVE",
+  "@addDiffAndSave": {
+    "placeholders": {
+      "diff": { "type": "int" }
+    }
+  },
+  "adjustQuantity": "Adjust Quantity",
+  "confirmLabel": "CONFIRM",
+  "saveAmount": "SAVE ₹{amount}",
+  "@saveAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "tierUnlockedMessage": "You unlocked {tier}! Now enjoying ₹{price}/{unit} pricing. 🎉",
+  "@tierUnlockedMessage": {
+    "placeholders": {
+      "tier": { "type": "String" },
+      "price": { "type": "String" },
+      "unit": { "type": "String" }
+    }
+  },
+  "zeroReviews": " (0 reviews)",
+  "stepCart": "Cart",
+  "stepCheckout": "Checkout",
+  "stepPayment": "Payment"
 }

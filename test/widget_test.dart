@@ -6,6 +6,7 @@ import 'package:krishikranti/core/language_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/screens/home_screen.dart';
 import 'package:krishikranti/screens/catalogue_screen.dart';
+import 'package:krishikranti/widgets/category_card.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 
 void main() {

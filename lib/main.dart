@@ -8,6 +8,7 @@ import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/app_theme.dart';
 import 'package:krishikranti/core/language_service.dart';
+import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/features/splash/presentation/pages/splash_page.dart';
@@ -27,9 +28,10 @@ import 'package:krishikranti/screens/order_detail_screen.dart';
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Language Service (load saved locale synchronously before startup)
+  await LanguageService.initialize();
 
   // Initialize Notification Service
   await NotificationService.initialize();
@@ -50,6 +52,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageService()),
+        ChangeNotifierProvider(create: (_) => DynamicTranslationService()),
         ChangeNotifierProvider(create: (_) => FavoriteService()),
         ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => ProfileService()),
@@ -61,7 +64,8 @@ void main() async {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> messengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -93,14 +97,16 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/kyc': (context) => const EkycPage(),
         '/dashboard': (context) => const MainScreen(),
-        '/language-select': (context) => const ChooseLanguagePage(isSettings: true),
+        '/language-select': (context) =>
+            const ChooseLanguagePage(isSettings: true),
         '/contact': (context) => const ContactUsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/cart') {
           return MaterialPageRoute(builder: (context) => const CartScreen());
         }
-        if (settings.name != null && settings.name!.startsWith('/order_details/')) {
+        if (settings.name != null &&
+            settings.name!.startsWith('/order_details/')) {
           final orderId = settings.name!.replaceFirst('/order_details/', '');
           return MaterialPageRoute(
             builder: (context) => OrderDetailScreen(orderId: orderId),

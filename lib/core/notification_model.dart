@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 enum NotificationCategory { utility, marketing }
 
@@ -31,10 +32,6 @@ class NotificationModel {
       'title': title,
       'description': description,
       'time': time,
-      'iconCodePoint': icon.codePoint,
-      'iconFontFamily': icon.fontFamily,
-      'iconFontPackage': icon.fontPackage,
-      'colorValue': color.value,
       'isUnread': isUnread,
       'group': group,
       'category': category.name,
@@ -42,23 +39,25 @@ class NotificationModel {
   }
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    final category = NotificationCategory.values.firstWhere(
+      (e) => e.name == json['category'],
+      orElse: () => NotificationCategory.utility,
+    );
+
     return NotificationModel(
       id: json['id'] as String,
       title: json['title'] as String,
       description: json['description'] as String,
       time: json['time'] as String,
-      icon: IconData(
-        json['iconCodePoint'] as int,
-        fontFamily: json['iconFontFamily'] as String?,
-        fontPackage: json['iconFontPackage'] as String?,
-      ),
-      color: Color(json['colorValue'] as int),
+      icon: category == NotificationCategory.marketing
+          ? CupertinoIcons.bolt_fill
+          : CupertinoIcons.cube_box_fill,
+      color: category == NotificationCategory.marketing
+          ? Colors.orange
+          : const Color(0xFF2E7D32),
       isUnread: json['isUnread'] as bool,
       group: json['group'] as String,
-      category: NotificationCategory.values.firstWhere(
-        (e) => e.name == json['category'],
-        orElse: () => NotificationCategory.utility,
-      ),
+      category: category,
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/coupon_service.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class CouponsScreen extends StatefulWidget {
@@ -46,6 +48,9 @@ class _CouponsScreenState extends State<CouponsScreen> {
     try {
       await cartService.applyCoupon(code);
       if (mounted) {
+        final successMsg = AppLocalizations.of(
+          context,
+        )!.couponAppliedSuccessfully;
         Navigator.pop(context); // Close loading
         Navigator.pop(context); // Close CouponsScreen
 
@@ -54,12 +59,11 @@ class _CouponsScreenState extends State<CouponsScreen> {
         await Future.delayed(const Duration(milliseconds: 150));
         HapticFeedback.vibrate();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Coupon applied successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(successMsg), backgroundColor: Colors.green),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -82,8 +86,8 @@ class _CouponsScreenState extends State<CouponsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: const Text(
-          "Available Coupons",
+        title: Text(
+          AppLocalizations.of(context)!.availableCoupons,
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.w900,
@@ -124,7 +128,7 @@ class _CouponsScreenState extends State<CouponsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            "No coupons available right now",
+            AppLocalizations.of(context)!.noCouponsAvailable,
             style: TextStyle(
               color: Colors.grey.shade500,
               fontWeight: FontWeight.w600,
@@ -203,7 +207,7 @@ class _CouponCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
+                      TranslatableText(
                         coupon.description,
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
@@ -231,7 +235,9 @@ class _CouponCard extends StatelessWidget {
                   children: [
                     if (coupon.minimumPurchaseAmount > 0)
                       Text(
-                        "Min Purchase: ₹${coupon.minimumPurchaseAmount.toStringAsFixed(0)}",
+                        AppLocalizations.of(context)!.minPurchaseLabel(
+                          coupon.minimumPurchaseAmount.toStringAsFixed(0),
+                        ),
                         style: TextStyle(
                           color: Colors.grey.shade500,
                           fontSize: 12,
@@ -249,8 +255,8 @@ class _CouponCard extends StatelessWidget {
                           color: Colors.amber.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
-                          "New Users Only",
+                        child: Text(
+                          AppLocalizations.of(context)!.newUsersOnly,
                           style: TextStyle(
                             color: Colors.amber,
                             fontSize: 11,
@@ -274,8 +280,8 @@ class _CouponCard extends StatelessWidget {
                       vertical: 12,
                     ),
                   ),
-                  child: const Text(
-                    "APPLY",
+                  child: Text(
+                    AppLocalizations.of(context)!.applyLabel,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,

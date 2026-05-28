@@ -4,15 +4,12 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/favorite_service.dart';
-import 'package:krishikranti/screens/product_detail_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/widgets/product_card.dart';
 import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 import 'package:krishikranti/features/products/data/models/category_model.dart';
-import 'package:krishikranti/widgets/progressive_image.dart';
-import 'package:krishikranti/widgets/animated_heart.dart';
 
 class ProductListScreen extends StatefulWidget {
   final String category;
@@ -273,6 +270,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   void _showSortFilterBottomSheet() {
     HapticFeedback.mediumImpact();
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -315,17 +313,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.tune_rounded,
                             color: Color(0xFF298E4D),
                             size: 24,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Text(
-                            "Sort & Filter",
-                            style: TextStyle(
+                            l10n.sortAndFilter,
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
                               color: Colors.black,
@@ -343,9 +341,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           });
                           setState(() {});
                         },
-                        child: const Text(
-                          "Reset All",
-                          style: TextStyle(
+                        child: Text(
+                          l10n.resetAll,
+                          style: const TextStyle(
                             color: Colors.grey,
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
@@ -357,9 +355,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   const SizedBox(height: 20),
 
                   // Sort Section
-                  const Text(
-                    "SORT BY",
-                    style: TextStyle(
+                  Text(
+                    l10n.sortBy,
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: Colors.grey,
@@ -439,9 +437,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   const SizedBox(height: 20),
 
                   // Filter Section
-                  const Text(
-                    "FILTER BY",
-                    style: TextStyle(
+                  Text(
+                    l10n.filterBy,
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       color: Colors.grey,
@@ -452,8 +450,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
                   // Switch for Only In Stock
                   _buildFilterToggleRow(
-                    title: "In Stock Only",
-                    subtitle: "Hide products that are currently unavailable",
+                    title: l10n.inStockOnly,
+                    subtitle: l10n.inStockOnlyDesc,
                     value: _showOnlyInStock,
                     onChanged: (val) {
                       setSheetState(() => _showOnlyInStock = val);
@@ -464,8 +462,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
                   // Switch for Offers/Deals
                   _buildFilterToggleRow(
-                    title: "Exclusive Offers & Deals",
-                    subtitle: "Show items with marked down dealer pricing",
+                    title: l10n.exclusiveOffersDeals,
+                    subtitle: l10n.exclusiveOffersDealsDesc,
                     value: _showWithDeals,
                     onChanged: (val) {
                       setSheetState(() => _showWithDeals = val);
@@ -507,9 +505,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Text(
-                          "Apply Filters",
-                          style: TextStyle(
+                        child: Text(
+                          l10n.applyFilters,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
@@ -580,6 +578,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   Widget _buildStickyMenuBar(ThemeData theme) {
     final activeCount = _activeFiltersCount;
+    final l10n = AppLocalizations.of(context)!;
 
     return SliverPersistentHeader(
       pinned: true,
@@ -624,7 +623,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
-                                        "Exclusive Collection",
+                                        l10n.exclusiveCollection,
                                         style: TextStyle(
                                           color: theme.colorScheme.primary,
                                           fontWeight: FontWeight.w800,
@@ -723,7 +722,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                           ),
                                           const SizedBox(width: 5),
                                         ],
-                                        Text(
+                                        TranslatableText(
                                           _menuItems[index],
                                           style: TextStyle(
                                             color: isSelected
@@ -856,7 +855,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         : Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
+                              TranslatableText(
                                 widget.category,
                                 style: const TextStyle(
                                   color: Colors.black,
@@ -868,8 +867,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 _isLoading
-                                    ? "Loading..."
-                                    : "${_filteredProducts.length} items available",
+                                    ? l10n.loadingLabel
+                                    : l10n.itemsAvailable(
+                                        _filteredProducts.length,
+                                      ),
                                 style: TextStyle(
                                   color: theme.colorScheme.primary,
                                   fontSize: 11,
@@ -1053,6 +1054,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Widget _buildErrorWidget() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
@@ -1076,9 +1078,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            "Oops! Something went wrong",
-            style: TextStyle(
+          Text(
+            l10n.somethingWentWrong,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
               color: Colors.black,
@@ -1115,9 +1117,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  "Try Again",
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                child: Text(
+                  l10n.tryAgain,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),
@@ -1128,6 +1133,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Widget _buildEmptyWidget() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
       decoration: BoxDecoration(
@@ -1165,9 +1171,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          const Text(
-            "No Products Found",
-            style: TextStyle(
+          Text(
+            l10n.noProductsFound,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
               color: Colors.black,
@@ -1176,7 +1182,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            "We couldn't find any products matching your current criteria or subcategory.",
+            l10n.noProductsFoundDesc,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey.shade500,
@@ -1209,9 +1215,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
-              "Clear All Filters",
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            child: Text(
+              l10n.clearAllFilters,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
             ),
           ),
         ],

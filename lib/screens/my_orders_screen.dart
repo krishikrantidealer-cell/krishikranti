@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:lottie/lottie.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/features/orders/data/models/order_model.dart';
@@ -9,6 +10,7 @@ import 'package:krishikranti/features/orders/data/repositories/order_repository.
 import 'package:krishikranti/screens/order_detail_screen.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -56,9 +58,27 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     }
   }
 
+  String _getLocalizedTabName(String tabName, AppLocalizations l10n) {
+    switch (tabName) {
+      case "All":
+        return l10n.tabAll;
+      case "Active":
+        return l10n.tabActive;
+      case "Delivered":
+        return l10n.tabDelivered;
+      case "Cancelled":
+        return l10n.tabCancelled;
+      case "RTO":
+        return l10n.tabRto;
+      default:
+        return tabName;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final filteredOrders = _orders.where((order) {
       if (_selectedTabIndex == 0) return true;
@@ -79,7 +99,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          "My Orders",
+          l10n.myOrders,
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w800,
             fontSize: 18,
@@ -218,6 +238,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         )
         .length;
 
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Row(
@@ -227,7 +248,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Overview",
+                l10n.overview,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -238,8 +259,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
               const SizedBox(height: 1),
               Text(
                 activeOrders > 0
-                    ? "$activeOrders Active ${activeOrders == 1 ? 'Order' : 'Orders'}"
-                    : "All Orders History",
+                    ? l10n.activeOrdersLabel(activeOrders)
+                    : l10n.allOrdersHistory,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -264,7 +285,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  "${_orders.length} Total",
+                  l10n.totalOrdersCount(_orders.length),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -280,6 +301,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Widget _buildStatusTabs(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     final icons = [
       CupertinoIcons.cube_box_fill,
       CupertinoIcons.timer_fill,
@@ -362,7 +384,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      tabName,
+                      _getLocalizedTabName(tabName, l10n),
                       style: TextStyle(
                         color: isSelected ? Colors.white : Colors.grey.shade700,
                         fontWeight: isSelected
@@ -407,6 +429,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
   Widget _buildEmptyState(BuildContext context, bool isEntireListEmpty) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
@@ -420,7 +444,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            isEntireListEmpty ? "No Orders Yet" : "No Matching Orders",
+            isEntireListEmpty ? l10n.noOrdersYet : l10n.noMatchingOrders,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
@@ -432,8 +456,10 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
               isEntireListEmpty
-                  ? "Your agricultural journey begins here. Explore our catalog and place your first order today!"
-                  : "We couldn't find any orders under the '${_tabs[_selectedTabIndex]}' status.",
+                  ? l10n.orderJourneyBegins
+                  : l10n.noOrdersMatchingStatus(
+                      _getLocalizedTabName(_tabs[_selectedTabIndex], l10n),
+                    ),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey.shade500,
@@ -471,7 +497,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                 ),
               ),
               child: Text(
-                isEntireListEmpty ? "Start Exploring" : "View All Orders",
+                isEntireListEmpty ? l10n.startExploring : l10n.viewAllOrders,
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
@@ -487,6 +513,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
   void _showOrderHelp(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -513,7 +540,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              "Understanding Order Status",
+              l10n.understandingOrderStatus,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.5,
@@ -522,38 +549,38 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              "Here is what each status means for your shipment:",
+              l10n.whatEachStatusMeans,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             ),
             const SizedBox(height: 20),
             _buildHelpItem(
               CupertinoIcons.timer_fill,
-              "Processing",
-              "Your items are being inspected, packed, and prepared for dispatch.",
+              l10n.processing,
+              l10n.processingDesc,
               Colors.orange.shade600,
             ),
             _buildHelpItem(
               CupertinoIcons.paperplane_fill,
-              "Shipped",
-              "Your package has left our facility and is in transit.",
+              l10n.shipped,
+              l10n.shippedDesc,
               Colors.blue.shade600,
             ),
             _buildHelpItem(
               CupertinoIcons.car_detailed,
-              "Out for Delivery",
-              "Your package is out for final delivery to your doorstep.",
+              l10n.outForDelivery,
+              l10n.outForDeliveryDesc,
               Colors.purple.shade600,
             ),
             _buildHelpItem(
               CupertinoIcons.checkmark_seal_fill,
-              "Delivered",
-              "The shipment has been successfully handed over.",
+              l10n.delivered,
+              l10n.deliveredDesc,
               theme.primaryColor,
             ),
             _buildHelpItem(
               CupertinoIcons.xmark_circle_fill,
-              "Cancelled",
-              "The order was cancelled. Payments will be refunded.",
+              l10n.cancelled,
+              l10n.cancelledDesc,
               Colors.red.shade600,
             ),
             const Padding(
@@ -589,7 +616,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Need immediate help?",
+                          l10n.needImmediateHelp,
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             color: theme.primaryColor,
@@ -598,7 +625,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                         ),
                         const SizedBox(height: 1),
                         Text(
-                          "Our 24/7 support staff is ready to assist you.",
+                          l10n.supportStaffReady,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade700,
@@ -747,6 +774,25 @@ class _OrderCardState extends State<_OrderCard>
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _arrowSlideAnimation;
 
+  String getLocalizedOrderStatus(String status, AppLocalizations l10n) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+      case 'processing':
+        return l10n.processing;
+      case 'shipped':
+        return l10n.shipped;
+      case 'out_for_delivery':
+      case 'out for delivery':
+        return l10n.outForDelivery;
+      case 'delivered':
+        return l10n.delivered;
+      case 'cancelled':
+        return l10n.cancelled;
+      default:
+        return status;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -775,6 +821,7 @@ class _OrderCardState extends State<_OrderCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final statusColor = _getStatusColor(widget.order.orderStatus, theme);
     final isPartial = widget.order.paymentMethod.toLowerCase() == 'partial';
 
@@ -833,7 +880,7 @@ class _OrderCardState extends State<_OrderCard>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "ORDER #${widget.order.orderId.substring(widget.order.orderId.length - 8).toUpperCase()}",
+                          "${l10n.orderIdLabel}${widget.order.orderId.substring(widget.order.orderId.length - 8).toUpperCase()}",
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -843,7 +890,11 @@ class _OrderCardState extends State<_OrderCard>
                         ),
                       ],
                     ),
-                    _buildStatusBadge(widget.order.orderStatus, statusColor),
+                    _buildStatusBadge(
+                      widget.order.orderStatus,
+                      statusColor,
+                      l10n,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -859,7 +910,7 @@ class _OrderCardState extends State<_OrderCard>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          TranslatableText(
                             widget.order.items.first.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -873,8 +924,8 @@ class _OrderCardState extends State<_OrderCard>
                           Text(
                             widget.order.orderStatus.toLowerCase() ==
                                     'cancelled'
-                                ? "${widget.order.items.length} ${widget.order.items.length > 1 ? 'items' : 'item'} • Cancelled on ${DateFormat('dd MMM yyyy').format(widget.order.cancelledAt ?? widget.order.createdAt)}"
-                                : "${widget.order.items.length} ${widget.order.items.length > 1 ? 'items' : 'item'} • ${DateFormat('dd MMM yyyy').format(widget.order.placedAt ?? widget.order.createdAt)}",
+                                ? "${l10n.itemsCount(widget.order.items.length)} • ${l10n.cancelledOn(DateFormat('dd MMM yyyy').format(widget.order.cancelledAt ?? widget.order.createdAt))}"
+                                : "${l10n.itemsCount(widget.order.items.length)} • ${DateFormat('dd MMM yyyy').format(widget.order.placedAt ?? widget.order.createdAt)}",
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 11,
@@ -907,7 +958,7 @@ class _OrderCardState extends State<_OrderCard>
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    "Paid",
+                                    l10n.paid,
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w700,
@@ -961,7 +1012,10 @@ class _OrderCardState extends State<_OrderCard>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              "Adv: ₹${(widget.order.advanceAmount ?? 0).toStringAsFixed(0)}",
+                              l10n.advancePaid(
+                                (widget.order.advanceAmount ?? 0)
+                                    .toStringAsFixed(0),
+                              ),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
@@ -984,7 +1038,10 @@ class _OrderCardState extends State<_OrderCard>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              "Due: ₹${(widget.order.remainingAmount ?? 0).toStringAsFixed(0)}",
+                              l10n.remainingDue(
+                                (widget.order.remainingAmount ?? 0)
+                                    .toStringAsFixed(0),
+                              ),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
@@ -1005,7 +1062,7 @@ class _OrderCardState extends State<_OrderCard>
     );
   }
 
-  Widget _buildStatusBadge(String status, Color color) {
+  Widget _buildStatusBadge(String status, Color color, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -1023,7 +1080,7 @@ class _OrderCardState extends State<_OrderCard>
           ),
           const SizedBox(width: 6),
           Text(
-            status.toUpperCase(),
+            getLocalizedOrderStatus(status, l10n).toUpperCase(),
             style: TextStyle(
               color: color,
               fontSize: 9,

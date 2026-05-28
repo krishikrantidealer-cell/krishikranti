@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/features/orders/data/models/order_model.dart';
 import 'package:intl/intl.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Order? order;
@@ -878,7 +879,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TranslatableText(
                           item.title,
                           style: const TextStyle(
                             fontSize: 13,
@@ -980,7 +981,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TranslatableText(
                       _currentOrder!.shippingAddress.name?.isNotEmpty == true
                           ? _currentOrder!.shippingAddress.name!
                           : "Shipping Address",
@@ -991,7 +992,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    TranslatableText(
                       [
                         if (_currentOrder!
                                 .shippingAddress

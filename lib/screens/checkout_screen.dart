@@ -4,20 +4,19 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/features/orders/data/repositories/order_repository.dart';
-import 'package:krishikranti/screens/my_orders_screen.dart';
-import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/core/address_service.dart';
 import 'package:krishikranti/screens/edit_address_screen.dart';
 import 'package:krishikranti/widgets/checkout_stepper.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
-import 'package:lottie/lottie.dart';
 import 'package:krishikranti/screens/order_success_screen.dart';
 import 'package:krishikranti/screens/order_secured_screen.dart';
 import 'package:krishikranti/core/notification_service.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -137,10 +136,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _handlePaymentError(PaymentFailureResponse response) {
     setState(() => _isProcessing = false);
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          "Payment Failed: ${response.message ?? 'Cancelled by user'}",
+          l10n.paymentFailed(response.message ?? 'Cancelled by user'),
         ),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
@@ -199,16 +199,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _processPayment() async {
+    final l10n = AppLocalizations.of(context)!;
     if (selectedPaymentMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a payment method")),
+        SnackBar(content: Text(l10n.pleaseSelectPaymentMethod)),
       );
       return;
     }
 
     if (!hasSelectedAddress) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a shipping address")),
+        SnackBar(content: Text(l10n.pleaseSelectAddress)),
       );
       return;
     }
@@ -293,15 +294,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _razorpay.open(options);
       } catch (e) {
         setState(() => _isProcessing = false);
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error launching Razorpay: $e")));
+        ).showSnackBar(SnackBar(content: Text(l10n.errorLaunchingRazorpay(e.toString()))));
       }
     } catch (e) {
       setState(() => _isProcessing = false);
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Payment setup failed: $e"),
+          content: Text(l10n.paymentSetupFailed(e.toString())),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -390,9 +393,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             errorMessage: e.toString(),
           );
         } else {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Failed to place order: $e"),
+              content: Text(l10n.failedToPlaceOrder(e.toString())),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
             ),
@@ -426,99 +430,119 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 size: 28,
               ),
               const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  "Order Sync Required",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
+              Expanded(
+                child: Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              return Text(
+                l10n.orderSyncRequired,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              );
+            },
+          ),
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Your payment was successful, but our server encountered an error while confirming your order details.",
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Error: $errorMessage",
-                style: TextStyle(
-                  color: Colors.red.shade700,
-                  fontSize: 12,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Payment Reference (Keep Safe):",
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                      ),
+          content: Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.orderSyncDescription,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Error: $errorMessage",
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
                     ),
-                    const SizedBox(height: 4),
-                    SelectableText(
-                      paymentId,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Please do NOT close the app. Tap 'Retry Now' below to complete and secure your order registration immediately.",
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-            ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.paymentRefKeepSafe,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        SelectableText(
+                          paymentId,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.doNotCloseApp,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              );
+            },
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: paymentId));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Payment reference copied to clipboard!"),
-                  ),
+            Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: paymentId));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.paymentRefCopied),
+                      ),
+                    );
+                  },
+                  child: Text(l10n.copyId),
                 );
               },
-              child: const Text("Copy ID"),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Close warning dialog
-                _placeConfirmedOrder(
-                  paymentId: paymentId,
-                  orderId: orderId,
-                  signature: signature,
+            Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close warning dialog
+                    _placeConfirmedOrder(
+                      paymentId: paymentId,
+                      orderId: orderId,
+                      signature: signature,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(l10n.retryNow),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryGreen,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text("Retry Now"),
             ),
           ],
         ),
@@ -591,9 +615,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
           ),
-          title: const Text(
-            "Secure Checkout",
-            style: TextStyle(
+          title: Text(
+            AppLocalizations.of(context)!.secureCheckout,
+            style: const TextStyle(
               color: Colors.black87,
               fontWeight: FontWeight.w900,
               fontSize: 18,
@@ -653,9 +677,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         const SizedBox(height: 16),
                         _buildTrustBadges(),
                         const SizedBox(height: 20),
-                        const Text(
-                          "Payment Mode",
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.paymentMode,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.3,
@@ -717,9 +741,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Text(
-                  "Billing Breakdown",
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.billingBreakdown,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 14.5,
                     letterSpacing: -0.2,
@@ -732,41 +756,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _receiptRow("Subtotal", cartTotal, isMuted: true),
-                if (discountAmount > 0) ...[
-                  const SizedBox(height: 8),
-                  _receiptRow(
-                    "Coupon Discount",
-                    -discountAmount,
-                    isDiscount: true,
-                  ),
-                ],
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: _DashedDivider(),
-                ),
-                _receiptRow("Grand Total", finalTotal, isBold: true),
-                if (hasPartial) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Divider(height: 1),
-                  ),
-                  _receiptRow(
-                    "Advance Booking Deposit ($selectedPartialPercent%)",
-                    advanceAmount,
-                    color: primaryGreen,
-                    isBold: true,
-                  ),
-                  const SizedBox(height: 8),
-                  _receiptRow(
-                    "Remaining Balance at Delivery",
-                    remainingAmount,
-                    isMuted: true,
-                  ),
-                ],
-              ],
+            child: Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Column(
+                  children: [
+                    _receiptRow(l10n.subtotalLabel, cartTotal, isMuted: true),
+                    if (discountAmount > 0) ...[
+                      const SizedBox(height: 8),
+                      _receiptRow(
+                        l10n.couponDiscountLabel,
+                        -discountAmount,
+                        isDiscount: true,
+                      ),
+                    ],
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: _DashedDivider(),
+                    ),
+                    _receiptRow(l10n.grandTotal, finalTotal, isBold: true),
+                    if (hasPartial) ...[
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Divider(height: 1),
+                      ),
+                      _receiptRow(
+                        l10n.advanceBookingDeposit(selectedPartialPercent!),
+                        advanceAmount,
+                        color: primaryGreen,
+                        isBold: true,
+                      ),
+                      const SizedBox(height: 8),
+                      _receiptRow(
+                        l10n.remainingBalanceAtDelivery,
+                        remainingAmount,
+                        isMuted: true,
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -838,16 +867,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              isDealerDhamaka
-                  ? "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁"
-                  : "You saved ₹${discountAmount.toStringAsFixed(0)} with this coupon 🎉",
-              style: TextStyle(
-                color: isDealerDhamaka ? primaryGreen : Colors.orange.shade900,
-                fontWeight: FontWeight.w900,
-                fontSize: 12.5,
-              ),
-            ),
+            child: Builder(
+            builder: (context) {
+              final l10n = AppLocalizations.of(context)!;
+              return Text(
+                isDealerDhamaka
+                    ? l10n.dealerDhamakaBanner
+                    : l10n.couponSavingsBannerCheckout(discountAmount.toStringAsFixed(0)),
+                style: TextStyle(
+                  color: isDealerDhamaka ? primaryGreen : Colors.orange.shade900,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12.5,
+                ),
+              );
+            },
+          ),
           ),
         ],
       ),
@@ -867,17 +901,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         children: [
           _trustBadge(
             CupertinoIcons.shield_fill,
-            "100% Secure",
+            AppLocalizations.of(context)!.hundredPercentSecure,
             Colors.blue.shade700,
           ),
           _trustBadge(
             CupertinoIcons.doc_plaintext,
-            "GST Invoice",
+            AppLocalizations.of(context)!.gstInvoice,
             Colors.orange.shade700,
           ),
           _trustBadge(
             Icons.local_shipping_rounded,
-            "Fast Delivery",
+            AppLocalizations.of(context)!.fastDelivery,
             primaryGreen,
           ),
         ],
@@ -964,9 +998,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Pay Full Online",
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.payFullOnline,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 15,
                         letterSpacing: -0.3,
@@ -975,7 +1009,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Pay complete order amount safely via UPI/Cards",
+                      AppLocalizations.of(context)!.payFullOnlineDesc,
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 11.5,
@@ -1068,9 +1102,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Partial Booking Advance",
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.partialBookingAdvance,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 15,
                             letterSpacing: -0.3,
@@ -1079,7 +1113,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "Book your order with a minor token deposit",
+                          AppLocalizations.of(context)!.partialBookingAdvanceDesc,
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 11.5,
@@ -1120,9 +1154,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Choose Advance Amount",
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.chooseAdvanceAmount,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 12.5,
                       color: Colors.black87,
@@ -1233,7 +1267,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    isOnline ? "Payable Amount:" : "Booking Advance:",
+                    isOnline
+                        ? AppLocalizations.of(context)!.payableAmount
+                        : AppLocalizations.of(context)!.bookingAdvanceLabel,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
@@ -1267,9 +1303,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Remaining Balance at Delivery:",
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.remainingBalanceDelivery,
+                      style: const TextStyle(
                         fontSize: 12.5,
                         color: Colors.grey,
                         fontWeight: FontWeight.w600,
@@ -1335,8 +1371,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ],
                           Text(
                             !hasSelectedAddress
-                                ? "Add Address to Pay"
-                                : "Proceed to Pay",
+                                ? AppLocalizations.of(context)!.addAddressToPay
+                                : AppLocalizations.of(context)!.proceedToPay,
                             style: const TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w900,
@@ -1354,6 +1390,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildShippingAddressSection() {
+    final l10n = AppLocalizations.of(context)!;
     final addressService = Provider.of<AddressService>(context);
     final profileService = Provider.of<ProfileService>(context);
     final addr = selectedAddress;
@@ -1410,7 +1447,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Add Shipping Address",
+                      l10n.addShippingAddress,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 15,
@@ -1419,8 +1456,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      "Please add a shipping address to place order",
+                    Text(
+                      l10n.addShippingAddressHint,
                       style: TextStyle(
                         fontSize: 11.5,
                         color: Colors.grey,
@@ -1479,7 +1516,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "DELIVER TO",
+                        l10n.deliverTo,
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 10.5,
@@ -1505,7 +1542,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        "Change",
+                        l10n.changeAddress,
                         style: TextStyle(
                           color: primaryGreen,
                           fontWeight: FontWeight.w900,
@@ -1529,7 +1566,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       children: [
                         Row(
                           children: [
-                            Text(
+                            TranslatableText(
                               (addr.name.isNotEmpty &&
                                       addr.name != 'Home / Shop')
                                   ? addr.name
@@ -1555,7 +1592,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  "Default",
+                                  l10n.defaultLabel,
                                   style: TextStyle(
                                     fontSize: 9,
                                     color: primaryGreen,
@@ -1567,7 +1604,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ],
                         ),
                         const SizedBox(height: 6),
-                        Text(
+                        TranslatableText(
                           addr.fullAddress,
                           style: TextStyle(
                             color: Colors.grey.shade600,
@@ -1644,9 +1681,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          "Select Shipping Address",
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.selectShippingAddress,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
@@ -1759,9 +1796,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           await _navigateToAddAddress(addressService);
                         },
                         icon: const Icon(CupertinoIcons.plus, size: 18),
-                        label: const Text(
-                          "Add New Address",
-                          style: TextStyle(fontWeight: FontWeight.w800),
+                        label: Text(
+                          AppLocalizations.of(context)!.addNewAddress,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryGreen,
@@ -1876,13 +1913,17 @@ class _ProcessingOverlayState extends State<_ProcessingOverlay>
   Timer? _timer;
   late AnimationController _pulseController;
 
-  final List<String> _steps = [
-    "Scanning client environment sandbox... 🛡️",
-    "Analyzing transaction injection vulnerabilities... 🔒",
-    "Verifying secure API socket handshake... ⛓️",
-    "Validating payload signature integrity... 🔑",
-    "Finalizing end-to-end SSL encryption... 🚀",
-  ];
+  List<String> get _steps {
+    // We cannot use context here because this runs in initState before build.
+    // Keep these as static strings; they are technical/security text that stays the same.
+    return [
+      "Scanning client environment sandbox... 🛡️",
+      "Analyzing transaction injection vulnerabilities... 🔒",
+      "Verifying secure API socket handshake... ⛓️",
+      "Validating payload signature integrity... 🔑",
+      "Finalizing end-to-end SSL encryption... 🚀",
+    ];
+  }
 
   @override
   void initState() {
@@ -1956,9 +1997,9 @@ class _ProcessingOverlayState extends State<_ProcessingOverlay>
                 ),
               ),
               const SizedBox(height: 36),
-              const Text(
-                "Securing Your Order... 🔒",
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.securingYourOrder,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: Colors.black,
@@ -2012,7 +2053,7 @@ class _ProcessingOverlayState extends State<_ProcessingOverlay>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    "PCI-DSS compliant SSL security layer",
+                    AppLocalizations.of(context)!.pciDssCompliant,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,

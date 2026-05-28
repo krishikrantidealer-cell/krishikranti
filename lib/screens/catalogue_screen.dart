@@ -35,13 +35,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   bool _routeIsCurrent = false;
   int _currentHintIndex = 0;
   Timer? _hintTimer;
-  final List<String> _searchHints = [
-    "Search for crops...",
-    "Search for seeds...",
-    "Search for fertilizers...",
-    "Search for machinery...",
-    "Search for organic...",
-  ];
+  // 5 rotating hint slots (0-4): crops, seeds, fertilizers, machinery, organic
+  static const int _searchHintCount = 5;
 
   @override
   void initState() {
@@ -59,7 +54,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     _hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) {
         setState(() {
-          _currentHintIndex = (_currentHintIndex + 1) % _searchHints.length;
+          _currentHintIndex = (_currentHintIndex + 1) % _searchHintCount;
         });
       }
     });
@@ -308,7 +303,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                     )
                   : null,
               title: Text(
-                widget.isShowingCollections ? "Crops" : l10n.categories,
+                widget.isShowingCollections ? l10n.crops : l10n.categories,
                 style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.w600,
@@ -338,7 +333,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 15,
                             offset: const Offset(0, 5),
                           ),
@@ -376,7 +371,22 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                                     );
                                   },
                               child: Text(
-                                _searchHints[_currentHintIndex],
+                                () {
+                                  switch (_currentHintIndex) {
+                                    case 0:
+                                      return l10n.searchHintCrops;
+                                    case 1:
+                                      return l10n.searchHintSeeds;
+                                    case 2:
+                                      return l10n.searchHintFertilizers;
+                                    case 3:
+                                      return l10n.searchHintMachinery;
+                                    case 4:
+                                      return l10n.searchHintOrganic;
+                                    default:
+                                      return l10n.searchHintCrops;
+                                  }
+                                }(),
                                 key: ValueKey<int>(_currentHintIndex),
                                 style: TextStyle(
                                   color: Colors.grey.shade500,
@@ -445,8 +455,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                         const SizedBox(width: 10),
                         Text(
                           widget.isShowingCollections
-                              ? "Shop by Crop"
-                              : "Browse Categories",
+                              ? l10n.shopByCrop
+                              : l10n.browseCategories,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -468,8 +478,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                           ),
                           child: Text(
                             widget.isShowingCollections
-                                ? "${_collections.length} Crops"
-                                : "${_categories.length} Categories",
+                                ? l10n.cropsCount(_collections.length)
+                                : l10n.categoriesCount(_categories.length),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -787,7 +797,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
             ),
             const SizedBox(height: 2),
             Text(
-              "Crop Collection",
+              AppLocalizations.of(context)!.cropsCollection,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 9,
@@ -802,6 +812,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   }
 
   Widget _buildMinimalFeatures(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
@@ -813,9 +824,9 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _minimalBadge(Icons.verified_rounded, "Genuine", theme),
-          _minimalBadge(Icons.science_rounded, "Tested", theme),
-          _minimalBadge(Icons.local_shipping_rounded, "Express", theme),
+          _minimalBadge(Icons.verified_rounded, l10n.badgeGenuine, theme),
+          _minimalBadge(Icons.science_rounded, l10n.badgeTested, theme),
+          _minimalBadge(Icons.local_shipping_rounded, l10n.badgeExpress, theme),
         ],
       ),
     );
@@ -913,6 +924,7 @@ class RectangularCategoryCard extends StatefulWidget {
   final VoidCallback onTap;
 
   const RectangularCategoryCard({
+    super.key,
     required this.category,
     required this.imageUrl,
     required this.fallbackImage,

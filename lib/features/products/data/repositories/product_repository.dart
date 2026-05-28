@@ -3,6 +3,7 @@ import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
+import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductRepository {
@@ -127,6 +128,10 @@ class ProductRepository {
             .map((json) => Product.fromJson(json))
             .toList();
 
+        // Pre-warm translation cache for product text so by the time user
+        // scrolls to a product, its translation is already available.
+        _preWarmProductTranslations(products);
+
         return {
           'products': products,
           'nextCursor': data['nextCursor'],
@@ -187,6 +192,10 @@ class ProductRepository {
         final product = Product.fromJson(data['product']);
         _detailsMemoryCache[id] = product;
         _detailsCacheTimestamps[id] = DateTime.now();
+
+        // Pre-warm translation cache for the full product detail
+        _preWarmProductDetailTranslations(product);
+
         return product;
       } else {
         throw Exception('Failed to load product details');
@@ -248,12 +257,43 @@ class ProductRepository {
 
         final data = jsonDecode(response.body);
         final List categoriesJson = data['categories'] ?? [];
-        return categoriesJson.map((json) => Category.fromJson(json)).toList();
+        final categories =
+            categoriesJson.map((json) => Category.fromJson(json)).toList();
+
+        // Pre-warm category name translations
+        DynamicTranslationService().ensureAllTranslated(
+          categories.map((c) => c.name).toList(),
+        );
+
+        return categories;
       } else {
         throw Exception('Failed to load categories');
       }
     } catch (e) {
       rethrow;
     }
+  }
+
+  // ── Translation pre-warming helpers ────────────────────────────────────
+
+  static void _preWarmProductTranslations(List<Product> products) {
+    final texts = <String>[];
+    for (final p in products) {
+      texts.add(p.title);
+      if (p.technicalName?.isNotEmpty ?? false) texts.add(p.technicalName!);
+      if (p.brandName?.isNotEmpty ?? false) texts.add(p.brandName!);
+    }
+    DynamicTranslationService().ensureAllTranslated(texts);
+  }
+
+  static void _preWarmProductDetailTranslations(Product product) {
+    final texts = <String>[
+      product.title,
+      if (product.technicalName?.isNotEmpty ?? false) product.technicalName!,
+      if (product.brandName?.isNotEmpty ?? false) product.brandName!,
+      if (product.details?.description.isNotEmpty ?? false)
+        product.details!.description,
+    ];
+    DynamicTranslationService().ensureAllTranslated(texts);
   }
 }

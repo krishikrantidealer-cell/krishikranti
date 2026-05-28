@@ -238,7 +238,7 @@ class _SearchScreenState extends State<SearchScreen>
                         color: Colors.black87,
                       ),
                       decoration: InputDecoration(
-                        hintText: "Search for products...",
+                        hintText: l10n.searchProducts,
                         hintStyle: TextStyle(
                           color: Colors.grey.shade400,
                           fontSize: 15,
@@ -379,9 +379,9 @@ class _SearchScreenState extends State<SearchScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "Recent Searches",
-                        style: TextStyle(
+                      Text(
+                        l10n.recentSearches,
+                        style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                           color: Colors.black87,
@@ -402,7 +402,7 @@ class _SearchScreenState extends State<SearchScreen>
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          "Clear All",
+                          l10n.clearAll,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -517,7 +517,7 @@ class _SearchScreenState extends State<SearchScreen>
                           child: AnimatedTextKit(
                             animatedTexts: [
                               TypewriterAnimatedText(
-                                "What are you looking for?",
+                                l10n.whatAreYouLookingFor,
                                 speed: const Duration(milliseconds: 100),
                                 cursor: '|',
                                 textAlign: TextAlign.center,
@@ -536,22 +536,22 @@ class _SearchScreenState extends State<SearchScreen>
                           child: AnimatedTextKit(
                             animatedTexts: [
                               TypewriterAnimatedText(
-                                "Search for seeds...",
+                                l10n.searchHintSeeds,
                                 speed: const Duration(milliseconds: 80),
                                 textAlign: TextAlign.center,
                               ),
                               TypewriterAnimatedText(
-                                "Search for crops...",
+                                l10n.searchHintCrops,
                                 speed: const Duration(milliseconds: 80),
                                 textAlign: TextAlign.center,
                               ),
                               TypewriterAnimatedText(
-                                "Search for machinery...",
+                                l10n.searchHintMachinery,
                                 speed: const Duration(milliseconds: 80),
                                 textAlign: TextAlign.center,
                               ),
                               TypewriterAnimatedText(
-                                "Search for chemicals...",
+                                l10n.searchHintBioProducts,
                                 speed: const Duration(milliseconds: 80),
                                 textAlign: TextAlign.center,
                               ),
@@ -565,7 +565,7 @@ class _SearchScreenState extends State<SearchScreen>
                         Column(
                           children: [
                             Text(
-                              "QUICK DISCOVERY",
+                              l10n.quickDiscovery,
                               style: GoogleFonts.outfit(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
@@ -580,11 +580,17 @@ class _SearchScreenState extends State<SearchScreen>
                               runSpacing: 10,
                               children: [
                                 _buildQuickChip(
-                                  "Seeds",
+                                  l10n.seedsLabel,
                                   CupertinoIcons.leaf_arrow_circlepath,
                                 ),
-                                _buildQuickChip("Crops", CupertinoIcons.tree),
-                                _buildQuickChip("Tools", CupertinoIcons.wrench),
+                                _buildQuickChip(
+                                  l10n.crops,
+                                  CupertinoIcons.tree,
+                                ),
+                                _buildQuickChip(
+                                  l10n.toolsLabel,
+                                  CupertinoIcons.wrench,
+                                ),
                               ],
                             ),
                           ],
@@ -676,7 +682,7 @@ class _SearchScreenState extends State<SearchScreen>
               ),
               const SizedBox(height: 16),
               Text(
-                "Oops! Something went wrong.",
+                l10n.somethingWentWrong,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -696,7 +702,7 @@ class _SearchScreenState extends State<SearchScreen>
               ElevatedButton.icon(
                 onPressed: () => _onSearchChanged(_searchQuery),
                 icon: const Icon(Icons.refresh),
-                label: const Text("Try Again"),
+                label: Text(l10n.tryAgain),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: Colors.white,
@@ -728,7 +734,7 @@ class _SearchScreenState extends State<SearchScreen>
                 height: 200,
               ),
               Text(
-                "No products found",
+                l10n.noProducts,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -737,7 +743,7 @@ class _SearchScreenState extends State<SearchScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                "Try adjusting your search terms",
+                l10n.tryAdjustingSearch,
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
               ),
             ],

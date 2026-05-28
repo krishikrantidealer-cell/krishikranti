@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/dynamic_translation_service.dart';
 
 class Coupon {
   final String id;
@@ -58,7 +59,15 @@ class CouponService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List<dynamic> couponsJson = data['coupons'] ?? [];
-        return couponsJson.map((json) => Coupon.fromJson(json)).toList();
+        final coupons =
+            couponsJson.map((json) => Coupon.fromJson(json)).toList();
+
+        // Pre-warm translation cache for coupon descriptions
+        DynamicTranslationService().ensureAllTranslated(
+          coupons.map((c) => c.description).toList(),
+        );
+
+        return coupons;
       }
       return [];
     } catch (e) {

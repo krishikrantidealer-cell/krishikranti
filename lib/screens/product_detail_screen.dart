@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:lottie/lottie.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/screens/checkout_screen.dart';
@@ -16,7 +16,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
-
+import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
@@ -35,6 +35,14 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  late AppLocalizations l10n;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    l10n = AppLocalizations.of(context)!;
+  }
+
   final Color primaryGreen = const Color(0xFF298E4D);
   final Color secondaryGreen = const Color(0xFFE8F5E9);
   final Color accentOrange = const Color(0xFFFA9527);
@@ -558,7 +566,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          TranslatableText(
             _product.title,
             style: const TextStyle(
               fontSize: 22,
@@ -570,7 +578,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           if (_product.technicalName?.isNotEmpty ?? false) ...[
             const SizedBox(height: 4),
-            Text(
+            TranslatableText(
               _product.technicalName!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -595,7 +603,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: primaryGreen.withOpacity(0.1)),
                   ),
-                  child: Text(
+                  child: TranslatableText(
                     _product.brandName!.toUpperCase(),
                     style: TextStyle(
                       color: primaryGreen,
@@ -689,11 +697,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildTrustFeature(Icons.verified_user_rounded, "Expert Choice"),
+            _buildTrustFeature(Icons.verified_user_rounded, l10n.expertChoice),
             _buildTrustDivider(),
-            _buildTrustFeature(Icons.bolt_rounded, "Fast Acting"),
+            _buildTrustFeature(Icons.bolt_rounded, l10n.fastActing),
             _buildTrustDivider(),
-            _buildTrustFeature(Icons.security_rounded, "100% Original"),
+            _buildTrustFeature(
+              Icons.security_rounded,
+              l10n.hundredPercentOriginal,
+            ),
           ],
         ),
       ),
@@ -745,9 +756,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Select Packaging & Quantity",
-              style: TextStyle(
+            Text(
+              l10n.selectPackagingQuantity,
+              style: const TextStyle(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w900,
                 color: Colors.black,
@@ -1102,7 +1113,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                       child: FittedBox(
                                                         fit: BoxFit.scaleDown,
                                                         child: Text(
-                                                          "SAVE ₹${(displayCompareAtPrice - displayPrice).toStringAsFixed(0)}",
+                                                          l10n.saveAmount(
+                                                            (displayCompareAtPrice -
+                                                                    displayPrice)
+                                                                .toStringAsFixed(
+                                                                  0,
+                                                                ),
+                                                          ),
                                                           style: TextStyle(
                                                             color: Colors
                                                                 .red
@@ -1306,7 +1323,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                             .center,
                                                     children: [
                                                       Text(
-                                                        "ADD",
+                                                        l10n.addLabel,
                                                         style: TextStyle(
                                                           fontSize: 11.5,
                                                           fontWeight:
@@ -1447,9 +1464,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text(
-          "Enter Quantity",
-          style: TextStyle(
+        title: Text(
+          l10n.adjustQuantity,
+          style: const TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 16,
             color: Colors.black,
@@ -1460,7 +1477,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           keyboardType: TextInputType.number,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: "Enter value",
+            hintText: l10n.enterValueHint,
             focusedBorder: OutlineInputBorder(
               borderSide: BorderSide(color: primaryGreen, width: 1.5),
               borderRadius: BorderRadius.circular(10),
@@ -1476,7 +1493,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              "CANCEL",
+              l10n.cancelLabel,
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontWeight: FontWeight.w900,
@@ -1495,7 +1512,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               Navigator.pop(context);
             },
             child: Text(
-              "UPDATE",
+              l10n.updateLabel2,
               style: TextStyle(
                 color: primaryGreen,
                 fontWeight: FontWeight.w900,
@@ -1535,33 +1552,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(color: Colors.black, fontSize: 15),
-                children: [
-                  const TextSpan(text: "Total Items: "),
-                  TextSpan(
-                    text: "$totalItems",
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ],
+            Text(
+              l10n.totalItems(totalItems),
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
               ),
             ),
             const Spacer(),
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-                children: [
-                  const TextSpan(text: "Grand Total: "),
-                  TextSpan(
-                    text: "₹ ${grandTotal.toStringAsFixed(0)}",
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ],
+            Text(
+              l10n.grandTotalLabel(grandTotal.toStringAsFixed(0)),
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
@@ -1718,7 +1723,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              "Details",
+                              l10n.details,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: _activeTab == 0
@@ -1778,7 +1783,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              "Specifications",
+                              l10n.specifications,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: _activeTab == 1
@@ -1822,9 +1827,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         key: const ValueKey<int>(0),
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Product Description",
-                            style: TextStyle(
+                          Text(
+                            l10n.productDescription,
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
                               color: Colors.black,
@@ -1854,9 +1859,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Product Description",
-              style: TextStyle(
+            Text(
+              l10n.productDescription,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
                 color: Colors.black,
@@ -1877,9 +1882,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Specifications",
-            style: TextStyle(
+          Text(
+            l10n.specifications,
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
               color: Colors.black,
@@ -1893,8 +1898,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildCollapsibleDescription(String text) {
+  Widget _buildCollapsibleDescription(String rawText) {
     const int maxCollapsedLines = 4;
+
+    // Convert HTML blocks to newlines
+    String text = rawText
+        .replaceAll(RegExp(r"<\/?p[^>]*>", caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r"<br\s*\/?>", caseSensitive: false), '\n')
+        .replaceAll(RegExp(r"<li>", caseSensitive: false), '\n• ')
+        .replaceAll(RegExp(r"<\/?div[^>]*>", caseSensitive: false), '\n\n')
+        .replaceAll('&nbsp;', ' ');
+
+    // Strip remaining HTML tags
+    text = text.replaceAll(RegExp(r"<[^>]*>", multiLine: true), '').trim();
+
+    // Normalize excessive newlines
+    text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final TextPainter textPainter = TextPainter(
@@ -1917,7 +1937,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             Stack(
               children: [
-                Text(
+                TranslatableText(
                   text,
                   maxLines: _isDescriptionExpanded ? null : maxCollapsedLines,
                   overflow: _isDescriptionExpanded
@@ -1962,7 +1982,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _isDescriptionExpanded ? "Show Less" : "Show More",
+                      _isDescriptionExpanded ? l10n.showLess : l10n.showMore,
                       style: TextStyle(
                         color: primaryGreen,
                         fontWeight: FontWeight.w900,
@@ -2039,7 +2059,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           const SizedBox(width: 12),
           SizedBox(
             width: 110,
-            child: Text(
+            child: TranslatableText(
               label,
               style: const TextStyle(
                 fontSize: 12.5,
@@ -2050,7 +2070,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
+            child: TranslatableText(
               value,
               style: const TextStyle(
                 fontSize: 12.5,
@@ -2114,7 +2134,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   children: [
                     Expanded(
                       child: _ActionBtn(
-                        label: "GO TO CART",
+                        label: l10n.goToCart,
                         onPressed: _handleAddToCart,
                         isOutlined: false,
                         color: buttonOrange,
@@ -2124,7 +2144,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _ActionBtn(
-                        label: "BUY NOW",
+                        label: l10n.buyNow,
                         onPressed: _handleBuyNow,
                         color: buttonGreen,
                         icon: CupertinoIcons.bolt_fill,
@@ -2172,7 +2192,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TranslatableText(
                         _product.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2182,7 +2202,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       Text(
-                        "₹ ${grandTotal.toStringAsFixed(0)} total",
+                        l10n.grandTotalLabel(grandTotal.toStringAsFixed(0)),
                         style: TextStyle(
                           color: primaryGreen,
                           fontWeight: FontWeight.bold,
@@ -2235,7 +2255,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           MaterialPageRoute(builder: (_) => const CartScreen()),
         );
       } else {
-        _showError("Please select a pack size");
+        _showError(l10n.pleaseSelectPackSize);
       }
       return;
     }
@@ -2265,7 +2285,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           MaterialPageRoute(builder: (_) => const CheckoutScreen()),
         );
       } else {
-        _showError("Please select a pack size");
+        _showError(l10n.pleaseSelectPackSize);
       }
       return;
     }

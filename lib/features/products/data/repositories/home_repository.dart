@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/features/products/data/models/home_discovery_model.dart';
+import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeRepository {
@@ -72,12 +73,34 @@ class HomeRepository {
         _prefs?.setString(cacheKey, response.body);
 
         final data = jsonDecode(response.body);
-        return HomeDiscovery.fromJson(data);
+        final discovery = HomeDiscovery.fromJson(data);
+
+        // Pre-warm translations for all dynamic text from the home discovery data
+        _preWarmHomeTranslations(discovery);
+
+        return discovery;
       } else {
         throw Exception('Failed to load home discovery data');
       }
     } catch (e) {
       rethrow;
     }
+  }
+
+  // ── Translation pre-warming helper ──────────────────────────────────────
+
+  static void _preWarmHomeTranslations(HomeDiscovery discovery) {
+    final texts = <String>[];
+    for (final cat in discovery.categories) {
+      if (cat.name.isNotEmpty) texts.add(cat.name);
+    }
+    for (final col in discovery.collections) {
+      if (col.name.isNotEmpty) texts.add(col.name);
+      if (col.description?.isNotEmpty ?? false) texts.add(col.description!);
+      for (final sub in col.subCollections) {
+        if (sub.name.isNotEmpty) texts.add(sub.name);
+      }
+    }
+    DynamicTranslationService().ensureAllTranslated(texts);
   }
 }

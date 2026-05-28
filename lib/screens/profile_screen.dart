@@ -375,7 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
 
                         // --- UNIFIED GENERAL ACTIONS ---
-                        _ModernSectionHeader(title: "GENERAL OPTIONS"),
+                        _ModernSectionHeader(title: l10n.generalOptions),
                         _GroupedActionCard(
                           children: [
                             _ActionTile(
@@ -479,7 +479,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                "Empowering Agri Dealers Across India",
+                                l10n.empoweringAgriDealers,
                                 style: TextStyle(
                                   color: Colors.grey.shade400,
                                   fontSize: 10,
@@ -717,6 +717,7 @@ class _EditPillButton extends StatelessWidget {
   const _EditPillButton({required this.onTap});
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return _ScaleBtn(
       onTap: onTap,
       child: Container(
@@ -744,7 +745,7 @@ class _EditPillButton extends StatelessWidget {
             ),
             const SizedBox(width: 5),
             Text(
-              "Edit",
+              l10n.edit,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -846,9 +847,9 @@ class _ModernKycAlert extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Identity Verification",
-                    style: TextStyle(
+                  Text(
+                    l10n.identityVerification,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
                       color: Color(0xFFE65100),

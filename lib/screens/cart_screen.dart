@@ -14,6 +14,7 @@ import 'package:krishikranti/widgets/checkout_stepper.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -137,8 +138,8 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                         child: Text(
                           _selectedVariantIds.length ==
                                   items.where((i) => !i.isFree).length
-                              ? "Deselect All"
-                              : "Select All",
+                              ? l10n.deselectAll
+                              : l10n.selectAll,
                           style: const TextStyle(
                             color: Color(0xFF298E4D),
                             fontWeight: FontWeight.w800,
@@ -182,7 +183,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
-                    child: Text(_isMultiSelectMode ? "DONE" : "EDIT"),
+                    child: Text(_isMultiSelectMode ? l10n.done : l10n.editLabel),
                   ),
                 ],
               ],
@@ -219,7 +220,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            "${items.length} ${items.length == 1 ? 'ITEM' : 'ITEMS'}",
+                                            l10n.itemCountLabel(items.length),
                                             style: TextStyle(
                                               fontWeight: FontWeight.w900,
                                               fontSize: 10,
@@ -374,9 +375,9 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                                       size: 40,
                                     ),
                                     const SizedBox(height: 12),
-                                    const Text(
-                                      "COUPON APPLIED!",
-                                      style: TextStyle(
+                                    Text(
+                                      l10n.couponApplied,
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.w900,
                                         fontSize: 14,
                                         color: Colors.black,
@@ -385,7 +386,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      "Code '$appliedCoupon' is active",
+                                      l10n.couponActiveMessage(appliedCoupon),
                                       style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 12,
@@ -515,10 +516,10 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   repeat: true,
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  "Your cart feels light",
+                Text(
+                  l10n.cartFeelsLight,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                     color: Colors.black,
@@ -527,7 +528,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Discover premium agricultural products and start your growing journey today.",
+                  l10n.discoverAgriProducts,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -545,7 +546,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                           const ProductListScreen(category: "All"),
                     ),
                   ),
-                  text: "Begin Exploring",
+                  text: l10n.beginExploring,
                   icon: CupertinoIcons.sparkles,
                   isSmall: false,
                 ),
@@ -658,8 +659,8 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   const SizedBox(width: 10),
                   Text(
                     selectedCount == 0
-                        ? "SELECT ITEMS TO DELETE"
-                        : "DELETE SELECTED ($selectedCount)",
+                        ? l10n.selectItemsToDelete
+                        : l10n.deleteSelected(selectedCount),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
@@ -699,7 +700,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               }
             }
           },
-          text: "CONTINUE TO CHECKOUT",
+          text: l10n.continueToCheckout,
           icon: CupertinoIcons.arrow_right,
           itemCount: cartService.totalCount,
         ),
@@ -711,16 +712,17 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
     BuildContext context,
     CartService cartService,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: Text("Remove ${_selectedVariantIds.length} items?"),
-        content: const Text(
-          "Are you sure you want to delete the selected items from your cart?",
+        title: Text(l10n.removeItemsTitle(_selectedVariantIds.length)),
+        content: Text(
+          l10n.removeItemsConfirm,
         ),
         actions: [
           CupertinoDialogAction(
-            child: const Text("Cancel"),
+            child: Text(l10n.cancel),
             onPressed: () => Navigator.pop(context),
           ),
           CupertinoDialogAction(
@@ -736,7 +738,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               });
               Navigator.pop(context);
             },
-            child: const Text("Delete"),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -744,16 +746,17 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
   }
 
   void _showClearCartDialog(BuildContext context, CartService cartService) {
+    final l10n = AppLocalizations.of(context)!;
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text("Clear Cart?"),
-        content: const Text(
-          "Are you sure you want to remove all items from your cart?",
+        title: Text(l10n.clearCartTitle),
+        content: Text(
+          l10n.clearCartConfirm,
         ),
         actions: [
           CupertinoDialogAction(
-            child: const Text("Cancel"),
+            child: Text(l10n.cancel),
             onPressed: () => Navigator.pop(context),
           ),
           CupertinoDialogAction(
@@ -762,7 +765,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               cartService.clear();
               Navigator.pop(context);
             },
-            child: const Text("Clear All"),
+            child: Text(l10n.clearAll),
           ),
         ],
       ),
@@ -994,6 +997,7 @@ class _CouponTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isApplied = cartService.appliedCoupon != null;
     const primaryGreen = Color(0xFF298E4D);
     return GestureDetector(
@@ -1049,7 +1053,7 @@ class _CouponTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isApplied ? "Coupon Applied!" : "Offers & Benefits",
+                    isApplied ? l10n.couponAppliedTitle : l10n.offersAndBenefits,
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
@@ -1059,9 +1063,9 @@ class _CouponTile extends StatelessWidget {
                   Text(
                     isApplied
                         ? (cartService.appliedCoupon == "DEALERDHAMAKA"
-                              ? "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁"
-                              : "You saved ₹${cartService.discountAmount.toStringAsFixed(0)} with ${cartService.appliedCoupon}")
-                        : "View available coupons and offers",
+                              ? l10n.freeGiftMessage
+                              : l10n.couponSavedMessage(cartService.discountAmount.toStringAsFixed(0), cartService.appliedCoupon ?? ""))
+                        : l10n.viewCouponsAndOffers,
                     style: TextStyle(
                       color: isApplied
                           ? primaryGreen.withValues(alpha: 0.8)
@@ -1099,7 +1103,7 @@ class _CouponTile extends StatelessWidget {
                         }
                       },
                 child: Text(
-                  "REMOVE",
+                  l10n.removeLabel,
                   style: TextStyle(
                     color: cartService.isCouponLoading
                         ? Colors.grey
@@ -1142,6 +1146,7 @@ class _CartItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isFree = item.isFree;
     final primaryColor = theme.colorScheme.primary;
 
@@ -1279,7 +1284,7 @@ class _CartItemRow extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Product Title
-                                Text(
+                                TranslatableText(
                                   item.productName,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1306,18 +1311,18 @@ class _CartItemRow extends StatelessWidget {
                                             4,
                                           ),
                                         ),
-                                        child: const Row(
+                                        child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               CupertinoIcons.gift_fill,
                                               size: 8,
                                               color: Colors.white,
                                             ),
-                                            SizedBox(width: 2),
+                                            const SizedBox(width: 2),
                                             Text(
-                                              "GIFT",
-                                              style: TextStyle(
+                                              l10n.giftLabel,
+                                              style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 7.5,
                                                 fontWeight: FontWeight.w900,
@@ -1343,7 +1348,7 @@ class _CartItemRow extends StatelessWidget {
                                             4,
                                           ),
                                         ),
-                                        child: Text(
+                                        child: TranslatableText(
                                           item.variant,
                                           style: TextStyle(
                                             color: primaryColor,
@@ -1356,7 +1361,7 @@ class _CartItemRow extends StatelessWidget {
                                     ],
                                     if (item.technicalName.isNotEmpty)
                                       Expanded(
-                                        child: Text(
+                                        child: TranslatableText(
                                           item.technicalName,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -1408,7 +1413,7 @@ class _CartItemRow extends StatelessWidget {
                           // Price Details
                           Text(
                             isFree
-                                ? "FREE"
+                                ? l10n.freeLabel
                                 : "₹${(item.price * item.qty).toStringAsFixed(0)}",
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
@@ -1486,6 +1491,7 @@ class _ModernQtySelector extends StatelessWidget {
   });
 
   void _showQuantityEditDialog(BuildContext context, int currentQty) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: currentQty.toString());
     showDialog(
       context: context,
@@ -1493,9 +1499,9 @@ class _ModernQtySelector extends StatelessWidget {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
-          "Enter Quantity",
-          style: TextStyle(
+        title: Text(
+          l10n.enterQuantity,
+          style: const TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 16,
             color: Colors.black,
@@ -1507,7 +1513,7 @@ class _ModernQtySelector extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Specify the number of items you'd like to order.",
+              l10n.specifyQuantityHint,
               style: TextStyle(
                 color: Colors.grey.shade500,
                 fontSize: 12,
@@ -1520,7 +1526,7 @@ class _ModernQtySelector extends StatelessWidget {
               keyboardType: TextInputType.number,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: "e.g. 5",
+                hintText: l10n.egQuantity,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 14,
@@ -1554,7 +1560,7 @@ class _ModernQtySelector extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              "CANCEL",
+              l10n.cancel.toUpperCase(),
               style: TextStyle(
                 color: Colors.grey.shade500,
                 fontWeight: FontWeight.w800,
@@ -1585,9 +1591,9 @@ class _ModernQtySelector extends StatelessWidget {
                   vertical: 8,
                 ),
               ),
-              child: const Text(
-                "UPDATE",
-                style: TextStyle(
+              child: Text(
+                l10n.updateLabel,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
@@ -1615,13 +1621,18 @@ class _ModernQtySelector extends StatelessWidget {
           ),
         ),
         alignment: Alignment.center,
-        child: Text(
-          "Qty: $qty",
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 10,
-            color: Color(0xFF298E4D),
-          ),
+        child: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return Text(
+              l10n.qtyLabel(qty),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 10,
+                color: Color(0xFF298E4D),
+              ),
+            );
+          },
         ),
       );
     }
@@ -1807,6 +1818,7 @@ class _AnimatedSecureBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -1841,9 +1853,9 @@ class _AnimatedSecureBadge extends StatelessWidget {
           ),
           const SizedBox(width: 5),
           // Clean, solid forest-green secure text
-          const Text(
-            "SECURE CHECKOUT",
-            style: TextStyle(
+          Text(
+            l10n.secureCheckoutBadge,
+            style: const TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 9,
               color: Color(0xFF298E4D),
@@ -1878,6 +1890,7 @@ class _BillDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final subtotal = cartService.subtotal;
     final discount = cartService.discountAmount;
     final total = cartService.totalAmount;
@@ -1899,9 +1912,9 @@ class _BillDetailsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "BILL DETAILS",
-            style: TextStyle(
+          Text(
+            l10n.billDetails,
+            style: const TextStyle(
               fontWeight: FontWeight.w900,
               fontSize: 11,
               color: Colors.black,
@@ -1910,14 +1923,14 @@ class _BillDetailsCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _buildBillRow(
-            label: "Item Total (Subtotal)",
+            label: l10n.itemTotalSubtotal,
             value: "₹${subtotal.toStringAsFixed(0)}",
             isBold: false,
           ),
           if (discount > 0) ...[
             const SizedBox(height: 12),
             _buildBillRow(
-              label: "Coupon Discount",
+              label: l10n.couponDiscount,
               value: "- ₹${discount.toStringAsFixed(0)}",
               valueColor: const Color(0xFF298E4D),
               isBold: false,
@@ -1925,8 +1938,8 @@ class _BillDetailsCard extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           _buildBillRow(
-            label: "Delivery Charges",
-            value: "FREE",
+            label: l10n.deliveryCharges,
+            value: l10n.freeLabel,
             valueColor: const Color(0xFF298E4D),
             isBold: false,
           ),
@@ -1934,7 +1947,7 @@ class _BillDetailsCard extends StatelessWidget {
           _DashedDivider(),
           const SizedBox(height: 16),
           _buildBillRow(
-            label: "Total Amount Payable",
+            label: l10n.totalAmountPayable,
             value: "₹${total.toStringAsFixed(0)}",
             isBold: true,
             fontSize: 16,
@@ -1964,8 +1977,8 @@ class _BillDetailsCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       cartService.appliedCoupon == "DEALERDHAMAKA"
-                          ? "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁"
-                          : "Yay! You saved ₹${discount.toStringAsFixed(0)} on this purchase!",
+                          ? l10n.freeGiftMessage
+                          : l10n.couponSavingsSuccess(discount.toStringAsFixed(0)),
                       style: const TextStyle(
                         color: Color(0xFF298E4D),
                         fontSize: 11,
