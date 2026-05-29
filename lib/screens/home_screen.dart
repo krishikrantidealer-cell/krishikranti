@@ -52,6 +52,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<BannerModel> _bestOffersBanners = [];
   bool _isDiscoveryLoading = true;
   String? _discoveryError;
+  // Category-wise products for the "Shop by Category" section
+  Map<String, List<Product>> _categoryProducts = {};
 
   static const int _numSearchHints = 6;
 
@@ -116,11 +118,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               _categoryCardBanners = freshDiscovery.categoryCardBanners;
               _bestOffersBanners = freshDiscovery.bestOffersBanners;
             });
+            _fetchCategoryProducts(freshDiscovery.categories);
           }
         })
         .catchError((_) {
           /* silent — don't disrupt UI on background failure */
         });
+  }
+
+  /// Fetch up to 4 products for each category to populate the browse-by-category section.
+  /// All categories are fetched in parallel and applied in a single setState to avoid
+  /// multiple rebuilds that cause scroll flicker.
+  Future<void> _fetchCategoryProducts(List<Category> categories) async {
+    final results = await Future.wait(
+      categories.map((cat) async {
+        try {
+          final result = await _productRepository.getProducts(
+            categoryId: cat.id,
+            limit: 4,
+          );
+          final List<Product> products =
+              (result['products'] as List<Product>? ?? []).take(4).toList();
+          return MapEntry(cat.id, products);
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+
+    if (!mounted) return;
+
+    // Single setState for all categories — no per-category rebuild flicker
+    final Map<String, List<Product>> batch = {};
+    for (final entry in results) {
+      if (entry != null && entry.value.isNotEmpty) {
+        batch[entry.key] = entry.value;
+      }
+    }
+    if (batch.isNotEmpty) {
+      setState(() {
+        _categoryProducts = {..._categoryProducts, ...batch};
+      });
+    }
   }
 
   void _startHintRotation() {
@@ -151,6 +190,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _isDiscoveryLoading = false;
           _discoveryError = null;
         });
+        // Start loading category products in background
+        _fetchCategoryProducts(discovery.categories);
       }
 
       // Step 2: Background Refresh (SWR)
@@ -170,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _bestOffersBanners = freshDiscovery.bestOffersBanners;
           });
           _prefetchData(freshDiscovery.categories);
+          _fetchCategoryProducts(freshDiscovery.categories);
         }
       }
     } catch (e) {
@@ -210,12 +252,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  String _getSubtitleForCategory(String name, AppLocalizations l10n) {
-    switch (name.toLowerCase()) {
+  String _getLocalizedCategoryName(String name, AppLocalizations l10n) {
+    final clean = name.trim().toLowerCase();
+    switch (clean) {
       case 'insecticides':
         return l10n.categoryInsecticides;
       case 'fungicides':
         return l10n.categoryFungicides;
+      case 'pgr':
       case 'pgrs':
         return l10n.categoryPgrs;
       case 'fertilizers':
@@ -223,6 +267,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       case 'herbicides':
         return l10n.categoryHerbicides;
       case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
+        return l10n.categoryBioProducts;
+      default:
+        return name;
+    }
+  }
+
+  String _getSubtitleForCategory(String name, AppLocalizations l10n) {
+    final clean = name.trim().toLowerCase();
+    switch (clean) {
+      case 'insecticides':
+        return l10n.categoryInsecticides;
+      case 'fungicides':
+        return l10n.categoryFungicides;
+      case 'pgr':
+      case 'pgrs':
+        return l10n.categoryPgrs;
+      case 'fertilizers':
+        return l10n.categoryFertilizers;
+      case 'herbicides':
+        return l10n.categoryHerbicides;
+      case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
         return l10n.categoryBioProducts;
       default:
         return l10n.categoryDefault;
@@ -410,17 +479,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: _buildFeaturedProducts(context, theme, l10n),
                         ),
 
-                        // Shop by Crop (Collections)
+                        // Shop by Crop (Collections) & Browse by Category alternated
                         const SliverToBoxAdapter(child: SizedBox(height: 24)),
                         SliverToBoxAdapter(
-                          child: _buildShopByCrop(context, theme, l10n),
+                          child: _buildAlternatingSections(
+                            context,
+                            theme,
+                            l10n,
+                          ),
                         ),
 
-                        // Best Offers
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        SliverToBoxAdapter(
-                          child: _buildBestOffers(context, theme, l10n),
-                        ),
+                        // Best Offers (commented out)
+                        // const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                        // SliverToBoxAdapter(
+                        //   child: _buildBestOffers(context, theme, l10n),
+                        // ),
 
                         // Combined Trust & Footer Section
                         const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -484,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     color: Colors.white,
                   ),
                   child: Center(
-                    child: Text(
+                    child: TranslatableText(
                       profile.avatarLetter,
                       style: TextStyle(
                         color: theme.colorScheme.primary,
@@ -504,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   Row(
                     children: [
-                      Text(
+                      TranslatableText(
                         _getTimeBasedGreeting(l10n),
                         style: const TextStyle(
                           color: Colors.white,
@@ -514,7 +587,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(
+                      TranslatableText(
                         DateFormat('• d MMM').format(DateTime.now()),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
@@ -525,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ],
                   ),
                   const SizedBox(height: 1),
-                  Text(
+                  TranslatableText(
                     profile.name,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
@@ -648,7 +721,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           );
                         },
-                    child: Text(
+                    child: TranslatableText(
                       _getSearchHints(l10n)[_currentHintIndex],
                       key: ValueKey<int>(_currentHintIndex),
                       style: TextStyle(
@@ -875,7 +948,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
+                    TranslatableText(
                       title,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontSize: 20,
@@ -889,7 +962,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 1),
-                      Text(
+                      TranslatableText(
                         subtitle,
                         style: const TextStyle(
                           fontSize: 12,
@@ -1111,103 +1184,65 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildShopByCrop(
+  Widget _buildSingleCollection(
     BuildContext context,
     ThemeData theme,
     AppLocalizations l10n,
+    Collection collection,
   ) {
-    if (_isDiscoveryLoading) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              l10n.collections,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 125,
-            child: ListView.separated(
+    final subCollections = collection.subCollections
+        .where((s) => s.isActive)
+        .toList();
+    if (subCollections.isEmpty) return const SizedBox.shrink();
+
+    return ListenableBuilder(
+      listenable: DynamicTranslationService(),
+      builder: (context, _) {
+        final titleStr = collection.name.isNotEmpty
+            ? collection.name
+            : l10n.collections;
+        final translatedTitle = titleStr == l10n.collections
+            ? titleStr
+            : context.tr(titleStr);
+        if (titleStr != l10n.collections && titleStr.isNotEmpty) {
+          DynamicTranslationService().ensureTranslated(titleStr);
+        }
+
+        final subtitleStr = collection.description?.isNotEmpty == true
+            ? collection.description!
+            : l10n.exploreCollection(collection.name);
+        String translatedSubtitle;
+        if (collection.description?.isNotEmpty == true) {
+          translatedSubtitle = context.tr(subtitleStr);
+          DynamicTranslationService().ensureTranslated(subtitleStr);
+        } else {
+          final translatedName = context.tr(collection.name);
+          DynamicTranslationService().ensureTranslated(collection.name);
+          translatedSubtitle = l10n.exploreCollection(translatedName);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: 6,
-              separatorBuilder: (context, index) => const SizedBox(width: 20),
-              itemBuilder: (context, index) => Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  shape: BoxShape.circle,
-                ),
+              child: _sectionTitle(
+                theme,
+                translatedTitle,
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          SubCollectionsScreen(collection: collection),
+                    ),
+                  );
+                },
+                l10n,
+                subtitle: translatedSubtitle,
               ),
             ),
-          ),
-        ],
-      );
-    }
-
-    if (_collections.isEmpty || _discoveryError != null) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: _collections.map((collection) {
-        final subCollections = collection.subCollections
-            .where((s) => s.isActive)
-            .toList();
-        if (subCollections.isEmpty) return const SizedBox.shrink();
-
-        return ListenableBuilder(
-          listenable: DynamicTranslationService(),
-          builder: (context, _) {
-            final titleStr = collection.name.isNotEmpty ? collection.name : l10n.collections;
-            final translatedTitle = titleStr == l10n.collections ? titleStr : context.tr(titleStr);
-            if (titleStr != l10n.collections && titleStr.isNotEmpty) {
-              DynamicTranslationService().ensureTranslated(titleStr);
-            }
-
-            final subtitleStr = collection.description?.isNotEmpty == true
-                ? collection.description!
-                : l10n.exploreCollection(collection.name);
-            String translatedSubtitle;
-            if (collection.description?.isNotEmpty == true) {
-              translatedSubtitle = context.tr(subtitleStr);
-              DynamicTranslationService().ensureTranslated(subtitleStr);
-            } else {
-              final translatedName = context.tr(collection.name);
-              DynamicTranslationService().ensureTranslated(collection.name);
-              translatedSubtitle = l10n.exploreCollection(translatedName);
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _sectionTitle(
-                    theme,
-                    translatedTitle,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              SubCollectionsScreen(collection: collection),
-                        ),
-                      );
-                    },
-                    l10n,
-                    subtitle: translatedSubtitle,
-                  ),
-                ),
-                const SizedBox(height: 8),
+            const SizedBox(height: 8),
             SizedBox(
               height: 125,
               child: ListView.separated(
@@ -1321,176 +1356,411 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               ),
             ),
-            const SizedBox(height: 16),
           ],
         );
-          },
-        );
-      }).toList(),
+      },
     );
   }
 
-  Widget _buildBestOffers(
+  Widget _buildSingleCategory(
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+    Category cat,
+  ) {
+    final products = _categoryProducts[cat.id]!;
+    final localizedTitle = _getLocalizedCategoryName(cat.name, l10n);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: _sectionTitle(
+            theme,
+            localizedTitle,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductListScreen(
+                    category: cat.name,
+                    categoryId: cat.id,
+                    categoryData: cat,
+                  ),
+                ),
+              );
+            },
+            l10n,
+            subtitle: l10n.premiumFarmingEssentials,
+          ),
+        ),
+        SizedBox(
+          height: 275,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: products.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return SizedBox(
+                width: 170,
+                child: ProductCard(
+                  key: ValueKey('cat_${cat.id}_${product.id}'),
+                  product: product,
+                  category: cat.name,
+                  isFavorite: _favoriteService.isFavorite(product.id),
+                  onFavoriteToggle: () {
+                    _favoriteService.toggleFavorite(
+                      FavoriteProduct(
+                        id: product.id,
+                        name: product.title,
+                        category: product.brandName ?? cat.name,
+                        price: product.price.toStringAsFixed(0),
+                        imageUrl: product.thumbnail,
+                        weight: product.variants.isNotEmpty
+                            ? product.variants.first.size
+                            : 'N/A',
+                      ),
+                    );
+                  },
+                  index: index,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleCollectionSkeleton(
     BuildContext context,
     ThemeData theme,
     AppLocalizations l10n,
   ) {
-    final List<Map<String, String>> offers = _bestOffersBanners.isNotEmpty
-        ? _bestOffersBanners
-              .map((b) => {'title': b.title, 'image': b.imageUrl})
-              .toList()
-        : [
-            {
-              'title': 'Buy 1 Get 1',
-              'image':
-                  'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600',
-            },
-            {
-              'title': 'Flat 20% OFF',
-              'image':
-                  'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=600',
-            },
-            {
-              'title': 'Limited Time Deal',
-              'image':
-                  'https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=600',
-            },
-          ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _sectionTitle(
-            theme,
-            l10n.bestOffers,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const ProductListScreen(category: "Offers"),
-                ),
-              );
-            },
-            l10n,
-            subtitle: l10n.exclusiveDeals,
+          child: Text(
+            l10n.collections,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        CarouselSlider.builder(
-          key: ValueKey(offers.length),
-          itemCount: offers.length,
-          itemBuilder: (context, index, realIndex) {
-            final offer = offers[index];
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const ProductListScreen(category: "Offers"),
-                    ),
-                  );
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: CachedNetworkImage(
-                      imageUrl: offer['image']!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      fadeInDuration: const Duration(milliseconds: 300),
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey[100],
-                        child: const Center(
-                          child: CircularProgressIndicator.adaptive(
-                            strokeWidth: 2.5,
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        child: Center(
-                          child: Icon(
-                            Icons.local_offer_outlined,
-                            color: theme.colorScheme.primary,
-                            size: 40,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 125,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: 6,
+            separatorBuilder: (context, index) => const SizedBox(width: 20),
+            itemBuilder: (context, index) => Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
               ),
-            );
-          },
-          options: CarouselOptions(
-            height: 180,
-            aspectRatio: 16 / 9,
-            viewportFraction: 1.0,
-            autoPlay: offers.length > 1,
-            autoPlayInterval: const Duration(seconds: 5),
-            autoPlayAnimationDuration: const Duration(milliseconds: 800),
-            autoPlayCurve: Curves.easeInOutCubic,
-            enableInfiniteScroll: offers.length > 1,
-            pauseAutoPlayOnTouch: true,
-            pauseAutoPlayOnManualNavigate: true,
-            scrollPhysics: const BouncingScrollPhysics(),
-            onPageChanged: (index, reason) {
-              _currentOfferBanner.value = index;
-            },
+            ),
           ),
-        ),
-        ValueListenableBuilder<int>(
-          valueListenable: _currentOfferBanner,
-          builder: (context, currentIndex, child) {
-            if (offers.length <= 1) return const SizedBox.shrink();
-            final int safeIndex = currentIndex < offers.length
-                ? currentIndex
-                : 0;
-            return Column(
-              children: [
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    offers.length,
-                    (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: safeIndex == i ? 20 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: safeIndex == i
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.primary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
         ),
       ],
     );
   }
+
+  Widget _buildSingleCategorySkeleton(BuildContext context, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 5,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      const Color(0xFF38B058),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 140,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 275,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: 4,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (_, __) => Container(
+              width: 170,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlternatingSections(
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    if (_isDiscoveryLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSingleCollectionSkeleton(context, theme, l10n),
+          const SizedBox(height: 16),
+          _buildSingleCategorySkeleton(context, theme),
+          const SizedBox(height: 36),
+          _buildSingleCollectionSkeleton(context, theme, l10n),
+          const SizedBox(height: 16),
+          _buildSingleCategorySkeleton(context, theme),
+          const SizedBox(height: 36),
+        ],
+      );
+    }
+
+    final activeCollections = _collections.where((c) {
+      final subCollections = c.subCollections.where((s) => s.isActive).toList();
+      return subCollections.isNotEmpty;
+    }).toList();
+
+    final activeCategories = _categories.where((cat) {
+      return _categoryProducts.containsKey(cat.id) &&
+          _categoryProducts[cat.id]!.isNotEmpty;
+    }).toList();
+
+    if (activeCollections.isEmpty && activeCategories.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final List<Widget> children = [];
+    final maxLen = activeCollections.length > activeCategories.length
+        ? activeCollections.length
+        : activeCategories.length;
+
+    for (int i = 0; i < maxLen; i++) {
+      if (i < activeCollections.length) {
+        children.add(
+          _buildSingleCollection(context, theme, l10n, activeCollections[i]),
+        );
+      }
+
+      // Proper spacing between collection and category in the same pair
+      if (i < activeCollections.length && i < activeCategories.length) {
+        children.add(const SizedBox(height: 16));
+      }
+
+      if (i < activeCategories.length) {
+        children.add(
+          _buildSingleCategory(context, theme, l10n, activeCategories[i]),
+        );
+      }
+
+      // Proper spacing between pairs
+      if (i < maxLen - 1) {
+        children.add(const SizedBox(height: 36));
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+
+  // Widget _buildBestOffers(
+  //   BuildContext context,
+  //   ThemeData theme,
+  //   AppLocalizations l10n,
+  // ) {
+  //   final List<Map<String, String>> offers = _bestOffersBanners.isNotEmpty
+  //       ? _bestOffersBanners
+  //             .map((b) => {'title': b.title, 'image': b.imageUrl})
+  //             .toList()
+  //       : [
+  //           {
+  //             'title': 'Buy 1 Get 1',
+  //             'image':
+  //                 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600',
+  //           },
+  //           {
+  //             'title': 'Flat 20% OFF',
+  //             'image':
+  //                 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=600',
+  //           },
+  //           {
+  //             'title': 'Limited Time Deal',
+  //             'image':
+  //                 'https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=600',
+  //           },
+  //         ];
+
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Padding(
+  //         padding: const EdgeInsets.symmetric(horizontal: 16),
+  //         child: _sectionTitle(
+  //           theme,
+  //           l10n.bestOffers,
+  //           () {
+  //             Navigator.push(
+  //               context,
+  //               MaterialPageRoute(
+  //                 builder: (context) =>
+  //                     const ProductListScreen(category: "Offers"),
+  //               ),
+  //             );
+  //           },
+  //           l10n,
+  //           subtitle: l10n.exclusiveDeals,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       CarouselSlider.builder(
+  //         key: ValueKey(offers.length),
+  //         itemCount: offers.length,
+  //         itemBuilder: (context, index, realIndex) {
+  //           final offer = offers[index];
+  //           return Padding(
+  //             padding: const EdgeInsets.symmetric(horizontal: 16),
+  //             child: GestureDetector(
+  //               onTap: () {
+  //                 HapticFeedback.lightImpact();
+  //                 Navigator.push(
+  //                   context,
+  //                   MaterialPageRoute(
+  //                     builder: (context) =>
+  //                         const ProductListScreen(category: "Offers"),
+  //                   ),
+  //                 );
+  //               },
+  //               child: Container(
+  //                 decoration: BoxDecoration(
+  //                   borderRadius: BorderRadius.circular(20),
+  //                   boxShadow: [
+  //                     BoxShadow(
+  //                       color: Colors.black.withValues(alpha: 0.1),
+  //                       blurRadius: 12,
+  //                       offset: const Offset(0, 6),
+  //                     ),
+  //                   ],
+  //                 ),
+  //                 child: ClipRRect(
+  //                   borderRadius: BorderRadius.circular(20),
+  //                   child: CachedNetworkImage(
+  //                     imageUrl: offer['image']!,
+  //                     fit: BoxFit.cover,
+  //                     width: double.infinity,
+  //                     fadeInDuration: const Duration(milliseconds: 300),
+  //                     placeholder: (context, url) => Container(
+  //                       color: Colors.grey[100],
+  //                       child: const Center(
+  //                         child: CircularProgressIndicator.adaptive(
+  //                           strokeWidth: 2.5,
+  //                         ),
+  //                       ),
+  //                     ),
+  //                     errorWidget: (context, url, error) => Container(
+  //                       color: theme.colorScheme.primary.withValues(alpha: 0.1),
+  //                       child: Center(
+  //                         child: Icon(
+  //                           Icons.local_offer_outlined,
+  //                           color: theme.colorScheme.primary,
+  //                           size: 40,
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //           );
+  //         },
+  //         options: CarouselOptions(
+  //           height: 180,
+  //           aspectRatio: 16 / 9,
+  //           viewportFraction: 1.0,
+  //           autoPlay: offers.length > 1,
+  //           autoPlayInterval: const Duration(seconds: 5),
+  //           autoPlayAnimationDuration: const Duration(milliseconds: 800),
+  //           autoPlayCurve: Curves.easeInOutCubic,
+  //           enableInfiniteScroll: offers.length > 1,
+  //           pauseAutoPlayOnTouch: true,
+  //           pauseAutoPlayOnManualNavigate: true,
+  //           scrollPhysics: const BouncingScrollPhysics(),
+  //           onPageChanged: (index, reason) {
+  //             _currentOfferBanner.value = index;
+  //           },
+  //         ),
+  //       ),
+  //       ValueListenableBuilder<int>(
+  //         valueListenable: _currentOfferBanner,
+  //         builder: (context, currentIndex, child) {
+  //           if (offers.length <= 1) return const SizedBox.shrink();
+  //           final int safeIndex = currentIndex < offers.length
+  //               ? currentIndex
+  //               : 0;
+  //           return Column(
+  //             children: [
+  //               const SizedBox(height: 10),
+  //               Row(
+  //                 mainAxisAlignment: MainAxisAlignment.center,
+  //                 children: List.generate(
+  //                   offers.length,
+  //                   (i) => AnimatedContainer(
+  //                     duration: const Duration(milliseconds: 300),
+  //                     margin: const EdgeInsets.symmetric(horizontal: 3),
+  //                     width: safeIndex == i ? 20 : 6,
+  //                     height: 6,
+  //                     decoration: BoxDecoration(
+  //                       color: safeIndex == i
+  //                           ? theme.colorScheme.primary
+  //                           : theme.colorScheme.primary.withValues(alpha: 0.2),
+  //                       borderRadius: BorderRadius.circular(3),
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           );
+  //         },
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildFooter(
     BuildContext context,
@@ -1676,7 +1946,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Icon(icon, size: 28, color: color),
         ),
         const SizedBox(height: 8),
-        Text(
+        TranslatableText(
           label,
           style: TextStyle(
             fontSize: 10,

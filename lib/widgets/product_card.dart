@@ -16,6 +16,7 @@ class ProductCard extends StatefulWidget {
   final int index;
   final VoidCallback onFavoriteToggle;
   final bool isGridView;
+  final String? heroTag;
 
   const ProductCard({
     super.key,
@@ -26,6 +27,7 @@ class ProductCard extends StatefulWidget {
     this.index = 0,
     required this.onFavoriteToggle,
     this.isGridView = true,
+    this.heroTag,
   });
 
   @override
@@ -97,6 +99,7 @@ class _ProductCardState extends State<ProductCard>
                   ProductDetailScreen(
                     product: widget.product,
                     thumbnailUrl: widget.product.thumbnail,
+                    heroTag: widget.heroTag ?? 'product_${widget.category}_${widget.product.id}',
                   ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
@@ -176,7 +179,7 @@ class _ProductCardState extends State<ProductCard>
                           child: HeroMode(
                             enabled: !widget.isPopping,
                             child: Hero(
-                              tag: 'product_${widget.product.id}',
+                              tag: widget.heroTag ?? 'product_${widget.category}_${widget.product.id}',
                               child: ProgressiveImage(
                                 thumbnailUrl: widget.product.thumbnail,
                                 imageUrl: widget.product.images.isNotEmpty
@@ -415,7 +418,9 @@ class _ProductCardState extends State<ProductCard>
               child: HeroMode(
                 enabled: !widget.isPopping,
                 child: Hero(
-                  tag: 'heart_${widget.product.id}',
+                  tag: widget.heroTag != null
+                      ? 'heart_${widget.heroTag}'
+                      : 'heart_product_${widget.category}_${widget.product.id}',
                   child: AnimatedHeart(
                     isFavorite: widget.isFavorite,
                     onTap: widget.onFavoriteToggle,
@@ -477,7 +482,7 @@ class _ProductCardState extends State<ProductCard>
                         child: HeroMode(
                           enabled: !widget.isPopping,
                           child: Hero(
-                            tag: 'product_${widget.product.id}',
+                            tag: widget.heroTag ?? 'product_${widget.category}_${widget.product.id}',
                             child: ProgressiveImage(
                               thumbnailUrl: widget.product.thumbnail,
                               imageUrl: widget.product.images.isNotEmpty
@@ -754,7 +759,9 @@ class _ProductCardState extends State<ProductCard>
               child: HeroMode(
                 enabled: !widget.isPopping,
                 child: Hero(
-                  tag: 'heart_${widget.product.id}',
+                  tag: widget.heroTag != null
+                      ? 'heart_${widget.heroTag}'
+                      : 'heart_product_${widget.category}_${widget.product.id}',
                   child: AnimatedHeart(
                     isFavorite: widget.isFavorite,
                     onTap: widget.onFavoriteToggle,

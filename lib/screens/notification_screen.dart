@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:krishikranti/core/notification_service.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -384,7 +385,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
-                                      child: Text(
+                                      child: TranslatableText(
                                         notification.title,
                                         style: TextStyle(
                                           fontWeight: isUnread
@@ -400,7 +401,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
+                                TranslatableText(
                                   notification.description,
                                   style: TextStyle(
                                     fontSize: 12,

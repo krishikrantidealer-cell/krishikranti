@@ -250,11 +250,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   IconData _getIconForCategory(String name) {
-    switch (name.toLowerCase()) {
+    switch (name.trim().toLowerCase()) {
       case 'insecticides':
         return Icons.bug_report_rounded;
       case 'fungicides':
         return Icons.science_rounded;
+      case 'pgr':
       case 'pgrs':
         return Icons.grass_rounded;
       case 'fertilizers':
@@ -262,9 +263,34 @@ class _ProductListScreenState extends State<ProductListScreen> {
       case 'herbicides':
         return Icons.agriculture_rounded;
       case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
         return Icons.psychology_alt_rounded;
       default:
         return Icons.category_rounded;
+    }
+  }
+
+  String _getLocalizedCategoryName(String name, AppLocalizations l10n) {
+    final clean = name.trim().toLowerCase();
+    switch (clean) {
+      case 'insecticides':
+        return l10n.categoryInsecticides;
+      case 'fungicides':
+        return l10n.categoryFungicides;
+      case 'pgr':
+      case 'pgrs':
+        return l10n.categoryPgrs;
+      case 'fertilizers':
+        return l10n.categoryFertilizers;
+      case 'herbicides':
+        return l10n.categoryHerbicides;
+      case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
+        return l10n.categoryBioProducts;
+      default:
+        return name;
     }
   }
 
@@ -856,7 +882,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               TranslatableText(
-                                widget.category,
+                                _getLocalizedCategoryName(widget.category, l10n),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w900,

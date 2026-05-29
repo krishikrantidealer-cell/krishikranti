@@ -19,12 +19,12 @@ class DynamicTranslationService extends ChangeNotifier {
   factory DynamicTranslationService() => _instance;
   DynamicTranslationService._internal() {
     _loadPersistentCache();
-    _preDownloadAllModels();
   }
 
   // ── Active language ──────────────────────────────────────────────────────
   String _currentLangCode = 'en';
   OnDeviceTranslator? _translator;
+  final Map<OnDeviceTranslator, int> _activeCalls = {};
   ModelManager? _modelManager;
   bool _isModelReady = false;
   bool _isDownloadingModel = false;
@@ -34,7 +34,6 @@ class DynamicTranslationService extends ChangeNotifier {
   // Non-blocking sequential download queue state
   List<String> _pendingBackgroundLangs = [];
   bool _isQueueProcessing = false;
-  Completer<void>? _activeInitCompleter;
 
   String get currentLangCode => _currentLangCode;
   bool get isModelReady => _isModelReady;
@@ -108,21 +107,24 @@ class DynamicTranslationService extends ChangeNotifier {
 
   /// Call this whenever the user picks a new language.
   Future<void> onLocaleChanged(String newLangCode) async {
-    debugPrint('[DTS] onLocaleChanged called with: $newLangCode (current: $_currentLangCode)');
+    debugPrint(
+      '[DTS] onLocaleChanged called with: $newLangCode (current: $_currentLangCode)',
+    );
     if (_currentLangCode == newLangCode) return;
     _currentLangCode = newLangCode;
 
-    // Tear down old translator
-    await _translator?.close();
+    // Tear down old translator safely
+    final translatorToClose = _translator;
     _translator = null;
     _isModelReady = false;
     _isDownloadingModel = false;
     _downloadErrorMessage = null;
     _initFuture = null;
-    
-    // Immediately clear pending background downloads so active selection takes precedence
-    _pendingBackgroundLangs.clear();
-    _activeInitCompleter = null;
+
+    if (translatorToClose != null) {
+      _safeCloseTranslator(translatorToClose);
+    }
+
     notifyListeners();
 
     if (newLangCode == 'en') return;
@@ -145,125 +147,92 @@ class DynamicTranslationService extends ChangeNotifier {
 
   String _cacheKey(String text) => '$_currentLangCode|$text';
 
-  Future<void> _initTranslator(TranslateLanguage target) {
-    if (_activeInitCompleter != null && !_activeInitCompleter!.isCompleted) {
-      return _activeInitCompleter!.future;
+  Future<void> _safeCloseTranslator(OnDeviceTranslator translator) async {
+    final watch = Stopwatch()..start();
+    while ((_activeCalls[translator] ?? 0) > 0 && watch.elapsedMilliseconds < 5000) {
+      await Future.delayed(const Duration(milliseconds: 100));
     }
-    _activeInitCompleter = Completer<void>();
-    
+    try {
+      await translator.close();
+      debugPrint('[DTS] Translator closed successfully.');
+    } catch (e) {
+      debugPrint('[DTS] Error closing translator: $e');
+    }
+  }
+
+  Future<void> _initTranslator(TranslateLanguage target) async {
     // Set downloading state
     _isDownloadingModel = true;
     _downloadErrorMessage = null;
-    notifyListeners();
+    Future.microtask(() => notifyListeners());
 
-    // Trigger queue processing
-    _processQueue();
-    
-    return _activeInitCompleter!.future;
+    final bcp = target.bcpCode;
+    _modelManager ??= OnDeviceTranslatorModelManager();
+
+    debugPrint('[DTS] Initializing language model check/download for: $bcp');
+    try {
+      final isDownloaded = await _modelManager!.isModelDownloaded(bcp);
+      if (!isDownloaded) {
+        debugPrint(
+          '[DTS] Model NOT downloaded. Starting active download for: $bcp',
+        );
+
+        // Use a temporary translator to trigger native downloadModelIfNeeded() correctly,
+        // which avoids the "MlKitException: No existing model file" error.
+        final tempTranslator = OnDeviceTranslator(
+          sourceLanguage: TranslateLanguage.english,
+          targetLanguage: target,
+        );
+        try {
+          await tempTranslator
+              .translateText('ping')
+              .timeout(const Duration(seconds: 45));
+        } finally {
+          await tempTranslator.close();
+        }
+        debugPrint('[DTS] Active model downloaded successfully for $bcp');
+      } else {
+        debugPrint('[DTS] Active model is already downloaded for: $bcp');
+      }
+
+      _translator = OnDeviceTranslator(
+        sourceLanguage: TranslateLanguage.english,
+        targetLanguage: target,
+      );
+      _isModelReady = true;
+      _isDownloadingModel = false;
+      _downloadErrorMessage = null;
+      notifyListeners();
+    } on TimeoutException catch (e) {
+      _isDownloadingModel = false;
+      _downloadErrorMessage =
+          'Model download is pending. Please connect to Wi-Fi '
+          'or check Google Play Store settings.';
+      _initFuture = null; // allow retry
+      notifyListeners();
+      debugPrint('[DTS] Active model download timed out: $e');
+      rethrow;
+    } catch (e) {
+      _isDownloadingModel = false;
+      _downloadErrorMessage =
+          'Translation model unavailable. '
+          'Translations will show when online.';
+      _initFuture = null; // allow retry
+      notifyListeners();
+      debugPrint('[DTS] Active model download failed: $e');
+      rethrow;
+    }
   }
 
-  Future<void> _processQueue() async {
-    if (_isQueueProcessing) return;
-    _isQueueProcessing = true;
-
-    try {
-      while (true) {
-        // 1. Process active language download first (High Priority)
-        final activeTarget = _langMap[_currentLangCode];
-        if (activeTarget != null && !_isModelReady && _isDownloadingModel) {
-          final bcp = activeTarget.bcpCode;
-          _modelManager ??= OnDeviceTranslatorModelManager();
-          
-          debugPrint('[DTS] Queue: Processing active language download for: $bcp');
-          try {
-            final isDownloaded = await _modelManager!.isModelDownloaded(bcp);
-            if (!isDownloaded) {
-              debugPrint('[DTS] Queue: Model NOT downloaded. Starting active download for: $bcp');
-              await _modelManager!.downloadModel(
-                bcp,
-                isWifiRequired: false,
-              ).timeout(const Duration(seconds: 40));
-              debugPrint('[DTS] Queue: Active model downloaded successfully for $bcp');
-            } else {
-              debugPrint('[DTS] Queue: Active model is already downloaded for: $bcp');
-            }
-            
-            _translator = OnDeviceTranslator(
-              sourceLanguage: TranslateLanguage.english,
-              targetLanguage: activeTarget,
-            );
-            _isModelReady = true;
-            _isDownloadingModel = false;
-            _downloadErrorMessage = null;
-            notifyListeners();
-            
-            final completer = _activeInitCompleter;
-            _activeInitCompleter = null;
-            completer?.complete();
-
-            // Trigger background pre-downloads for remaining languages
-            _enqueueRemainingBackgroundDownloads();
-          } on TimeoutException catch (e) {
-            _isDownloadingModel = false;
-            _downloadErrorMessage =
-                'Model download is pending. Please connect to Wi-Fi '
-                'or check Google Play Store settings.';
-            _initFuture = null; // allow retry
-            notifyListeners();
-            debugPrint('[DTS] Queue: Active model download timed out: $e');
-            
-            final completer = _activeInitCompleter;
-            _activeInitCompleter = null;
-            completer?.complete();
-          } catch (e) {
-            _isDownloadingModel = false;
-            _downloadErrorMessage =
-                'Translation model unavailable. '
-                'Translations will show when online.';
-            _initFuture = null; // allow retry
-            notifyListeners();
-            debugPrint('[DTS] Queue: Active model download failed: $e');
-            
-            final completer = _activeInitCompleter;
-            _activeInitCompleter = null;
-            completer?.completeError(e);
-          }
-          continue;
-        }
-
-        // 2. Process background downloads sequentially (Low Priority)
-        if (_pendingBackgroundLangs.isNotEmpty) {
-          final langCode = _pendingBackgroundLangs.removeAt(0);
-          final target = _langMap[langCode];
-          if (target != null && langCode != _currentLangCode) {
-            _modelManager ??= OnDeviceTranslatorModelManager();
-            debugPrint('[DTS] Queue: Background pre-download checking for: $langCode');
-            try {
-              final isDownloaded = await _modelManager!.isModelDownloaded(target.bcpCode);
-              if (!isDownloaded) {
-                debugPrint('[DTS] Queue: Pre-downloading model sequentially in background for: $langCode');
-                await _modelManager!.downloadModel(
-                  target.bcpCode,
-                  isWifiRequired: false,
-                ).timeout(const Duration(seconds: 20));
-                debugPrint('[DTS] Queue: Background pre-download for $langCode completed successfully');
-              } else {
-                debugPrint('[DTS] Queue: Model already downloaded for: $langCode');
-              }
-            } catch (e) {
-              debugPrint('[DTS] Queue: Error/timeout in background pre-download for $langCode: $e');
-            }
-            // Small delay before next task inside the queue to avoid immediate reuse of the native channel
-            await Future.delayed(const Duration(seconds: 3));
-          }
-          continue;
-        }
-
-        break;
-      }
-    } finally {
-      _isQueueProcessing = false;
-    }
+  /// Public method to trigger sequential download of all models in the background.
+  /// Typically called after splash screen to pre-warm languages during login/onboarding.
+  void startBackgroundDownloadOfAllModels() {
+    Future.delayed(const Duration(seconds: 10), () {
+      debugPrint(
+        '[DTS] Starting background sequential download after 10 seconds boot delay...',
+      );
+      _enqueueRemainingBackgroundDownloads();
+    });
   }
 
   Future<void> _enqueueRemainingBackgroundDownloads() async {
@@ -273,9 +242,11 @@ class DynamicTranslationService extends ChangeNotifier {
       final langCode = langEntry.key;
       final target = langEntry.value;
       if (langCode == _currentLangCode) continue;
-      
+
       try {
-        final isDownloaded = await _modelManager!.isModelDownloaded(target.bcpCode);
+        final isDownloaded = await _modelManager!.isModelDownloaded(
+          target.bcpCode,
+        );
         if (!isDownloaded) {
           remaining.add(langCode);
         }
@@ -283,19 +254,68 @@ class DynamicTranslationService extends ChangeNotifier {
         debugPrint('[DTS] Error checking model status for $langCode: $e');
       }
     }
-    
+
     if (remaining.isNotEmpty) {
-      _pendingBackgroundLangs = remaining;
+      for (final code in remaining) {
+        if (!_pendingBackgroundLangs.contains(code)) {
+          _pendingBackgroundLangs.add(code);
+        }
+      }
       _processQueue();
     }
   }
 
-  Future<void> _preDownloadAllModels() async {
-    // Only pre-download after a short delay to let app boot
-    Future.delayed(const Duration(seconds: 5), () {
-      debugPrint('[DTS] Starting background sequential pre-download check for all target languages...');
-      _enqueueRemainingBackgroundDownloads();
-    });
+  Future<void> _processQueue() async {
+    if (_isQueueProcessing) return;
+    _isQueueProcessing = true;
+
+    try {
+      while (_pendingBackgroundLangs.isNotEmpty) {
+        final langCode = _pendingBackgroundLangs.removeAt(0);
+        final target = _langMap[langCode];
+        if (target != null && langCode != _currentLangCode) {
+          _modelManager ??= OnDeviceTranslatorModelManager();
+          debugPrint('[DTS] Background pre-download checking for: $langCode');
+          try {
+            final isDownloaded = await _modelManager!.isModelDownloaded(
+              target.bcpCode,
+            );
+            if (!isDownloaded) {
+              debugPrint(
+                '[DTS] Pre-downloading model sequentially in background for: $langCode',
+              );
+
+              // Use a temporary translator to trigger native downloadModelIfNeeded() correctly,
+              // which avoids the "MlKitException: No existing model file" error.
+              final tempTranslator = OnDeviceTranslator(
+                sourceLanguage: TranslateLanguage.english,
+                targetLanguage: target,
+              );
+              try {
+                await tempTranslator
+                    .translateText('ping')
+                    .timeout(const Duration(minutes: 5));
+                debugPrint(
+                  '[DTS] Background pre-download for $langCode completed successfully',
+                );
+              } finally {
+                await tempTranslator.close();
+              }
+            } else {
+              debugPrint('[DTS] Model already downloaded for: $langCode');
+            }
+          } catch (e) {
+            debugPrint(
+              '[DTS] Error/timeout in background pre-download for $langCode: $e',
+            );
+          }
+          // Small delay before next task inside the queue to avoid immediate reuse of the native channel
+          await Future.delayed(const Duration(seconds: 4));
+        }
+      }
+    } finally {
+      _isQueueProcessing = false;
+    }
   }
 
   Future<String> _translateAsync(String text, String key) async {
@@ -308,7 +328,9 @@ class DynamicTranslationService extends ChangeNotifier {
         try {
           await _initFuture;
         } catch (e) {
-          debugPrint('[DTS] Active init future failed inside _translateAsync: $e');
+          debugPrint(
+            '[DTS] Active init future failed inside _translateAsync: $e',
+          );
         }
       }
 
@@ -317,7 +339,9 @@ class DynamicTranslationService extends ChangeNotifier {
         final target = _langMap[_currentLangCode];
         if (target != null) {
           if (_initFuture == null) {
-            debugPrint('[DTS] Lazy initializing translator for: ${_currentLangCode}');
+            debugPrint(
+              '[DTS] Lazy initializing translator for: ${_currentLangCode}',
+            );
             _initFuture = _initTranslator(target);
           }
           try {
@@ -328,19 +352,30 @@ class DynamicTranslationService extends ChangeNotifier {
         }
       }
 
-      if (_translator == null) {
-        debugPrint('[DTS] Translator is null, aborting translation for: "$text"');
+      final translator = _translator;
+      if (translator == null) {
+        debugPrint(
+          '[DTS] Translator is null, aborting translation for: "$text"',
+        );
         _inFlight.remove(key);
         return text;
       }
 
       debugPrint('[DTS] Executing ML Kit translation for: "$text"');
-      final result = await _translator!.translateText(text);
-      debugPrint('[DTS] Translation successful: "$text" -> "$result"');
-      _writeCache(key, result);
-      _inFlight.remove(key);
-      notifyListeners();
-      return result;
+      _activeCalls[translator] = (_activeCalls[translator] ?? 0) + 1;
+      try {
+        final result = await translator.translateText(text);
+        debugPrint('[DTS] Translation successful: "$text" -> "$result"');
+        _writeCache(key, result);
+        _inFlight.remove(key);
+        notifyListeners();
+        return result;
+      } finally {
+        _activeCalls[translator] = (_activeCalls[translator] ?? 0) - 1;
+        if (_activeCalls[translator]! <= 0) {
+          _activeCalls.remove(translator);
+        }
+      }
     } catch (e) {
       _inFlight.remove(key);
       debugPrint('[DTS] Translation error for "$text": $e');
@@ -387,11 +422,11 @@ class DynamicTranslationService extends ChangeNotifier {
     }
   }
 
-
-
   @override
   void dispose() {
-    _translator?.close();
+    if (_translator != null) {
+      _safeCloseTranslator(_translator!);
+    }
     super.dispose();
   }
 }

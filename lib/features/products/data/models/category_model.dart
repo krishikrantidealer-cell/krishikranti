@@ -1,11 +1,13 @@
 class Category {
   final String id;
   final String name;
+  final String? bannerImage;
   final List<SubCategory> subCategories;
 
   Category({
     required this.id,
     required this.name,
+    this.bannerImage,
     this.subCategories = const [],
   });
 
@@ -13,6 +15,7 @@ class Category {
     return Category(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
+      bannerImage: json['bannerImage'],
       subCategories: (json['subCategories'] as List?)
               ?.map((s) => SubCategory.fromJson(s))
               .toList() ??
@@ -24,16 +27,19 @@ class Category {
 class SubCategory {
   final String id;
   final String name;
+  final String? bannerImage;
 
   SubCategory({
     required this.id,
     required this.name,
+    this.bannerImage,
   });
 
   factory SubCategory.fromJson(Map<String, dynamic> json) {
     return SubCategory(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
+      bannerImage: json['bannerImage'],
     );
   }
 }

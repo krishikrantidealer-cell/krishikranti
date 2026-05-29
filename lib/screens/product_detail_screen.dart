@@ -23,11 +23,13 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
   final String? thumbnailUrl;
+  final String? heroTag;
 
   const ProductDetailScreen({
     super.key,
     required this.product,
     this.thumbnailUrl,
+    this.heroTag,
   });
 
   @override
@@ -312,6 +314,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           images: _displayImages,
           initialIndex: initialIndex,
           productId: _product.id,
+          heroTag: widget.heroTag,
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
@@ -431,7 +434,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ListenableBuilder(
           listenable: _favoriteService,
           builder: (context, _) => Hero(
-            tag: 'heart_${_product.id}',
+            tag: widget.heroTag != null
+                ? 'heart_${widget.heroTag}'
+                : 'heart_${_product.id}',
             child: _buildHeaderIcon(
               _favoriteService.isFavorite(_product.id)
                   ? CupertinoIcons.heart_fill
@@ -456,7 +461,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: GestureDetector(
                   onTap: () => _openFullscreenGallery(0),
                   child: Hero(
-                    tag: 'product_${_product.id}',
+                    tag: widget.heroTag ?? 'product_${_product.id}',
                     child: ProgressiveImage(
                       thumbnailUrl: widget.thumbnailUrl ?? _product.thumbnail,
                       imageUrl: _product.images.isNotEmpty
@@ -808,9 +813,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               : 1,
                         );
                   final String configName =
-                      parsedSize.configuration.toLowerCase() == "single"
-                      ? "$formattedVol $unitSuffix"
-                      : parsedSize.configuration;
+                      v.basePacking != null && v.basePacking!.isNotEmpty
+                      ? v.basePacking!
+                      : (parsedSize.configuration.toLowerCase() == "single"
+                            ? "$formattedVol $unitSuffix"
+                            : parsedSize.configuration);
 
                   final String displayConfigName = isSelected
                       ? _getUpdatedConfigName(configName, quantity)
@@ -3496,11 +3503,13 @@ class _FullscreenImageGallery extends StatefulWidget {
   final List<String> images;
   final int initialIndex;
   final String productId;
+  final String? heroTag;
 
   const _FullscreenImageGallery({
     required this.images,
     required this.initialIndex,
     required this.productId,
+    this.heroTag,
   });
 
   @override
@@ -3609,7 +3618,7 @@ class _FullscreenImageGalleryState extends State<_FullscreenImageGallery> {
                     itemBuilder: (context, index) {
                       final String url = widget.images[index];
                       final String heroTag = widget.images.length == 1
-                          ? 'product_${widget.productId}'
+                          ? (widget.heroTag ?? 'product_${widget.productId}')
                           : 'product_image_${widget.productId}_$index';
 
                       return Hero(

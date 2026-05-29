@@ -8,6 +8,7 @@ import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:krishikranti/core/dynamic_translation_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -43,18 +44,9 @@ class _SplashPageState extends State<SplashPage> {
             }
           }
         } else {
-          // If not logged in, check if language was already selected
-          final prefs = await SharedPreferences.getInstance();
-          final hasLanguage = prefs.getString('language_code') != null;
-
           if (mounted) {
-            if (hasLanguage) {
-              // Returning user, go to Login
-              Navigator.of(context).pushReplacementNamed('/phone-verify');
-            } else {
-              // New user, go to Language selection
-              Navigator.of(context).pushReplacementNamed('/language');
-            }
+            // Always go to Login flow first. Language selection is bypassed at startup.
+            Navigator.of(context).pushReplacementNamed('/phone-verify');
           }
         }
       }
@@ -67,6 +59,10 @@ class _SplashPageState extends State<SplashPage> {
 
     // Sync Push Notification Token with backend once app is ready
     NotificationService.syncToken();
+
+    // Start background sequential download of all models post-splash
+    debugPrint('[Splash] Triggering post-splash background sequential download of all language models.');
+    DynamicTranslationService().startBackgroundDownloadOfAllModels();
 
     FlutterNativeSplash.remove();
   }

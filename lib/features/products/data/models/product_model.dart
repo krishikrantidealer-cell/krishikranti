@@ -154,6 +154,7 @@ class Variant {
   final double price30_50;
   final double price50_plus;
   final double packVolume;
+  final String? basePacking;
 
   Variant({
     required this.id,
@@ -164,6 +165,7 @@ class Variant {
     this.price30_50 = 0.0,
     this.price50_plus = 0.0,
     this.packVolume = 1.0,
+    this.basePacking,
   });
 
   factory Variant.fromJson(Map<String, dynamic> json) {
@@ -186,6 +188,7 @@ class Variant {
       packVolume: json['packVolume'] != null
           ? Product._parseDouble(json['packVolume'])
           : 1.0,
+      basePacking: json['basePacking']?.toString(),
     );
   }
 }
