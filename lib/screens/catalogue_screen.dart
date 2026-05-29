@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:isolate';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
@@ -39,16 +44,124 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   // 5 rotating hint slots (0-4): crops, seeds, fertilizers, machinery, organic
   static const int _searchHintCount = 5;
 
+  // ── flutter_downloader IsolateNameServer port ───────────────────────────
+  static const String _portName = 'catalogue_downloader_port';
+  final ReceivePort _port = ReceivePort();
+  // taskId → category download info for open-on-complete
+  final Map<String, _DownloadInfo> _pendingDownloads = {};
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _bindDownloaderPort();
     if (widget.isShowingCollections) {
       _fetchCollections();
     } else {
       _fetchCategories();
     }
     _startHintTimer();
+  }
+
+  // ── flutter_downloader port wiring ─────────────────────────────────────
+  void _bindDownloaderPort() {
+    IsolateNameServer.removePortNameMapping(_portName);
+    IsolateNameServer.registerPortWithName(_port.sendPort, _portName);
+    _port.listen(_onDownloadUpdate);
+    FlutterDownloader.registerCallback(_downloaderCallback);
+  }
+
+  @pragma('vm:entry-point')
+  static void _downloaderCallback(String id, int status, int progress) {
+    final send = IsolateNameServer.lookupPortByName(
+      'catalogue_downloader_port',
+    );
+    send?.send([id, status, progress]);
+  }
+
+  void _onDownloadUpdate(dynamic data) {
+    final list = data as List<dynamic>;
+    final taskId = list[0] as String;
+    final status = DownloadTaskStatus.fromInt(list[1] as int);
+    final progress = list[2] as int;
+
+    final info = _pendingDownloads[taskId];
+    if (info == null) return;
+
+    // Update in-app snackbar progress
+    info.progressNotifier.value = progress / 100.0;
+
+    if (status == DownloadTaskStatus.complete) {
+      _pendingDownloads.remove(taskId);
+      info.progressNotifier.dispose();
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 8),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
+            content: Text(
+              '${info.categoryName} catalogue downloaded!',
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: const Color(0xFFA5D6A7),
+              onPressed: () async {
+                final result = await OpenFilex.open(info.savePath);
+                if (result.type != ResultType.done) {
+                  final webUri = Uri.parse(info.pdfUrl);
+                  if (await canLaunchUrl(webUri)) {
+                    await launchUrl(
+                      webUri,
+                      mode: LaunchMode.externalApplication,
+                    );
+                  }
+                }
+              },
+            ),
+          ),
+        );
+      }
+    } else if (status == DownloadTaskStatus.failed ||
+        status == DownloadTaskStatus.canceled) {
+      _pendingDownloads.remove(taskId);
+      info.progressNotifier.dispose();
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: Colors.orange.shade800,
+            content: Text(
+              'Download failed. Tap to open in browser.',
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: Colors.white,
+              onPressed: () async {
+                final webUri = Uri.parse(info.pdfUrl);
+                if (await canLaunchUrl(webUri)) {
+                  await launchUrl(
+                    webUri,
+                    mode: LaunchMode.externalApplication,
+                  );
+                }
+              },
+            ),
+          ),
+        );
+      }
+    }
   }
 
   void _startHintTimer() {
@@ -265,6 +378,11 @@ class _CatalogueScreenState extends State<CatalogueScreen>
 
   @override
   void dispose() {
+    IsolateNameServer.removePortNameMapping(_portName);
+    _port.close();
+    for (final info in _pendingDownloads.values) {
+      info.progressNotifier.dispose();
+    }
     WidgetsBinding.instance.removeObserver(this);
     _hintTimer?.cancel();
     super.dispose();
@@ -690,6 +808,163 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     );
   }
 
+  // ── Catalogue PDF Download ─────────────────────────────────────────────
+
+  Future<void> _downloadCataloguePdf(
+    BuildContext ctx,
+    String pdfUrl,
+    String categoryName,
+  ) async {
+    final messenger = ScaffoldMessenger.of(ctx);
+    messenger.clearSnackBars();
+
+    // Save to the user-visible Downloads folder so the file appears in Files
+    final String saveDir = '/storage/emulated/0/Download';
+    final safeFileName =
+        '${categoryName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_catalogue.pdf';
+    final savePath = '$saveDir/$safeFileName';
+
+    // 1. Check if already downloaded (cache-once)
+    final localFile = File(savePath);
+    if (await localFile.exists() && await localFile.length() > 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: const Color(0xFF2E7D32),
+          content: Text(
+            '$categoryName catalogue is already downloaded!',
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: const Color(0xFFA5D6A7),
+            onPressed: () async {
+              final result = await OpenFilex.open(savePath);
+              if (result.type != ResultType.done) {
+                final webUri = Uri.parse(pdfUrl);
+                if (await canLaunchUrl(webUri)) {
+                  await launchUrl(webUri, mode: LaunchMode.externalApplication);
+                }
+              }
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 2. Check if already in-progress
+    final existing = _pendingDownloads.values
+        .where((d) => d.categoryName == categoryName)
+        .firstOrNull;
+    if (existing != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: const Color(0xFF1B5E20),
+          content: Text(
+            '$categoryName catalogue is already downloading…',
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 3. Start download via WorkManager
+    final progressNotifier = ValueNotifier<double>(0.0);
+
+    try {
+      final taskId = await FlutterDownloader.enqueue(
+        url: pdfUrl,
+        savedDir: saveDir,
+        fileName: safeFileName,
+        showNotification: true,          // OS-level notification with progress
+        openFileFromNotification: true,  // tap notification → open file
+        requiresStorageNotLow: false,
+      );
+
+      if (taskId == null) throw Exception('Failed to enqueue download');
+
+      _pendingDownloads[taskId] = _DownloadInfo(
+        categoryName: categoryName,
+        pdfUrl: pdfUrl,
+        savePath: savePath,
+        progressNotifier: progressNotifier,
+      );
+
+      // Show in-app snackbar with live progress
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(minutes: 10),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: const Color(0xFF1B5E20),
+          content: ValueListenableBuilder<double>(
+            valueListenable: progressNotifier,
+            builder: (context, progress, child) {
+              final pct = (progress * 100).toStringAsFixed(0);
+              final rem = (100 - (progress * 100)).toStringAsFixed(0);
+              return Row(
+                children: [
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      value: progress > 0 ? progress : null,
+                      strokeWidth: 2,
+                      color: Colors.white,
+                      backgroundColor: Colors.white24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      progress > 0
+                          ? 'Downloading $categoryName catalogue… $pct% ($rem% left)'
+                          : 'Downloading $categoryName catalogue…',
+                      style:
+                          const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      progressNotifier.dispose();
+      if (!ctx.mounted) return;
+      messenger.clearSnackBars();
+      final uri = Uri.parse(pdfUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: Colors.orange.shade800,
+          content: const Text(
+            'Could not start download. Opened in browser.',
+            style: TextStyle(color: Colors.white, fontSize: 13),
+          ),
+        ),
+      );
+    }
+  }
+
+
   Widget _buildRectangularCategoryCard(
     BuildContext context,
     Category category,
@@ -703,8 +978,17 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       imageUrl: imageUrl,
       fallbackImage: _getFallbackImageForCategory(category.name),
       icon: _getIconForCategory(category.name),
+      onDownloadTap:
+          (category.cataloguePdf != null && category.cataloguePdf!.isNotEmpty)
+          ? () => _downloadCataloguePdf(
+              context,
+              category.cataloguePdf!,
+              category.name,
+            )
+          : null,
       onTap: () {
         HapticFeedback.selectionClick();
+        // Navigate to product list
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -715,6 +999,11 @@ class _CatalogueScreenState extends State<CatalogueScreen>
             ),
           ),
         );
+        // Simultaneously start catalogue download if available
+        if (category.cataloguePdf != null &&
+            category.cataloguePdf!.isNotEmpty) {
+          _downloadCataloguePdf(context, category.cataloguePdf!, category.name);
+        }
       },
     );
   }
@@ -926,6 +1215,7 @@ class RectangularCategoryCard extends StatefulWidget {
   final String fallbackImage;
   final IconData icon;
   final VoidCallback onTap;
+  final VoidCallback? onDownloadTap;
 
   const RectangularCategoryCard({
     super.key,
@@ -934,6 +1224,7 @@ class RectangularCategoryCard extends StatefulWidget {
     required this.fallbackImage,
     required this.icon,
     required this.onTap,
+    this.onDownloadTap,
   });
 
   @override
@@ -995,20 +1286,14 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
                     ),
                   ),
                 ),
-                if (widget.category.cataloguePdf != null &&
-                    widget.category.cataloguePdf!.isNotEmpty)
+                if (widget.onDownloadTap != null)
                   Positioned(
-                    top: 10,
-                    right: 10,
+                    top: 8,
+                    right: 8,
                     child: GestureDetector(
-                      onTap: () async {
-                        final uri = Uri.parse(widget.category.cataloguePdf!);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(
-                            uri,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        }
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        widget.onDownloadTap!();
                       },
                       child: Container(
                         padding: const EdgeInsets.all(6),
@@ -1017,16 +1302,16 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 6,
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
                           ],
                         ),
                         child: const Icon(
-                          Icons.picture_as_pdf_rounded,
-                          color: Colors.redAccent,
-                          size: 20,
+                          Icons.download_rounded,
+                          color: Color(0xFF2E7D32),
+                          size: 18,
                         ),
                       ),
                     ),
@@ -1038,4 +1323,19 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
       ),
     );
   }
+}
+
+// ── Data class for tracking in-flight downloads ────────────────────────────
+class _DownloadInfo {
+  final String categoryName;
+  final String pdfUrl;
+  final String savePath;
+  final ValueNotifier<double> progressNotifier;
+
+  const _DownloadInfo({
+    required this.categoryName,
+    required this.pdfUrl,
+    required this.savePath,
+    required this.progressNotifier,
+  });
 }

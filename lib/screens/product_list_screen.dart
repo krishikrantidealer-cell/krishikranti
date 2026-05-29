@@ -882,7 +882,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               TranslatableText(
-                                _getLocalizedCategoryName(widget.category, l10n),
+                                _getLocalizedCategoryName(
+                                  widget.category,
+                                  l10n,
+                                ),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w900,

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- App-internal documents directory -->
+    <files-path name="files" path="." />
+    <!-- External files directory (app-specific, no permission needed on API 29+) -->
+    <external-files-path name="external_files" path="." />
+    <!-- Public Downloads folder (used by flutter_downloader) -->
+    <external-path name="external_storage" path="." />
+</paths>

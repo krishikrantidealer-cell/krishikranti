@@ -24,11 +24,23 @@ import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/address_service.dart';
 import 'package:krishikranti/screens/order_detail_screen.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+
+// Top-level callback required by flutter_downloader (runs in a background isolate).
+@pragma('vm:entry-point')
+void downloadCallback(String id, int status, int progress) {
+  // Intentionally empty: catalogue_screen listens for status via its own
+  // IsolateNameServer port. This entry-point just needs to exist.
+}
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize FlutterDownloader (WorkManager-backed background downloads)
+  await FlutterDownloader.initialize(debug: false);
+  FlutterDownloader.registerCallback(downloadCallback);
 
   // Initialize Language Service (load saved locale synchronously before startup)
   await LanguageService.initialize();
