@@ -2,12 +2,14 @@ class Category {
   final String id;
   final String name;
   final String? bannerImage;
+  final String? cataloguePdf;
   final List<SubCategory> subCategories;
 
   Category({
     required this.id,
     required this.name,
     this.bannerImage,
+    this.cataloguePdf,
     this.subCategories = const [],
   });
 
@@ -16,6 +18,7 @@ class Category {
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
       bannerImage: json['bannerImage'],
+      cataloguePdf: json['cataloguePdf'],
       subCategories: (json['subCategories'] as List?)
               ?.map((s) => SubCategory.fromJson(s))
               .toList() ??
