@@ -327,6 +327,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   String _getImageForCategory(Category cat, int index) {
+    if (cat.bannerImage != null && cat.bannerImage!.isNotEmpty) {
+      return cat.bannerImage!;
+    }
     final String name = cat.name;
     if (_categoryCardBanners.isNotEmpty) {
       final String cleanName = name.trim().toLowerCase();
