@@ -415,9 +415,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async =>
-            false, // Absolutely prevent back dismiss to keep payment reference visible
+      builder: (context) => PopScope(
+        canPop: false,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),

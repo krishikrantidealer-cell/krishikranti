@@ -21,14 +21,16 @@ import 'package:intl/intl.dart';
 import 'package:krishikranti/screens/cart_screen.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/screens/catalogue_screen.dart';
-import 'package:krishikranti/screens/sub_collections_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/widgets/category_card.dart';
 import 'package:krishikranti/widgets/product_card.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
-import 'package:krishikranti/core/dynamic_translation_service.dart';
+// ── Extracted home widgets ──────────────────────────────────────────────────
+import 'package:krishikranti/widgets/home/home_banner_section.dart';
+import 'package:krishikranti/widgets/home/home_section_title.dart';
+import 'package:krishikranti/widgets/home/home_category_section.dart';
+import 'package:krishikranti/widgets/home/home_collection_row.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -448,7 +450,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         SliverPadding(
                           padding: const EdgeInsets.only(top: 10),
                           sliver: SliverToBoxAdapter(
-                            child: _buildBanner(context, theme),
+                            child: HomeBannerSection(
+                              banners: _banners,
+                              currentBanner: _currentBanner,
+                            ),
                           ),
                         ),
 
@@ -456,19 +461,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         SliverPadding(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
                           sliver: SliverToBoxAdapter(
-                            child: _sectionTitle(
-                              theme,
-                              l10n.categories,
-                              () {
+                            child: HomeSectionTitle(
+                              theme: theme,
+                              title: l10n.categories,
+                              onSeeAll: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        const CatalogueScreen(),
+                                    builder: (_) => const CatalogueScreen(),
                                   ),
                                 );
                               },
-                              l10n,
+                              seeAllLabel: l10n.seeAll,
                               subtitle: l10n.exploreTopSectors,
                             ),
                           ),
@@ -766,267 +770,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildBanner(BuildContext context, ThemeData theme) {
-    final List<String> imagesToDisplay = _banners.isNotEmpty
-        ? _banners.map((b) => b.imageUrl).toList()
-        : const [];
+  // ── _buildBanner replaced by HomeBannerSection widget ────────────────────
+  // Use HomeBannerSection(banners: _banners, currentBanner: _currentBanner)
+  // directly in the widget tree instead.
 
-    if (imagesToDisplay.isEmpty) {
-      return const SizedBox.shrink();
-    }
+  // ── _sectionTitle replaced by HomeSectionTitle widget ────────────────────
+  // Use HomeSectionTitle(...) directly in the widget tree instead.
 
-    return Column(
-      children: [
-        CarouselSlider.builder(
-          key: ValueKey(imagesToDisplay.length),
-          itemCount: imagesToDisplay.length,
-          itemBuilder: (context, index, realIndex) {
-            final String imageUrl = imagesToDisplay[index];
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  if (_banners.isNotEmpty && index < _banners.length) {
-                    final banner = _banners[index];
-                    if (banner.redirectType == 'category' &&
-                        banner.redirectTarget != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProductListScreen(
-                            category: banner.redirectTarget!,
-                          ),
-                        ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const ProductListScreen(category: "All"),
-                        ),
-                      );
-                    }
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const ProductListScreen(category: "All"),
-                      ),
-                    );
-                  }
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: imageUrl.startsWith('http')
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            placeholder: (context, url) =>
-                                Container(color: Colors.grey[200]),
-                            errorWidget: (context, url, error) => const Center(
-                              child: Icon(
-                                Icons.image_outlined,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                        : Image.asset(
-                            imageUrl,
-                            fit: BoxFit.fill,
-                            width: double.infinity,
-                          ),
-                  ),
-                ),
-              ),
-            );
-          },
-          options: CarouselOptions(
-            height: 165,
-            viewportFraction: 1.0,
-            autoPlay: imagesToDisplay.length > 1,
-            autoPlayInterval: const Duration(seconds: 5),
-            autoPlayAnimationDuration: const Duration(milliseconds: 800),
-            autoPlayCurve: Curves.easeInOutCubic,
-            enableInfiniteScroll: imagesToDisplay.length > 1,
-            pauseAutoPlayOnTouch: true,
-            pauseAutoPlayOnManualNavigate: true,
-            scrollPhysics: const BouncingScrollPhysics(),
-            onPageChanged: (index, reason) {
-              _currentBanner.value = index;
-            },
-          ),
-        ),
-        ValueListenableBuilder<int>(
-          valueListenable: _currentBanner,
-          builder: (context, currentIndex, child) {
-            if (imagesToDisplay.length <= 1) return const SizedBox.shrink();
-            // Safeguard bounds in case the banner list changed dynamically
-            final int safeIndex = currentIndex < imagesToDisplay.length
-                ? currentIndex
-                : 0;
-            return Column(
-              children: [
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    imagesToDisplay.length,
-                    (i) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: safeIndex == i ? 20 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: safeIndex == i
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.primary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _sectionTitle(
-    ThemeData theme,
-    String title,
-    VoidCallback onSeeAll,
-    AppLocalizations l10n, {
-    String? subtitle,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 5,
-                height: subtitle != null ? 28 : 20,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      const Color(0xFF38B058),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TranslatableText(
-                      title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        color: const Color(0xFF111827),
-                        height: 1.1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 1),
-                      TranslatableText(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF6B7280),
-                          letterSpacing: 0.3,
-                          height: 1.0,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () {
-              HapticFeedback.lightImpact();
-              onSeeAll();
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    l10n.seeAll,
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 10,
-                    color: theme.colorScheme.primary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildCategories(BuildContext context, ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
@@ -1116,34 +866,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
-    if (_isDiscoveryLoading) {
-      return const SizedBox.shrink(); // Or a small shimmer
-    }
-
-    if (_featuredProducts.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (_isDiscoveryLoading) return const SizedBox.shrink();
+    if (_featuredProducts.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 28, 16, 8),
-          child: _sectionTitle(
-            theme,
-            l10n.featuredProducts,
-            () {
+          child: HomeSectionTitle(
+            theme: theme,
+            title: l10n.featuredProducts,
+            onSeeAll: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ProductListScreen(
-                    category: "Featured",
+                  builder: (_) => const ProductListScreen(
+                    category: 'Featured',
                     isCollection: false,
                   ),
                 ),
               );
             },
-            l10n,
+            seeAllLabel: l10n.seeAll,
             subtitle: l10n.premiumFarmingEssentials,
           ),
         ),
@@ -1161,264 +906,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: ProductCard(
                   key: ValueKey(product.id),
                   product: product,
-                  category: "Featured",
+                  category: 'Featured',
                   isFavorite: _favoriteService.isFavorite(product.id),
                   onFavoriteToggle: () {
                     _favoriteService.toggleFavorite(
                       FavoriteProduct(
                         id: product.id,
                         name: product.title,
-                        category: product.brandName ?? "Product",
-                        price: product.price.toStringAsFixed(0),
-                        imageUrl: product.thumbnail,
-                        weight: product.variants.isNotEmpty
-                            ? product.variants.first.size
-                            : "N/A",
-                      ),
-                    );
-                  },
-                  index: index,
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSingleCollection(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-    Collection collection,
-  ) {
-    final subCollections = collection.subCollections
-        .where((s) => s.isActive)
-        .toList();
-    if (subCollections.isEmpty) return const SizedBox.shrink();
-
-    return ListenableBuilder(
-      listenable: DynamicTranslationService(),
-      builder: (context, _) {
-        final titleStr = collection.name.isNotEmpty
-            ? collection.name
-            : l10n.collections;
-        final translatedTitle = titleStr == l10n.collections
-            ? titleStr
-            : context.tr(titleStr);
-        if (titleStr != l10n.collections && titleStr.isNotEmpty) {
-          DynamicTranslationService().ensureTranslated(titleStr);
-        }
-
-        final subtitleStr = collection.description?.isNotEmpty == true
-            ? collection.description!
-            : l10n.exploreCollection(collection.name);
-        String translatedSubtitle;
-        if (collection.description?.isNotEmpty == true) {
-          translatedSubtitle = context.tr(subtitleStr);
-          DynamicTranslationService().ensureTranslated(subtitleStr);
-        } else {
-          final translatedName = context.tr(collection.name);
-          DynamicTranslationService().ensureTranslated(collection.name);
-          translatedSubtitle = l10n.exploreCollection(translatedName);
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _sectionTitle(
-                theme,
-                translatedTitle,
-                () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          SubCollectionsScreen(collection: collection),
-                    ),
-                  );
-                },
-                l10n,
-                subtitle: translatedSubtitle,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 125,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: subCollections.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 20),
-                itemBuilder: (context, index) {
-                  final subCrop = subCollections[index];
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProductListScreen(
-                            category: subCrop.name,
-                            collection: subCrop.name,
-                            isCollection: true,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 76,
-                          height: 76,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                theme.colorScheme.primary.withValues(
-                                  alpha: 0.25,
-                                ),
-                                theme.colorScheme.primary.withValues(
-                                  alpha: 0.05,
-                                ),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            border: Border.all(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.15,
-                              ),
-                              width: 2,
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(4),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(40),
-                              child: Container(
-                                color: Colors.grey[100],
-                                child:
-                                    subCrop.image != null &&
-                                        subCrop.image!.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: subCrop.image!,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) => Container(
-                                          color: Colors.grey[100],
-                                          child: const Center(
-                                            child:
-                                                CircularProgressIndicator.adaptive(
-                                                  strokeWidth: 2,
-                                                ),
-                                          ),
-                                        ),
-                                        errorWidget: (context, url, error) =>
-                                            const Icon(
-                                              Icons.eco,
-                                              color: Colors.green,
-                                              size: 30,
-                                            ),
-                                      )
-                                    : const Icon(
-                                        Icons.eco,
-                                        color: Colors.green,
-                                        size: 30,
-                                      ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TranslatableText(
-                          subCrop.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: Colors.black87,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSingleCategory(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-    Category cat,
-  ) {
-    final products = _categoryProducts[cat.id]!;
-    final localizedTitle = _getLocalizedCategoryName(cat.name, l10n);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: _sectionTitle(
-            theme,
-            localizedTitle,
-            () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProductListScreen(
-                    category: cat.name,
-                    categoryId: cat.id,
-                    categoryData: cat,
-                  ),
-                ),
-              );
-            },
-            l10n,
-            subtitle: l10n.premiumFarmingEssentials,
-          ),
-        ),
-        SizedBox(
-          height: 275,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: products.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return SizedBox(
-                width: 170,
-                child: ProductCard(
-                  key: ValueKey('cat_${cat.id}_${product.id}'),
-                  product: product,
-                  category: cat.name,
-                  isFavorite: _favoriteService.isFavorite(product.id),
-                  onFavoriteToggle: () {
-                    _favoriteService.toggleFavorite(
-                      FavoriteProduct(
-                        id: product.id,
-                        name: product.title,
-                        category: product.brandName ?? cat.name,
+                        category: product.brandName ?? 'Product',
                         price: product.price.toStringAsFixed(0),
                         imageUrl: product.thumbnail,
                         weight: product.variants.isNotEmpty
@@ -1437,101 +932,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildSingleCollectionSkeleton(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            l10n.collections,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 125,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: 6,
-            separatorBuilder: (context, index) => const SizedBox(width: 20),
-            itemBuilder: (context, index) => Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // ── _buildSingleCollection replaced by HomeCollectionRow widget ──────────
+  // Use HomeCollectionRow(collection: collection) directly in the widget tree.
 
-  Widget _buildSingleCategorySkeleton(BuildContext context, ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 5,
-                height: 28,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      const Color(0xFF38B058),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 140,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 275,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: 4,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (_, __) => Container(
-              width: 170,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // ── _buildSingleCategory replaced by HomeCategorySection widget ──────────
+  // Use HomeCategorySection(...) directly in the widget tree.
 
   Widget _buildAlternatingSections(
     BuildContext context,
@@ -1542,21 +947,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSingleCollectionSkeleton(context, theme, l10n),
+          HomeCollectionRowSkeleton(title: l10n.collections),
           const SizedBox(height: 16),
-          _buildSingleCategorySkeleton(context, theme),
+          const HomeCategoryProductRowSkeleton(),
           const SizedBox(height: 36),
-          _buildSingleCollectionSkeleton(context, theme, l10n),
+          HomeCollectionRowSkeleton(title: l10n.collections),
           const SizedBox(height: 16),
-          _buildSingleCategorySkeleton(context, theme),
+          const HomeCategoryProductRowSkeleton(),
           const SizedBox(height: 36),
         ],
       );
     }
 
     final activeCollections = _collections.where((c) {
-      final subCollections = c.subCollections.where((s) => s.isActive).toList();
-      return subCollections.isNotEmpty;
+      return c.subCollections.where((s) => s.isActive).isNotEmpty;
     }).toList();
 
     final activeCategories = _categories.where((cat) {
@@ -1575,23 +979,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     for (int i = 0; i < maxLen; i++) {
       if (i < activeCollections.length) {
-        children.add(
-          _buildSingleCollection(context, theme, l10n, activeCollections[i]),
-        );
+        children.add(HomeCollectionRow(collection: activeCollections[i]));
       }
 
-      // Proper spacing between collection and category in the same pair
       if (i < activeCollections.length && i < activeCategories.length) {
         children.add(const SizedBox(height: 16));
       }
 
       if (i < activeCategories.length) {
+        final cat = activeCategories[i];
         children.add(
-          _buildSingleCategory(context, theme, l10n, activeCategories[i]),
+          HomeCategorySection(
+            category: cat,
+            products: _categoryProducts[cat.id]!,
+            favoriteService: _favoriteService,
+            localizedTitle: _getLocalizedCategoryName(cat.name, l10n),
+          ),
         );
       }
 
-      // Proper spacing between pairs
       if (i < maxLen - 1) {
         children.add(const SizedBox(height: 36));
       }

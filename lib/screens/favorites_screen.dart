@@ -39,10 +39,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
-      child: WillPopScope(
-        onWillPop: () async {
-          setState(() => _isPopping = true);
-          return true;
+      child: PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) setState(() => _isPopping = true);
         },
         child: Scaffold(
           backgroundColor: const Color(0xFFF8F9FA),

@@ -55,8 +55,8 @@ class _OrderSecuredScreenState extends State<OrderSecuredScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Prevent physical back key dismissal
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         body: Stack(
           children: [

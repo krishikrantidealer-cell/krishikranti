@@ -145,6 +145,43 @@ class Product {
   }
 }
 
+class PriceTier {
+  final String id;
+  final String name;
+
+  PriceTier({required this.id, required this.name});
+
+  factory PriceTier.fromJson(Map<String, dynamic> json) {
+    return PriceTier(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+    };
+  }
+}
+
+class _ParsedTier {
+  final String id;
+  final String name;
+  final double? min;
+  final double? max;
+  final double rate;
+
+  _ParsedTier({
+    required this.id,
+    required this.name,
+    this.min,
+    this.max,
+    required this.rate,
+  });
+}
+
 class Variant {
   final String id;
   final String size;
@@ -155,6 +192,8 @@ class Variant {
   final double price50_plus;
   final double packVolume;
   final String? basePacking;
+  final List<PriceTier> priceTiers;
+  final Map<String, String> rates;
 
   Variant({
     required this.id,
@@ -166,11 +205,32 @@ class Variant {
     this.price50_plus = 0.0,
     this.packVolume = 1.0,
     this.basePacking,
+    this.priceTiers = const [],
+    this.rates = const {},
   });
 
   factory Variant.fromJson(Map<String, dynamic> json) {
     final double basePrice = Product._parseDouble(json['price']);
     final String sizeStr = json['size'] ?? '';
+
+    List<PriceTier> tiers = [];
+    if (json['priceTiers'] != null) {
+      try {
+        tiers = (json['priceTiers'] as List)
+            .map((t) => PriceTier.fromJson(Map<String, dynamic>.from(t)))
+            .toList();
+      } catch (_) {}
+    }
+
+    Map<String, String> ratesMap = {};
+    if (json['rates'] != null) {
+      try {
+        ratesMap = Map<String, String>.from(
+          (json['rates'] as Map).map((k, v) => MapEntry(k.toString(), v.toString())),
+        );
+      } catch (_) {}
+    }
+
     return Variant(
       id: Product._parseId(json['_id']),
       size: sizeStr,
@@ -189,8 +249,224 @@ class Variant {
           ? Product._parseDouble(json['packVolume'])
           : 1.0,
       basePacking: json['basePacking']?.toString(),
+      priceTiers: tiers,
+      rates: ratesMap,
     );
   }
+
+  static Map<String, double?> parseTierRange(String name) {
+    final regexParentheses = RegExp(r'\(([^)]+)\)');
+    final match = regexParentheses.firstMatch(name);
+    String content = '';
+    if (match != null) {
+      content = match.group(1)!;
+    } else {
+      content = name;
+    }
+
+    final clean = content.replaceAll(RegExp(r'[^0-9.\-+]'), '');
+
+    if (clean.endsWith('+')) {
+      final minStr = clean.substring(0, clean.length - 1);
+      final min = double.tryParse(minStr);
+      return {'min': min, 'max': null};
+    } else if (clean.contains('-')) {
+      final parts = clean.split('-');
+      if (parts.length == 2) {
+        final min = double.tryParse(parts[0]);
+        final max = double.tryParse(parts[1]);
+        return {'min': min, 'max': max};
+      }
+    }
+
+    final numbers = RegExp(r'\d+(?:\.\d+)?')
+        .allMatches(clean)
+        .map((m) => double.tryParse(m.group(0) ?? ''))
+        .toList();
+    if (numbers.isNotEmpty) {
+      if (clean.contains('+') || numbers.length == 1) {
+        return {'min': numbers.first, 'max': null};
+      } else if (numbers.length >= 2) {
+        return {'min': numbers[0], 'max': numbers[1]};
+      }
+    }
+
+    return {'min': null, 'max': null};
+  }
+
+  static double? parseRateValue(String? rateStr) {
+    if (rateStr == null || rateStr.isEmpty) return null;
+    final clean = rateStr.split('/').first.replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(clean);
+  }
+
+  double getTierUnitPriceForVolume(double totalVolume) {
+    if (priceTiers.isEmpty || rates.isEmpty) {
+      if (totalVolume > 50.0 && price50_plus > 0) {
+        return price50_plus;
+      } else if (totalVolume > 30.0 && price30_50 > 0) {
+        return price30_50;
+      } else if (totalVolume >= 10.0 && price10_30 > 0) {
+        return price10_30;
+      }
+      return price;
+    }
+
+    List<_ParsedTier> parsedTiers = [];
+    for (var tier in priceTiers) {
+      final range = parseTierRange(tier.name);
+      final rateVal = parseRateValue(rates[tier.id]);
+      if (rateVal != null) {
+        parsedTiers.add(_ParsedTier(
+          id: tier.id,
+          name: tier.name,
+          min: range['min'],
+          max: range['max'],
+          rate: rateVal,
+        ));
+      }
+    }
+
+    if (parsedTiers.isEmpty) {
+      if (totalVolume > 50.0 && price50_plus > 0) {
+        return price50_plus;
+      } else if (totalVolume > 30.0 && price30_50 > 0) {
+        return price30_50;
+      } else if (totalVolume >= 10.0 && price10_30 > 0) {
+        return price10_30;
+      }
+      return price;
+    }
+
+    parsedTiers.sort((a, b) {
+      final aMin = a.min ?? 0.0;
+      final bMin = b.min ?? 0.0;
+      return aMin.compareTo(bMin);
+    });
+
+    for (int i = 0; i < parsedTiers.length; i++) {
+      final tier = parsedTiers[i];
+      final min = tier.min;
+      final max = tier.max;
+
+      if (i == 0 && min != null && totalVolume < min) {
+        return price;
+      }
+
+      if (min != null) {
+        if (max != null) {
+          if (totalVolume >= min && totalVolume < max) {
+            return tier.rate;
+          }
+        } else {
+          if (totalVolume >= min) {
+            return tier.rate;
+          }
+        }
+      }
+    }
+
+    final lastTier = parsedTiers.last;
+    if (lastTier.min != null && totalVolume >= lastTier.min!) {
+      return lastTier.rate;
+    }
+
+    return price;
+  }
+
+  String getActiveTierId(double totalVolume) {
+    if (priceTiers.isEmpty || rates.isEmpty) return "";
+
+    List<_ParsedTier> parsedTiers = [];
+    for (var tier in priceTiers) {
+      final range = parseTierRange(tier.name);
+      final rateVal = parseRateValue(rates[tier.id]);
+      if (rateVal != null) {
+        parsedTiers.add(_ParsedTier(
+          id: tier.id,
+          name: tier.name,
+          min: range['min'],
+          max: range['max'],
+          rate: rateVal,
+        ));
+      }
+    }
+
+    if (parsedTiers.isEmpty) return "";
+
+    parsedTiers.sort((a, b) {
+      final aMin = a.min ?? 0.0;
+      final bMin = b.min ?? 0.0;
+      return aMin.compareTo(bMin);
+    });
+
+    for (int i = 0; i < parsedTiers.length; i++) {
+      final tier = parsedTiers[i];
+      final min = tier.min;
+      final max = tier.max;
+
+      if (i == 0 && min != null && totalVolume < min) {
+        return "";
+      }
+
+      if (min != null) {
+        if (max != null) {
+          if (totalVolume >= min && totalVolume < max) {
+            return tier.id;
+          }
+        } else {
+          if (totalVolume >= min) {
+            return tier.id;
+          }
+        }
+      }
+    }
+
+    final lastTier = parsedTiers.last;
+    if (lastTier.min != null && totalVolume >= lastTier.min!) {
+      return lastTier.id;
+    }
+
+    return "";
+  }
+
+  String getActiveTierName(double totalVolume) {
+    if (priceTiers.isEmpty || rates.isEmpty) {
+      if (totalVolume > 50.0 && price50_plus > 0) return "50L+ Tier";
+      if (totalVolume > 30.0 && price30_50 > 0) return "30-50L Tier";
+      if (totalVolume >= 10.0 && price10_30 > 0) return "10-30L Tier";
+      return "";
+    }
+
+    final tierId = getActiveTierId(totalVolume);
+    if (tierId.isNotEmpty) {
+      final tier = priceTiers.firstWhere((t) => t.id == tierId);
+      return tier.name;
+    }
+
+    return "";
+  }
+
+  double get minTierPrice {
+    double minVal = price;
+    if (priceTiers.isEmpty || rates.isEmpty) {
+      if (price10_30 > 0 && price10_30 < minVal) minVal = price10_30;
+      if (price30_50 > 0 && price30_50 < minVal) minVal = price30_50;
+      if (price50_plus > 0 && price50_plus < minVal) minVal = price50_plus;
+      return minVal;
+    }
+    for (var tier in priceTiers) {
+      final rateVal = parseRateValue(rates[tier.id]);
+      if (rateVal != null && rateVal > 0 && rateVal < minVal) {
+        minVal = rateVal;
+      }
+    }
+    return minVal;
+  }
+
+  bool get hasBulkDiscount => minTierPrice < price;
+
+  double get bulkDiscountPercent => hasBulkDiscount ? ((price - minTierPrice) / price * 100) : 0.0;
 }
 
 class ProductDetail {

@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:ui';
@@ -17,6 +20,7 @@ import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
@@ -338,15 +342,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     for (var v in _product.variants) {
       final qty = cartService.getVariantQty(v.id);
       if (qty > 0) {
-        double unitPrice = v.price;
         final double totalVolume = v.packVolume * qty;
-        if (totalVolume > 50.0) {
-          unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
-        } else if (totalVolume > 30.0) {
-          unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
-        } else if (totalVolume >= 10.0) {
-          unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
-        }
+        final double unitPrice = v.getTierUnitPriceForVolume(totalVolume);
         total += qty * (unitPrice * v.packVolume);
       }
     }
@@ -785,13 +782,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   double unitPrice = v.price;
                   if (isSelected) {
                     final double totalVolume = v.packVolume * quantity;
-                    if (totalVolume > 50.0) {
-                      unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
-                    } else if (totalVolume > 30.0) {
-                      unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
-                    } else if (totalVolume >= 10.0) {
-                      unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
-                    }
+                    unitPrice = v.getTierUnitPriceForVolume(totalVolume);
                   }
 
                   final String? perUnitLabel = _getPerUnitLabel(
@@ -831,36 +822,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       : (v.compareAtPrice * v.packVolume);
 
                   // Calculate bulk discount details
-                  double minPrice = v.price;
-                  if (v.price50_plus > 0 && v.price50_plus < minPrice) {
-                    minPrice = v.price50_plus;
-                  }
-                  if (v.price30_50 > 0 && v.price30_50 < minPrice) {
-                    minPrice = v.price30_50;
-                  }
-                  if (v.price10_30 > 0 && v.price10_30 < minPrice) {
-                    minPrice = v.price10_30;
-                  }
-
-                  final bool hasBulkDiscount = minPrice < v.price;
-                  final double bulkDiscountPercent = hasBulkDiscount
-                      ? ((v.price - minPrice) / v.price * 100)
-                      : 0.0;
+                  final double minPrice = v.minTierPrice;
+                  final bool hasBulkDiscount = v.hasBulkDiscount;
+                  final double bulkDiscountPercent = v.bulkDiscountPercent;
 
                   bool isBulkActive = false;
                   String activeTierName = "";
                   if (isSelected) {
                     final double totalVolume = v.packVolume * quantity;
-                    if (totalVolume > 50.0 && v.price50_plus > 0) {
-                      isBulkActive = true;
-                      activeTierName = "50L+ Tier";
-                    } else if (totalVolume > 30.0 && v.price30_50 > 0) {
-                      isBulkActive = true;
-                      activeTierName = "30-50L Tier";
-                    } else if (totalVolume >= 10.0 && v.price10_30 > 0) {
-                      isBulkActive = true;
-                      activeTierName = "10-30L Tier";
-                    }
+                    activeTierName = v.getActiveTierName(totalVolume);
+                    isBulkActive = activeTierName.isNotEmpty;
                   }
 
                   // Parse pack size value and unit for modern vertical stacked layout
@@ -1414,15 +1385,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _showError("Failed to remove item");
       });
     } else {
-      double unitPrice = v.price;
       final double totalVolume = v.packVolume * newQty;
-      if (totalVolume > 50.0) {
-        unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
-      } else if (totalVolume > 30.0) {
-        unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
-      } else if (totalVolume >= 10.0) {
-        unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
-      }
+      final double unitPrice = v.getTierUnitPriceForVolume(totalVolume);
 
       final List<Map<String, dynamic>> itemsToAdd = [
         {
@@ -1905,22 +1869,449 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
+  List<HtmlBlock> parseHtml(String html) {
+    final List<HtmlBlock> blocks = [];
+    final cleanHtml = html.replaceAll('\r', '');
+    final regex = RegExp(r'<[^>]+>|[^<]+');
+    final matches = regex.allMatches(cleanHtml);
+
+    bool isBold = false;
+    bool isItalic = false;
+    bool isUnderline = false;
+    bool isStrike = false;
+    double fontSize = 13.0;
+    List<Color> colorStack = [];
+    List<Color> bgStack = [];
+    List<String> fontStack = [];
+    List<Map<String, bool>> spanPushedStack = [];
+    String? currentLinkUrl;
+
+    List<InlineSpan> currentSpans = [];
+    TextAlign currentAlignment = TextAlign.left;
+    String currentBlockType = 'p';
+
+    bool inOrderedList = false;
+    int orderedListIndex = 0;
+
+    void commitBlock() {
+      if (currentSpans.isNotEmpty) {
+        blocks.add(
+          HtmlBlock(
+            spans: List.from(currentSpans),
+            alignment: currentAlignment,
+            blockType: currentBlockType,
+          ),
+        );
+        currentSpans.clear();
+      }
+      currentAlignment = TextAlign.left;
+      currentBlockType = 'p';
+    }
+
+    for (final match in matches) {
+      final token = match.group(0)!;
+      if (token.startsWith('<') && token.endsWith('>')) {
+        final tag = token.toLowerCase();
+
+        if (tag.startsWith('<span')) {
+          final styleMatch = RegExp(r'''style=["']([^"']*)["']''').firstMatch(token);
+          bool pushedColor = false;
+          bool pushedBg = false;
+          bool pushedFont = false;
+          if (styleMatch != null) {
+            final styleContent = styleMatch.group(1)!;
+            final colorMatch = RegExp(
+              r'(?<!-)color:\s*([^;]+)',
+            ).firstMatch(styleContent);
+            if (colorMatch != null) {
+              final colorStr = colorMatch.group(1)!.trim();
+              final parsedColor = parseColor(colorStr);
+              if (parsedColor != null) {
+                colorStack.add(parsedColor);
+                pushedColor = true;
+              }
+            }
+            final bgMatch = RegExp(
+              r'background-color:\s*([^;]+)',
+            ).firstMatch(styleContent);
+            if (bgMatch != null) {
+              final bgStr = bgMatch.group(1)!.trim();
+              final parsedBg = parseColor(bgStr);
+              if (parsedBg != null) {
+                bgStack.add(parsedBg);
+                pushedBg = true;
+              }
+            }
+            final fontMatch = RegExp(
+              r'font-family:\s*([^;]+)',
+            ).firstMatch(styleContent);
+            if (fontMatch != null) {
+              final fontStr = fontMatch
+                  .group(1)!
+                  .trim()
+                  .replaceAll(RegExp(r"['" + '"]'), '');
+              if (fontStr.isNotEmpty) {
+                fontStack.add(fontStr);
+                pushedFont = true;
+              }
+            }
+          }
+          spanPushedStack.add({
+            'color': pushedColor,
+            'bg': pushedBg,
+            'font': pushedFont,
+          });
+        } else if (tag == '</span>') {
+          if (spanPushedStack.isNotEmpty) {
+            final pushed = spanPushedStack.removeLast();
+            if (pushed['color'] == true && colorStack.isNotEmpty) {
+              colorStack.removeLast();
+            }
+            if (pushed['bg'] == true && bgStack.isNotEmpty) {
+              bgStack.removeLast();
+            }
+            if (pushed['font'] == true && fontStack.isNotEmpty) {
+              fontStack.removeLast();
+            }
+          } else {
+            if (colorStack.isNotEmpty) colorStack.removeLast();
+            if (bgStack.isNotEmpty) bgStack.removeLast();
+            if (fontStack.isNotEmpty) fontStack.removeLast();
+          }
+        } else if (tag.startsWith('<a')) {
+          final hrefMatch = RegExp(r'href="([^"]*)"').firstMatch(token);
+          if (hrefMatch != null) {
+            currentLinkUrl = hrefMatch.group(1);
+          }
+        } else if (tag == '</a>') {
+          currentLinkUrl = null;
+        } else if (tag.startsWith('<p') || tag.startsWith('<div')) {
+          commitBlock();
+          if (tag.contains('ql-align-center') ||
+              tag.contains('text-align: center') ||
+              tag.contains('text-align:center')) {
+            currentAlignment = TextAlign.center;
+          } else if (tag.contains('ql-align-right') ||
+              tag.contains('text-align: right') ||
+              tag.contains('text-align:right')) {
+            currentAlignment = TextAlign.right;
+          } else if (tag.contains('ql-align-justify') ||
+              tag.contains('text-align: justify') ||
+              tag.contains('text-align:justify')) {
+            currentAlignment = TextAlign.justify;
+          }
+        } else if (tag == '<strong>' || tag == '<b>') {
+          isBold = true;
+        } else if (tag == '</strong>' || tag == '</b>') {
+          isBold = false;
+        } else if (tag == '<em>' || tag == '<i>') {
+          isItalic = true;
+        } else if (tag == '</em>' || tag == '</i>') {
+          isItalic = false;
+        } else if (tag == '<u>') {
+          isUnderline = true;
+        } else if (tag == '</u>') {
+          isUnderline = false;
+        } else if (tag == '<s>' || tag == '<strike>' || tag == '<del>') {
+          isStrike = true;
+        } else if (tag == '</s>' || tag == '</strike>' || tag == '</del>') {
+          isStrike = false;
+        } else if (tag == '<ol>') {
+          inOrderedList = true;
+          orderedListIndex = 0;
+        } else if (tag == '</ol>') {
+          inOrderedList = false;
+        } else if (tag == '<ul>') {
+          inOrderedList = false;
+        } else if (tag == '</ul>') {
+          // No-op
+        } else if (tag.startsWith('<li')) {
+          commitBlock();
+          if (inOrderedList) {
+            orderedListIndex++;
+            currentBlockType = 'ol-li-$orderedListIndex';
+          } else {
+            currentBlockType = 'ul-li';
+          }
+        } else if (tag == '</h1>' || tag == '</h2>' || tag == '</h3>') {
+          isBold = false;
+          fontSize = 13.0;
+          commitBlock();
+        } else if (tag == '<h1>') {
+          commitBlock();
+          currentBlockType = 'h1';
+          isBold = true;
+          fontSize = 18.0;
+        } else if (tag == '<h2>') {
+          commitBlock();
+          currentBlockType = 'h2';
+          isBold = true;
+          fontSize = 16.0;
+        } else if (tag == '<h3>') {
+          commitBlock();
+          currentBlockType = 'h3';
+          isBold = true;
+          fontSize = 14.0;
+        } else if (tag == '<br>' || tag == '<br/>' || tag == '<br />') {
+          currentSpans.add(const TextSpan(text: '\n'));
+        } else if (tag == '</p>' || tag == '</div>' || tag == '</li>') {
+          commitBlock();
+        }
+      } else {
+        final text = token
+            .replaceAll('&nbsp;', ' ')
+            .replaceAll('&amp;', '&')
+            .replaceAll('&lt;', '<')
+            .replaceAll('&gt;', '>')
+            .replaceAll('&quot;', '"')
+            .replaceAll('&#39;', "'");
+
+        if (text.isNotEmpty) {
+          final List<TextDecoration> decorations = [];
+          if (isUnderline || currentLinkUrl != null)
+            decorations.add(TextDecoration.underline);
+          if (isStrike) decorations.add(TextDecoration.lineThrough);
+
+          TextStyle textStyle;
+          if (fontStack.isNotEmpty) {
+            try {
+              textStyle = GoogleFonts.getFont(
+                fontStack.last,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+                decoration: decorations.isEmpty
+                    ? TextDecoration.none
+                    : TextDecoration.combine(decorations),
+                fontSize: fontSize,
+                color: currentLinkUrl != null
+                    ? Colors.blue
+                    : (colorStack.isNotEmpty
+                          ? colorStack.last
+                          : Colors.black87),
+                backgroundColor: bgStack.isNotEmpty ? bgStack.last : null,
+                height: 1.5,
+              );
+            } catch (e) {
+              textStyle = TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+                decoration: decorations.isEmpty
+                    ? TextDecoration.none
+                    : TextDecoration.combine(decorations),
+                fontSize: fontSize,
+                color: currentLinkUrl != null
+                    ? Colors.blue
+                    : (colorStack.isNotEmpty
+                          ? colorStack.last
+                          : Colors.black87),
+                backgroundColor: bgStack.isNotEmpty ? bgStack.last : null,
+                height: 1.5,
+              );
+            }
+          } else {
+            textStyle = TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+              decoration: decorations.isEmpty
+                  ? TextDecoration.none
+                  : TextDecoration.combine(decorations),
+              fontSize: fontSize,
+              color: currentLinkUrl != null
+                  ? Colors.blue
+                  : (colorStack.isNotEmpty ? colorStack.last : Colors.black87),
+              backgroundColor: bgStack.isNotEmpty ? bgStack.last : null,
+              height: 1.5,
+            );
+          }
+
+          final String? link = currentLinkUrl;
+          currentSpans.add(
+            TextSpan(
+              text: text,
+              style: textStyle,
+              recognizer: link != null
+                  ? (TapGestureRecognizer()
+                      ..onTap = () async {
+                        final String targetLink =
+                            (link.startsWith('http://') ||
+                                link.startsWith('https://'))
+                            ? link
+                            : 'https://$link';
+                        final uri = Uri.tryParse(targetLink);
+                        if (uri != null) {
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      })
+                  : null,
+            ),
+          );
+        }
+      }
+    }
+    commitBlock();
+    return blocks;
+  }
+
+  Color? parseColor(String colorStr) {
+    if (colorStr.startsWith('#')) {
+      final hex = colorStr.substring(1);
+      if (hex.length == 8) {
+        return Color(int.parse(hex, radix: 16));
+      } else if (hex.length == 6) {
+        return Color(int.parse('FF$hex', radix: 16));
+      } else if (hex.length == 3) {
+        final r = hex[0];
+        final g = hex[1];
+        final b = hex[2];
+        return Color(int.parse('FF$r$r$g$g$b$b', radix: 16));
+      }
+    }
+    if (colorStr.startsWith('rgb')) {
+      final match = RegExp(
+        r'rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)',
+      ).firstMatch(colorStr);
+      if (match != null) {
+        final r = int.parse(match.group(1)!);
+        final g = int.parse(match.group(2)!);
+        final b = int.parse(match.group(3)!);
+        return Color.fromARGB(255, r, g, b);
+      }
+    }
+    final lower = colorStr.toLowerCase();
+    if (lower == 'red') return Colors.red;
+    if (lower == 'blue') return Colors.blue;
+    if (lower == 'green') return Colors.green;
+    if (lower == 'yellow') return Colors.yellow;
+    if (lower == 'orange') return Colors.orange;
+    if (lower == 'black') return Colors.black;
+    if (lower == 'white') return Colors.white;
+    if (lower == 'grey' || lower == 'gray') return Colors.grey;
+    return null;
+  }
+
+  Widget buildHtmlContent(BuildContext context, List<HtmlBlock> blocks) {
+    final service = DynamicTranslationService();
+    final List<String> allTexts = [];
+    for (final block in blocks) {
+      for (final span in block.spans) {
+        if (span is TextSpan &&
+            span.text != null &&
+            span.text!.trim().isNotEmpty) {
+          allTexts.add(span.text!);
+        }
+      }
+    }
+
+    if (allTexts.isNotEmpty && service.currentLangCode != 'en') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        service.ensureAllTranslated(allTexts);
+      });
+    }
+
+    return ListenableBuilder(
+      listenable: service,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: blocks.map((block) {
+            final translatedSpans = block.spans.map((span) {
+              if (span is TextSpan && span.text != null) {
+                return TextSpan(
+                  text: service.getTranslation(span.text!),
+                  style: span.style,
+                  recognizer: span.recognizer,
+                );
+              }
+              return span;
+            }).toList();
+
+            Widget widget;
+            if (block.blockType.startsWith('ol-li-')) {
+              final number = block.blockType.substring(6);
+              widget = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '  $number.  ',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(children: translatedSpans),
+                      textAlign: block.alignment,
+                    ),
+                  ),
+                ],
+              );
+            } else if (block.blockType == 'ul-li' || block.blockType == 'li') {
+              widget = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '  •  ',
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(children: translatedSpans),
+                      textAlign: block.alignment,
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              widget = SizedBox(
+                width: double.infinity,
+                child: RichText(
+                  text: TextSpan(children: translatedSpans),
+                  textAlign: block.alignment,
+                ),
+              );
+            }
+
+            double bottomPadding = 8.0;
+            if (block.blockType.startsWith('h')) {
+              bottomPadding = 12.0;
+            } else if (block.blockType == 'ul-li' ||
+                block.blockType == 'li' ||
+                block.blockType.startsWith('ol-li-')) {
+              bottomPadding = 4.0;
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: bottomPadding),
+              child: widget,
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
   Widget _buildCollapsibleDescription(String rawText) {
     const int maxCollapsedLines = 4;
 
-    // Convert HTML blocks to newlines
     String text = rawText
         .replaceAll(RegExp(r"<\/?p[^>]*>", caseSensitive: false), '\n\n')
         .replaceAll(RegExp(r"<br\s*\/?>", caseSensitive: false), '\n')
         .replaceAll(RegExp(r"<li>", caseSensitive: false), '\n• ')
         .replaceAll(RegExp(r"<\/?div[^>]*>", caseSensitive: false), '\n\n')
         .replaceAll('&nbsp;', ' ');
-
-    // Strip remaining HTML tags
     text = text.replaceAll(RegExp(r"<[^>]*>", multiLine: true), '').trim();
-
-    // Normalize excessive newlines
     text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    final parsedBlocks = parseHtml(rawText);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1939,24 +2330,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
         final bool isOverflown = textPainter.didExceedMaxLines;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                TranslatableText(
-                  text,
-                  maxLines: _isDescriptionExpanded ? null : maxCollapsedLines,
-                  overflow: _isDescriptionExpanded
-                      ? TextOverflow.clip
-                      : TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 13,
-                    height: 1.5,
+        Widget mainContent = buildHtmlContent(context, parsedBlocks);
+
+        if (isOverflown && !_isDescriptionExpanded) {
+          mainContent = ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 90.0),
+            child: ClipRect(
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    physics: const NeverScrollableScrollPhysics(),
+                    child: mainContent,
                   ),
-                ),
-                if (isOverflown && !_isDescriptionExpanded)
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -1975,8 +2360,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            mainContent,
             if (isOverflown) ...[
               const SizedBox(height: 8),
               GestureDetector(
@@ -2318,36 +2711,60 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final List<TierInfo> list = [];
     final String suffix = isKg ? "Kg" : "L";
 
-    if (v.price10_30 > 0) {
-      list.add(
-        TierInfo(
-          label: "10-30$suffix Tier",
-          threshold: 10.0,
-          price: v.price10_30,
-          key: "10_30",
-        ),
-      );
+    if (v.priceTiers.isEmpty || v.rates.isEmpty) {
+      if (v.price10_30 > 0) {
+        list.add(
+          TierInfo(
+            label: "10-30$suffix Tier",
+            threshold: 10.0,
+            price: v.price10_30,
+            key: "10_30",
+            max: 30.0,
+          ),
+        );
+      }
+      if (v.price30_50 > 0) {
+        list.add(
+          TierInfo(
+            label: "30-50$suffix Tier",
+            threshold: 30.0,
+            price: v.price30_50,
+            key: "30_50",
+            max: 50.0,
+          ),
+        );
+      }
+      if (v.price50_plus > 0) {
+        list.add(
+          TierInfo(
+            label: "50$suffix+ Tier",
+            threshold: 50.0,
+            price: v.price50_plus,
+            key: "50_plus",
+            max: null,
+          ),
+        );
+      }
+      return list;
     }
-    if (v.price30_50 > 0) {
-      list.add(
-        TierInfo(
-          label: "30-50$suffix Tier",
-          threshold: 30.0,
-          price: v.price30_50,
-          key: "30_50",
-        ),
-      );
+
+    for (var tier in v.priceTiers) {
+      final range = Variant.parseTierRange(tier.name);
+      final rateVal = Variant.parseRateValue(v.rates[tier.id]);
+      if (rateVal != null) {
+        list.add(
+          TierInfo(
+            label: tier.name,
+            threshold: range['min'] ?? 0.0,
+            price: rateVal,
+            key: tier.id,
+            max: range['max'],
+          ),
+        );
+      }
     }
-    if (v.price50_plus > 0) {
-      list.add(
-        TierInfo(
-          label: "50$suffix+ Tier",
-          threshold: 50.0,
-          price: v.price50_plus,
-          key: "50_plus",
-        ),
-      );
-    }
+
+    list.sort((a, b) => a.threshold.compareTo(b.threshold));
     return list;
   }
 
@@ -2394,22 +2811,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               final t = entry.value;
 
               bool isTierUnlocked = false;
-              if (t.key == "10_30") {
-                isTierUnlocked = totalVolume >= 10.0;
-              } else if (t.key == "30_50") {
-                isTierUnlocked = totalVolume > 30.0;
-              } else if (t.key == "50_plus") {
-                isTierUnlocked = totalVolume > 50.0;
+              if (v.priceTiers.isEmpty || v.rates.isEmpty) {
+                if (t.key == "10_30") {
+                  isTierUnlocked = totalVolume >= 10.0;
+                } else if (t.key == "30_50") {
+                  isTierUnlocked = totalVolume > 30.0;
+                } else if (t.key == "50_plus") {
+                  isTierUnlocked = totalVolume > 50.0;
+                }
+              } else {
+                isTierUnlocked = totalVolume >= t.threshold;
               }
 
               // Resolve the highest unlocked tier as the currently active tier
               String activeTierKey = "";
-              if (totalVolume > 50.0 && v.price50_plus > 0) {
-                activeTierKey = "50_plus";
-              } else if (totalVolume > 30.0 && v.price30_50 > 0) {
-                activeTierKey = "30_50";
-              } else if (totalVolume >= 10.0 && v.price10_30 > 0) {
-                activeTierKey = "10_30";
+              if (v.priceTiers.isEmpty || v.rates.isEmpty) {
+                if (totalVolume > 50.0 && v.price50_plus > 0) {
+                  activeTierKey = "50_plus";
+                } else if (totalVolume > 30.0 && v.price30_50 > 0) {
+                  activeTierKey = "30_50";
+                } else if (totalVolume >= 10.0 && v.price10_30 > 0) {
+                  activeTierKey = "10_30";
+                }
+              } else {
+                activeTierKey = v.getActiveTierId(totalVolume);
               }
 
               final bool isActiveTier = (t.key == activeTierKey);
@@ -2478,12 +2903,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     while (true) {
       final double vol = v.packVolume * qty;
       bool unlocked = false;
-      if (tierKey == "10_30") {
-        unlocked = vol >= 10.0;
-      } else if (tierKey == "30_50") {
-        unlocked = vol > 30.0;
-      } else if (tierKey == "50_plus") {
-        unlocked = vol > 50.0;
+      if (v.priceTiers.isEmpty || v.rates.isEmpty) {
+        if (tierKey == "10_30") {
+          unlocked = vol >= 10.0;
+        } else if (tierKey == "30_50") {
+          unlocked = vol > 30.0;
+        } else if (tierKey == "50_plus") {
+          unlocked = vol > 50.0;
+        }
+      } else {
+        final tier = v.priceTiers.firstWhere(
+          (t) => t.id == tierKey,
+          orElse: () => PriceTier(id: '', name: ''),
+        );
+        if (tier.id.isNotEmpty) {
+          final range = Variant.parseTierRange(tier.name);
+          final threshold = range['min'] ?? 0.0;
+          unlocked = vol >= threshold;
+        }
       }
       if (unlocked) {
         return qty;
@@ -2498,13 +2935,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     double unitPrice = v.price;
     if (qty > 0) {
       final double totalVolume = v.packVolume * qty;
-      if (totalVolume > 50.0) {
-        unitPrice = v.price50_plus > 0 ? v.price50_plus : v.price;
-      } else if (totalVolume > 30.0) {
-        unitPrice = v.price30_50 > 0 ? v.price30_50 : v.price;
-      } else if (totalVolume >= 10.0) {
-        unitPrice = v.price10_30 > 0 ? v.price10_30 : v.price;
-      }
+      unitPrice = v.getTierUnitPriceForVolume(totalVolume);
     }
     return unitPrice;
   }
@@ -3191,17 +3622,31 @@ class ParsedSize {
   ParsedSize(this.packSize, this.configuration);
 }
 
+class HtmlBlock {
+  final List<InlineSpan> spans;
+  final TextAlign alignment;
+  final String blockType;
+
+  HtmlBlock({
+    required this.spans,
+    this.alignment = TextAlign.left,
+    this.blockType = 'p',
+  });
+}
+
 class TierInfo {
   final String label;
   final double threshold;
   final double price;
   final String key;
+  final double? max;
 
   TierInfo({
     required this.label,
     required this.threshold,
     required this.price,
     required this.key,
+    this.max,
   });
 }
 

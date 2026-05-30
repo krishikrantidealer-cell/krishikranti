@@ -68,13 +68,15 @@ class _MainScreenState extends State<MainScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
-      child: WillPopScope(
-        onWillPop: () async {
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
           if (_selectedIndex != 0) {
             setState(() {
               _selectedIndex = 0;
             });
-            return false;
+            return;
           }
 
           final now = DateTime.now();
@@ -87,9 +89,8 @@ class _MainScreenState extends State<MainScreen> {
                 duration: Duration(seconds: 2),
               ),
             );
-            return false;
+            return;
           }
-          return true;
         },
         child: Scaffold(
           body: IndexedStack(

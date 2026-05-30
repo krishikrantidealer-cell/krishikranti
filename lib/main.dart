@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -36,17 +37,22 @@ void downloadCallback(String id, int status, int progress) {
     final SendPort? send = IsolateNameServer.lookupPortByName('downloader_send_port');
     send?.send([id, status, progress]);
   } catch (e) {
-    print('=== ERROR in top-level downloadCallback: $e ===');
+    if (kDebugMode) debugPrint('=== ERROR in top-level downloadCallback: $e ===');
   }
 }
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
+  // ── Silence all debugPrint output in production builds ──────────────────
+  if (!kDebugMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize FlutterDownloader (WorkManager-backed background downloads)
-  await FlutterDownloader.initialize(debug: true);
+  await FlutterDownloader.initialize(debug: kDebugMode);
   FlutterDownloader.registerCallback(downloadCallback);
 
   // Initialize Language Service (load saved locale synchronously before startup)
@@ -100,6 +106,8 @@ class MyApp extends StatelessWidget {
       scaffoldMessengerKey: messengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
       locale: languageService.locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: [
