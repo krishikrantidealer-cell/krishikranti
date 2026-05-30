@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/core/notification_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/features/products/data/repositories/home_repository.dart';
 import 'home_screen.dart';
@@ -325,20 +326,70 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
         ? widget.activeAssetPath
         : widget.assetPath;
 
+    Widget iconWidget;
     if (effectiveAsset != null) {
-      return Image.asset(
+      iconWidget = Image.asset(
         effectiveAsset,
         width: 22,
         height: 22,
         color: widget.color,
       );
+    } else {
+      iconWidget = Icon(
+        widget.isSelected ? widget.selectedIcon : widget.icon,
+        color: widget.color,
+        size: 24,
+      );
     }
 
-    return Icon(
-      widget.isSelected ? widget.selectedIcon : widget.icon,
-      color: widget.color,
-      size: 24,
-    );
+    if (widget.index == 2) {
+      return Consumer<NotificationProvider>(
+        builder: (context, provider, child) {
+          final count = provider.unreadCount;
+          if (count == 0) {
+            return iconWidget;
+          }
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              iconWidget,
+              Positioned(
+                right: -6,
+                top: -6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 1.5,
+                    ),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Center(
+                    child: Text(
+                      count > 9 ? '9+' : count.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        height: 1.0,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    return iconWidget;
   }
 }
 

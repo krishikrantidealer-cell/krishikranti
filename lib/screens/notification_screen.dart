@@ -1,15 +1,15 @@
 import 'dart:convert';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:krishikranti/core/notification_service.dart';
+import 'package:krishikranti/core/notification_provider.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -21,106 +21,38 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<NotificationModel> _notifications = [];
-  StreamSubscription? _notificationSub;
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadSavedNotifications();
-
-    // Listen for new notifications arriving while the user is on this screen
-    _notificationSub = NotificationService.onNewNotification.listen((newNotif) {
-      if (mounted) {
-        setState(() {
-          _notifications.insert(0, newNotif);
-        });
-      }
-    });
-  }
-
-  Future<void> _loadSavedNotifications() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedList = prefs.getStringList('local_notifications') ?? [];
-
-      final parsedList = savedList.map((str) {
-        return NotificationModel.fromJson(jsonDecode(str));
-      }).toList();
-
-      if (mounted) {
-        setState(() {
-          _notifications = parsedList;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint("Error loading notifications: $e");
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _saveCurrentState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final strList = _notifications.map((n) => jsonEncode(n.toJson())).toList();
-    await prefs.setStringList('local_notifications', strList);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _notificationSub?.cancel();
     super.dispose();
   }
 
-  void _deleteNotification(String id) {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _notifications.removeWhere((n) => n.id == id);
-    });
-    _saveCurrentState();
-  }
-
-  void _toggleReadStatus(String id) {
-    setState(() {
-      final index = _notifications.indexWhere((n) => n.id == id);
-      if (index != -1) {
-        _notifications[index].isUnread = false;
-      }
-    });
-    _saveCurrentState();
-  }
-
-  void _markAllAsRead() {
-    HapticFeedback.lightImpact();
-    setState(() {
-      for (var n in _notifications) {
-        n.isUnread = false;
-      }
-    });
-    _saveCurrentState();
-  }
-
-  List<NotificationModel> _getFilteredNotifications(int tabIndex) {
+  List<NotificationModel> _getFilteredNotifications(List<NotificationModel> allNotifications, int tabIndex) {
     if (tabIndex == 1) {
-      return _notifications
+      return allNotifications
           .where((n) => n.category == NotificationCategory.utility)
           .toList();
     } else if (tabIndex == 2) {
-      return _notifications
+      return allNotifications
           .where((n) => n.category == NotificationCategory.marketing)
           .toList();
     }
-    return _notifications;
+    return allNotifications;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final hasUnread = _notifications.any((n) => n.isUnread);
+    final provider = context.watch<NotificationProvider>();
+    final hasUnread = provider.hasUnread;
 
     return Scaffold(
       backgroundColor: const Color(
@@ -152,7 +84,10 @@ class _NotificationScreenState extends State<NotificationScreen>
                   borderRadius: BorderRadius.circular(30),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(30),
-                    onTap: _markAllAsRead,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      provider.markAllAsRead();
+                    },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -227,26 +162,26 @@ class _NotificationScreenState extends State<NotificationScreen>
           ),
         ),
       ),
-      body: _isLoading
+      body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : TabBarView(
               controller: _tabController,
               children: [
-                _buildNotificationList(0, theme),
-                _buildNotificationList(1, theme),
-                _buildNotificationList(2, theme),
+                _buildNotificationList(0, provider, theme),
+                _buildNotificationList(1, provider, theme),
+                _buildNotificationList(2, provider, theme),
               ],
             ),
     );
   }
 
-  Widget _buildNotificationList(int tabIndex, ThemeData theme) {
-    final filteredList = _getFilteredNotifications(tabIndex);
+  Widget _buildNotificationList(int tabIndex, NotificationProvider provider, ThemeData theme) {
+    final filteredList = _getFilteredNotifications(provider.notifications, tabIndex);
 
     return RefreshIndicator(
       onRefresh: () async {
         HapticFeedback.lightImpact();
-        await _loadSavedNotifications();
+        await provider.refreshNotifications();
       },
       color: theme.colorScheme.primary,
       child: filteredList.isEmpty
@@ -271,7 +206,7 @@ class _NotificationScreenState extends State<NotificationScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (showSection) _buildSectionTitle(current.group),
-                    _buildNotificationCard(current, theme),
+                    _buildNotificationCard(current, provider, theme),
                   ],
                 );
               },
@@ -322,6 +257,7 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Widget _buildNotificationCard(
     NotificationModel notification,
+    NotificationProvider provider,
     ThemeData theme,
   ) {
     final l10n = AppLocalizations.of(context)!;
@@ -338,7 +274,10 @@ class _NotificationScreenState extends State<NotificationScreen>
       child: Dismissible(
         key: Key(notification.id),
         direction: DismissDirection.endToStart,
-        onDismissed: (direction) => _deleteNotification(notification.id),
+        onDismissed: (direction) {
+          HapticFeedback.mediumImpact();
+          provider.deleteNotification(notification.id);
+        },
         background: _buildDismissBackground(),
         child: Container(
           decoration: BoxDecoration(
@@ -368,7 +307,12 @@ class _NotificationScreenState extends State<NotificationScreen>
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => _toggleReadStatus(notification.id),
+                    onTap: () {
+                      provider.toggleReadStatus(notification.id);
+                      if (notification.payload != null) {
+                        NotificationService.handleNotificationTap(notification.payload);
+                      }
+                    },
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
                       child: Row(

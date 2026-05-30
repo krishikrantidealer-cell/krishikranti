@@ -74,55 +74,35 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage>
               child: Column(
                 children: [
                   _buildCompactHeader(context, l10n, theme),
-                  if (currentLocale != 'en' && (dts.isDownloadingModel || dts.downloadErrorMessage != null))
+                  if (currentLocale != 'en' && dts.downloadErrorMessage != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: dts.downloadErrorMessage != null
-                              ? Colors.amber.shade50.withValues(alpha: 0.9)
-                              : theme.colorScheme.primary.withValues(alpha: 0.08),
+                          color: Colors.amber.shade50.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: dts.downloadErrorMessage != null
-                                ? Colors.amber.shade200
-                                : theme.colorScheme.primary.withValues(alpha: 0.15),
+                            color: Colors.amber.shade200,
                             width: 1,
                           ),
                         ),
                         child: Row(
                           children: [
-                            if (dts.isDownloadingModel)
-                              SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    theme.colorScheme.primary,
-                                  ),
-                                ),
-                              )
-                            else
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                size: 20,
-                                color: Colors.amber.shade800,
-                              ),
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 20,
+                              color: Colors.amber.shade800,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                dts.isDownloadingModel
-                                    ? "Downloading translation pack in background... Please connect to Wi-Fi if download is pending."
-                                    : dts.downloadErrorMessage!,
+                                dts.downloadErrorMessage!,
                                 style: TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
-                                  color: dts.downloadErrorMessage != null
-                                      ? Colors.amber.shade900
-                                      : theme.colorScheme.primary,
+                                  color: Colors.amber.shade900,
                                 ),
                               ),
                             ),

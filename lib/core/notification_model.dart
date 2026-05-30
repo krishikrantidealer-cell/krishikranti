@@ -13,6 +13,7 @@ class NotificationModel {
   bool isUnread;
   final String group;
   final NotificationCategory category;
+  final String? payload;
 
   NotificationModel({
     required this.id,
@@ -24,6 +25,7 @@ class NotificationModel {
     this.isUnread = true,
     required this.group,
     required this.category,
+    this.payload,
   });
 
   Map<String, dynamic> toJson() {
@@ -35,6 +37,7 @@ class NotificationModel {
       'isUnread': isUnread,
       'group': group,
       'category': category.name,
+      if (payload != null) 'payload': payload,
     };
   }
 
@@ -58,6 +61,7 @@ class NotificationModel {
       isUnread: json['isUnread'] as bool,
       group: json['group'] as String,
       category: category,
+      payload: json['payload'] as String?,
     );
   }
 }

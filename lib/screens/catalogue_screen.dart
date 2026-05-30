@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
@@ -20,6 +21,10 @@ import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/widgets/breathing_mic_icon.dart';
+import 'package:krishikranti/core/notification_service.dart';
+import 'package:krishikranti/core/notification_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 
 class CatalogueScreen extends StatefulWidget {
   final bool isShowingCollections;
@@ -44,124 +49,25 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   // 5 rotating hint slots (0-4): crops, seeds, fertilizers, machinery, organic
   static const int _searchHintCount = 5;
 
-  // ── flutter_downloader IsolateNameServer port ───────────────────────────
-  static const String _portName = 'catalogue_downloader_port';
-  final ReceivePort _port = ReceivePort();
-  // taskId → category download info for open-on-complete
-  final Map<String, _DownloadInfo> _pendingDownloads = {};
+  final Set<String> _downloadedCategories = {};
+  StreamSubscription<NotificationModel>? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _bindDownloaderPort();
     if (widget.isShowingCollections) {
       _fetchCollections();
     } else {
       _fetchCategories();
     }
     _startHintTimer();
-  }
 
-  // ── flutter_downloader port wiring ─────────────────────────────────────
-  void _bindDownloaderPort() {
-    IsolateNameServer.removePortNameMapping(_portName);
-    IsolateNameServer.registerPortWithName(_port.sendPort, _portName);
-    _port.listen(_onDownloadUpdate);
-    FlutterDownloader.registerCallback(_downloaderCallback);
-  }
-
-  @pragma('vm:entry-point')
-  static void _downloaderCallback(String id, int status, int progress) {
-    final send = IsolateNameServer.lookupPortByName(
-      'catalogue_downloader_port',
-    );
-    send?.send([id, status, progress]);
-  }
-
-  void _onDownloadUpdate(dynamic data) {
-    final list = data as List<dynamic>;
-    final taskId = list[0] as String;
-    final status = DownloadTaskStatus.fromInt(list[1] as int);
-    final progress = list[2] as int;
-
-    final info = _pendingDownloads[taskId];
-    if (info == null) return;
-
-    // Update in-app snackbar progress
-    info.progressNotifier.value = progress / 100.0;
-
-    if (status == DownloadTaskStatus.complete) {
-      _pendingDownloads.remove(taskId);
-      info.progressNotifier.dispose();
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 8),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            backgroundColor: const Color(0xFF2E7D32),
-            content: Text(
-              '${info.categoryName} catalogue downloaded!',
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-            ),
-            action: SnackBarAction(
-              label: 'Open',
-              textColor: const Color(0xFFA5D6A7),
-              onPressed: () async {
-                final result = await OpenFilex.open(info.savePath);
-                if (result.type != ResultType.done) {
-                  final webUri = Uri.parse(info.pdfUrl);
-                  if (await canLaunchUrl(webUri)) {
-                    await launchUrl(
-                      webUri,
-                      mode: LaunchMode.externalApplication,
-                    );
-                  }
-                }
-              },
-            ),
-          ),
-        );
+    _notificationSubscription = NotificationService.onNewNotification.listen((notif) {
+      if (notif.title.endsWith('Catalogue Ready') || notif.title.endsWith('Download Failed')) {
+        _checkDownloadedCatalogues();
       }
-    } else if (status == DownloadTaskStatus.failed ||
-        status == DownloadTaskStatus.canceled) {
-      _pendingDownloads.remove(taskId);
-      info.progressNotifier.dispose();
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            backgroundColor: Colors.orange.shade800,
-            content: Text(
-              'Download failed. Tap to open in browser.',
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-            ),
-            action: SnackBarAction(
-              label: 'Open',
-              textColor: Colors.white,
-              onPressed: () async {
-                final webUri = Uri.parse(info.pdfUrl);
-                if (await canLaunchUrl(webUri)) {
-                  await launchUrl(
-                    webUri,
-                    mode: LaunchMode.externalApplication,
-                  );
-                }
-              },
-            ),
-          ),
-        );
-      }
-    }
+    });
   }
 
   void _startHintTimer() {
@@ -196,6 +102,44 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     }
   }
 
+  Future<bool> _isCatalogueDownloaded(String categoryName) async {
+    String saveDir;
+    try {
+      if (Platform.isAndroid) {
+        final dir = await getExternalStorageDirectory();
+        saveDir = dir?.path ?? '/storage/emulated/0/Download';
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        saveDir = dir.path;
+      }
+    } catch (e) {
+      saveDir = '/storage/emulated/0/Download';
+    }
+    final safeFileName =
+        '${categoryName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_catalogue.pdf';
+    final savePath = '$saveDir/$safeFileName';
+    final localFile = File(savePath);
+    return await localFile.exists() && await localFile.length() > 0;
+  }
+
+  Future<void> _checkDownloadedCatalogues() async {
+    final downloaded = <String>{};
+    for (final category in _categories) {
+      if (category.cataloguePdf != null && category.cataloguePdf!.isNotEmpty) {
+        final isDownloaded = await _isCatalogueDownloaded(category.name);
+        if (isDownloaded) {
+          downloaded.add(category.name);
+        }
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _downloadedCategories.clear();
+        _downloadedCategories.addAll(downloaded);
+      });
+    }
+  }
+
   void _silentRefresh() {
     _homeRepository
         .getHomeDiscovery(forceRefresh: true)
@@ -207,6 +151,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
               _categoryBanners = freshDiscovery.categoryBanners;
               _categoryCardBanners = freshDiscovery.categoryCardBanners;
             });
+            _checkDownloadedCatalogues();
           }
         })
         .catchError((_) {});
@@ -258,6 +203,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           _categoryCardBanners = discovery.categoryCardBanners;
           _isLoading = false;
         });
+        _checkDownloadedCatalogues();
       }
 
       // Step 2: Run a background refresh (SWR) to update cached values and pull new category banners
@@ -270,6 +216,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           _categoryBanners = freshDiscovery.categoryBanners;
           _categoryCardBanners = freshDiscovery.categoryCardBanners;
         });
+        _checkDownloadedCatalogues();
       }
     } catch (e) {
       if (mounted && _categories.isEmpty) {
@@ -378,13 +325,9 @@ class _CatalogueScreenState extends State<CatalogueScreen>
 
   @override
   void dispose() {
-    IsolateNameServer.removePortNameMapping(_portName);
-    _port.close();
-    for (final info in _pendingDownloads.values) {
-      info.progressNotifier.dispose();
-    }
     WidgetsBinding.instance.removeObserver(this);
     _hintTimer?.cancel();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -815,155 +758,115 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     String pdfUrl,
     String categoryName,
   ) async {
-    final messenger = ScaffoldMessenger.of(ctx);
-    messenger.clearSnackBars();
+    // 1. Resolve writeable directory dynamically using path_provider
+    String saveDir;
+    try {
+      if (Platform.isAndroid) {
+        final dir = await getExternalStorageDirectory();
+        saveDir = dir?.path ?? '/storage/emulated/0/Download';
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        saveDir = dir.path;
+      }
+    } catch (e) {
+      saveDir = '/storage/emulated/0/Download';
+    }
 
-    // Save to the user-visible Downloads folder so the file appears in Files
-    final String saveDir = '/storage/emulated/0/Download';
     final safeFileName =
         '${categoryName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_catalogue.pdf';
     final savePath = '$saveDir/$safeFileName';
 
-    // 1. Check if already downloaded (cache-once)
+    // 2. Check if already downloaded (cache-once)
     final localFile = File(savePath);
     if (await localFile.exists() && await localFile.length() > 0) {
-      messenger.showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 6),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          backgroundColor: const Color(0xFF2E7D32),
-          content: Text(
-            '$categoryName catalogue is already downloaded!',
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-          ),
-          action: SnackBarAction(
-            label: 'Open',
-            textColor: const Color(0xFFA5D6A7),
-            onPressed: () async {
-              final result = await OpenFilex.open(savePath);
-              if (result.type != ResultType.done) {
-                final webUri = Uri.parse(pdfUrl);
-                if (await canLaunchUrl(webUri)) {
-                  await launchUrl(webUri, mode: LaunchMode.externalApplication);
-                }
-              }
-            },
-          ),
-        ),
-      );
+      final result = await OpenFilex.open(savePath);
+      if (result.type != ResultType.done) {
+        final webUri = Uri.parse(pdfUrl);
+        if (await canLaunchUrl(webUri)) {
+          await launchUrl(webUri, mode: LaunchMode.externalApplication);
+        }
+      }
       return;
     }
 
-    // 2. Check if already in-progress
-    final existing = _pendingDownloads.values
-        .where((d) => d.categoryName == categoryName)
-        .firstOrNull;
-    if (existing != null) {
-      messenger.showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: const Color(0xFF1B5E20),
-          content: Text(
-            '$categoryName catalogue is already downloading…',
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-          ),
-        ),
+    // 3. Check if already in-progress persistently via SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+    bool isAlreadyDownloading = false;
+    for (final key in keys) {
+      if (key.startsWith('download_task_')) {
+        if (prefs.getString(key) == categoryName) {
+          isAlreadyDownloading = true;
+          break;
+        }
+      }
+    }
+
+    if (isAlreadyDownloading) {
+      // Show system tray notification for ongoing progress
+      NotificationService.showNotification(
+        title: 'Downloading Catalogue',
+        body: '$categoryName catalogue is already downloading…',
+        category: NotificationCategory.utility,
       );
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            content: Text('$categoryName catalogue is already downloading.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
     }
 
-    // 3. Start download via WorkManager
-    final progressNotifier = ValueNotifier<double>(0.0);
-
+    // 4. Start download via WorkManager
     try {
       final taskId = await FlutterDownloader.enqueue(
         url: pdfUrl,
         savedDir: saveDir,
         fileName: safeFileName,
-        showNotification: true,          // OS-level notification with progress
-        openFileFromNotification: true,  // tap notification → open file
+        showNotification: true, // Let the native OS handle the download progress bar natively
+        openFileFromNotification: true, // Let the native OS handle tapping the notification to open the file
         requiresStorageNotLow: false,
       );
 
       if (taskId == null) throw Exception('Failed to enqueue download');
 
-      _pendingDownloads[taskId] = _DownloadInfo(
-        categoryName: categoryName,
-        pdfUrl: pdfUrl,
-        savePath: savePath,
-        progressNotifier: progressNotifier,
+      // Save the mapping to SharedPreferences so the callback can access it on completion/failure
+      await prefs.setString('download_task_$taskId', categoryName);
+      await prefs.setString('download_path_$taskId', savePath);
+      await prefs.setString('download_url_$taskId', pdfUrl);
+
+      // Log download start to Utility Notification Inbox silently (avoid duplicate system tray alert)
+      await NotificationService.addSilentNotification(
+        title: 'Downloading Catalogue',
+        body: 'Downloading the $categoryName catalogue…',
+        category: NotificationCategory.utility,
       );
 
-      // Show in-app snackbar with live progress
-      messenger.showSnackBar(
-        SnackBar(
-          duration: const Duration(minutes: 10),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: const Color(0xFF1B5E20),
-          content: ValueListenableBuilder<double>(
-            valueListenable: progressNotifier,
-            builder: (context, progress, child) {
-              final pct = (progress * 100).toStringAsFixed(0);
-              final rem = (100 - (progress * 100)).toStringAsFixed(0);
-              return Row(
-                children: [
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      value: progress > 0 ? progress : null,
-                      strokeWidth: 2,
-                      color: Colors.white,
-                      backgroundColor: Colors.white24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      progress > 0
-                          ? 'Downloading $categoryName catalogue… $pct% ($rem% left)'
-                          : 'Downloading $categoryName catalogue…',
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 13),
-                    ),
-                  ),
-                ],
-              );
-            },
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            content: Text('Downloading $categoryName catalogue...'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF2E7D32),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      progressNotifier.dispose();
-      if (!ctx.mounted) return;
-      messenger.clearSnackBars();
       final uri = Uri.parse(pdfUrl);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
-      messenger.showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: Colors.orange.shade800,
-          content: const Text(
-            'Could not start download. Opened in browser.',
-            style: TextStyle(color: Colors.white, fontSize: 13),
-          ),
-        ),
+      NotificationService.addSilentNotification(
+        title: 'Catalogue Download Failed',
+        body: 'Could not start download for $categoryName catalogue. Opened in browser.',
+        category: NotificationCategory.utility,
       );
     }
   }
-
 
   Widget _buildRectangularCategoryCard(
     BuildContext context,
@@ -978,6 +881,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       imageUrl: imageUrl,
       fallbackImage: _getFallbackImageForCategory(category.name),
       icon: _getIconForCategory(category.name),
+      isDownloaded: _downloadedCategories.contains(category.name),
       onDownloadTap:
           (category.cataloguePdf != null && category.cataloguePdf!.isNotEmpty)
           ? () => _downloadCataloguePdf(
@@ -1216,6 +1120,7 @@ class RectangularCategoryCard extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
   final VoidCallback? onDownloadTap;
+  final bool isDownloaded;
 
   const RectangularCategoryCard({
     super.key,
@@ -1225,6 +1130,7 @@ class RectangularCategoryCard extends StatefulWidget {
     required this.icon,
     required this.onTap,
     this.onDownloadTap,
+    this.isDownloaded = false,
   });
 
   @override
@@ -1271,7 +1177,7 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
                     imageUrl: widget.fallbackImage,
                     fit: BoxFit.fill,
                     placeholder: (context, url) =>
-                        Container(color: Colors.grey[200]),
+                      Container(color: Colors.grey[200]),
                     errorWidget: (context, url, error) => Container(
                       color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       child: Center(
@@ -1308,9 +1214,11 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.download_rounded,
-                          color: Color(0xFF2E7D32),
+                        child: Icon(
+                          widget.isDownloaded
+                              ? Icons.open_in_new_rounded
+                              : Icons.download_rounded,
+                          color: const Color(0xFF2E7D32),
                           size: 18,
                         ),
                       ),
@@ -1325,17 +1233,4 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
   }
 }
 
-// ── Data class for tracking in-flight downloads ────────────────────────────
-class _DownloadInfo {
-  final String categoryName;
-  final String pdfUrl;
-  final String savePath;
-  final ValueNotifier<double> progressNotifier;
-
-  const _DownloadInfo({
-    required this.categoryName,
-    required this.pdfUrl,
-    required this.savePath,
-    required this.progressNotifier,
-  });
-}
+// (Removed _DownloadInfo class)

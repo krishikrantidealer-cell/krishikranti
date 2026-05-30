@@ -1,3 +1,5 @@
+import 'dart:isolate';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -11,6 +13,7 @@ import 'package:krishikranti/core/language_service.dart';
 import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
+import 'package:krishikranti/core/notification_provider.dart';
 import 'package:krishikranti/features/splash/presentation/pages/splash_page.dart';
 import 'package:krishikranti/features/language/presentation/pages/choose_language_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/phone_verify_page.dart';
@@ -29,8 +32,12 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 // Top-level callback required by flutter_downloader (runs in a background isolate).
 @pragma('vm:entry-point')
 void downloadCallback(String id, int status, int progress) {
-  // Intentionally empty: catalogue_screen listens for status via its own
-  // IsolateNameServer port. This entry-point just needs to exist.
+  try {
+    final SendPort? send = IsolateNameServer.lookupPortByName('downloader_send_port');
+    send?.send([id, status, progress]);
+  } catch (e) {
+    print('=== ERROR in top-level downloadCallback: $e ===');
+  }
 }
 
 void main() async {
@@ -39,7 +46,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize FlutterDownloader (WorkManager-backed background downloads)
-  await FlutterDownloader.initialize(debug: false);
+  await FlutterDownloader.initialize(debug: true);
   FlutterDownloader.registerCallback(downloadCallback);
 
   // Initialize Language Service (load saved locale synchronously before startup)
@@ -69,6 +76,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CartService()),
         ChangeNotifierProvider(create: (_) => ProfileService()),
         ChangeNotifierProvider(create: (_) => AddressService()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),

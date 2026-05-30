@@ -1,8 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:isolate';
+import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:krishikranti/core/profile_service.dart';
@@ -26,6 +32,8 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  static final ReceivePort _port = ReceivePort();
+
   // Stream to notify the active screen when a new notification arrives
   static final StreamController<NotificationModel>
   _notificationStreamController =
@@ -35,6 +43,33 @@ class NotificationService {
       _notificationStreamController.stream;
 
   static Future<void> initialize() async {
+    // Register port for background download updates
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
+    IsolateNameServer.registerPortWithName(_port.sendPort, 'downloader_send_port');
+    _port.listen((dynamic data) {
+      if (data is List) {
+        final String id = data[0];
+        final int status = data[1];
+        final int progress = data[2];
+        handleMainIsolateDownloadUpdate(id, status, progress);
+      }
+    });
+
+    // Clear stale download keys in SharedPreferences on boot
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith('download_task_') ||
+            key.startsWith('download_path_') ||
+            key.startsWith('download_url_')) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error clearing stale download keys: $e');
+    }
+
     // 1. Request Permission from the user
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
@@ -66,7 +101,7 @@ class NotificationService {
     await _localNotificationsPlugin.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        _handleNotificationTap(response.payload);
+        handleNotificationTap(response.payload);
       },
     );
 
@@ -103,7 +138,7 @@ class NotificationService {
 
     // 6. Handle Tap on Notification when app is running in the Background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleNotificationTap(jsonEncode(message.data));
+      handleNotificationTap(jsonEncode(message.data));
     });
 
     // 7. Handle Tap on Notification when app is completely Terminated
@@ -111,7 +146,7 @@ class NotificationService {
         .getInitialMessage();
     if (initialMessage != null) {
       Future.delayed(const Duration(milliseconds: 1500), () {
-        _handleNotificationTap(jsonEncode(initialMessage.data));
+        handleNotificationTap(jsonEncode(initialMessage.data));
       });
     }
 
@@ -145,6 +180,11 @@ class NotificationService {
     required String body,
     String? payload,
     NotificationCategory category = NotificationCategory.utility,
+    int? notificationId,
+    bool showProgress = false,
+    int? progress,
+    int? maxProgress,
+    bool indeterminate = false,
   }) async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'krishikranti_high_importance_channel',
@@ -152,30 +192,37 @@ class NotificationService {
       importance: Importance.high,
     );
 
-    // Create model for history UI
-    final newNotif = NotificationModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: title,
-      description: body,
-      time: "Just now",
-      icon: category == NotificationCategory.marketing
-          ? CupertinoIcons.bolt_fill
-          : CupertinoIcons.cube_box_fill,
-      color: category == NotificationCategory.marketing
-          ? Colors.orange
-          : const Color(0xFF2E7D32),
-      isUnread: true,
-      group: "Today",
-      category: category,
-    );
+    // Only save progress notification to local inbox history when it is at start (0) or completion (100 or completed state)
+    final shouldSaveToHistory = !showProgress || progress == 0 || progress == 100;
 
-    // Save to local storage for the Notification Screen
-    await _saveManualNotificationToLocal(newNotif);
-    _notificationStreamController.add(newNotif);
+    if (shouldSaveToHistory) {
+      final newNotif = NotificationModel(
+        id: notificationId?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        description: body,
+        time: "Just now",
+        icon: category == NotificationCategory.marketing
+            ? CupertinoIcons.bolt_fill
+            : CupertinoIcons.cube_box_fill,
+        color: category == NotificationCategory.marketing
+            ? Colors.orange
+            : const Color(0xFF2E7D32),
+        isUnread: true,
+        group: "Today",
+        category: category,
+        payload: payload,
+      );
+
+      // Save to local storage for the Notification Screen
+      await _saveManualNotificationToLocal(newNotif);
+      _notificationStreamController.add(newNotif);
+    }
+
+    final notifId = notificationId ?? DateTime.now().hashCode;
 
     // Show the actual system notification
     await _localNotificationsPlugin.show(
-      id: DateTime.now().hashCode,
+      id: notifId,
       title: title,
       body: body,
       notificationDetails: NotificationDetails(
@@ -187,6 +234,11 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           color: const Color(0xFF2E7D32),
+          showProgress: showProgress,
+          maxProgress: maxProgress ?? 100,
+          progress: progress ?? 0,
+          indeterminate: indeterminate,
+          onlyAlertOnce: true, // Prevents notification alert noise/buzz on every progress tick
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -271,19 +323,173 @@ class NotificationService {
     }
   }
 
-  /// Handles routing logic when a notification is tapped
-  static void _handleNotificationTap(String? payload) {
+  /// Handles routing logic when a notification is tapped (both system tray and inside the app inbox)
+  static void handleNotificationTap(String? payload) async {
     if (payload == null) return;
     try {
       final data = jsonDecode(payload) as Map<String, dynamic>;
-      final route = data['action_route'];
 
+      // 1. Handle File Opening Callback
+      if (data['type'] == 'open_file') {
+        final path = data['path'] as String;
+        final pdfUrl = data['pdfUrl'] as String?;
+        final file = File(path);
+        if (await file.exists() && await file.length() > 0) {
+          final result = await OpenFilex.open(path);
+          if (result.type == ResultType.done) return;
+        }
+        // Fallback: open in browser if file is missing or cannot be opened by OS
+        if (pdfUrl != null) {
+          final webUri = Uri.parse(pdfUrl);
+          if (await canLaunchUrl(webUri)) {
+            await launchUrl(webUri, mode: LaunchMode.externalApplication);
+          }
+        }
+        return;
+      }
+
+      // 2. Handle Action Route Redirects
+      final route = data['action_route'];
       if (route != null && navigatorKey.currentState != null) {
         debugPrint("Redirecting user to: $route");
         navigatorKey.currentState!.pushNamed(route);
       }
     } catch (e) {
       debugPrint("Error parsing notification payload: $e");
+    }
+  }
+
+  /// Add a notification silently to the local history list without triggering a system alert pop-up
+  static Future<void> addSilentNotification({
+    required String title,
+    required String body,
+    String? payload,
+    NotificationCategory category = NotificationCategory.utility,
+  }) async {
+    final newNotif = NotificationModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: title,
+      description: body,
+      time: "Just now",
+      icon: category == NotificationCategory.marketing
+          ? CupertinoIcons.bolt_fill
+          : CupertinoIcons.cube_box_fill,
+      color: category == NotificationCategory.marketing
+          ? Colors.orange
+          : const Color(0xFF2E7D32),
+      isUnread: true,
+      group: "Today",
+      category: category,
+      payload: payload,
+    );
+
+    await _saveManualNotificationToLocal(newNotif);
+    _notificationStreamController.add(newNotif);
+  }
+
+  // ── Global flutter_downloader Isolate background callback ──
+  static Future<void> handleMainIsolateDownloadUpdate(String id, int status, int progress) async {
+    try {
+      debugPrint('=== handleMainIsolateDownloadUpdate entry: id=$id, status=$status, progress=$progress ===');
+      final downloadStatus = DownloadTaskStatus.fromInt(status);
+      
+      final isComplete = downloadStatus == DownloadTaskStatus.complete;
+      final isFailed = downloadStatus == DownloadTaskStatus.failed || downloadStatus == DownloadTaskStatus.canceled;
+
+      if (isComplete || isFailed) {
+        final prefs = await SharedPreferences.getInstance();
+        
+        final categoryName = prefs.getString('download_task_$id');
+        if (categoryName == null) {
+          debugPrint('=== [DownloadUpdate] categoryName is null for task $id ===');
+          return;
+        }
+
+        final savePath = prefs.getString('download_path_$id');
+        final pdfUrl = prefs.getString('download_url_$id');
+        final notificationId = id.hashCode;
+
+        debugPrint('=== [DownloadUpdate] task: $categoryName ($id), status: $status, progress: $progress ===');
+
+        if (isComplete) {
+          final payloadData = {
+            'type': 'open_file',
+            'path': savePath ?? '',
+            'pdfUrl': pdfUrl ?? '',
+          };
+
+          // Save to local inbox history
+          final newNotif = NotificationModel(
+            id: notificationId.toString(),
+            title: '$categoryName Catalogue Ready',
+            description: 'Tap to view the downloaded $categoryName catalogue.',
+            time: "Just now",
+            icon: CupertinoIcons.cube_box_fill,
+            color: const Color(0xFF2E7D32),
+            isUnread: true,
+            group: "Today",
+            category: NotificationCategory.utility,
+            payload: jsonEncode(payloadData),
+          );
+
+          final List<String> existingNotifs =
+              prefs.getStringList('local_notifications') ?? [];
+          existingNotifs.insert(0, jsonEncode(newNotif.toJson()));
+          if (existingNotifs.length > 50) existingNotifs.removeLast();
+          await prefs.setStringList('local_notifications', existingNotifs);
+          _notificationStreamController.add(newNotif);
+
+          // Show completion snackbar
+          messengerKey.currentState?.showSnackBar(
+            SnackBar(
+              content: Text('$categoryName catalogue downloaded successfully!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E7D32),
+            ),
+          );
+
+          // Cleanup SharedPreferences task data
+          await prefs.remove('download_task_$id');
+          await prefs.remove('download_path_$id');
+          await prefs.remove('download_url_$id');
+        } else if (isFailed) {
+          // Log failure silently to inbox
+          final newNotif = NotificationModel(
+            id: notificationId.toString(),
+            title: '$categoryName Download Failed',
+            description: 'Could not download the catalogue PDF.',
+            time: "Just now",
+            icon: CupertinoIcons.cube_box_fill,
+            color: Colors.red,
+            isUnread: true,
+            group: "Today",
+            category: NotificationCategory.utility,
+          );
+
+          final List<String> existingNotifs =
+              prefs.getStringList('local_notifications') ?? [];
+          existingNotifs.insert(0, jsonEncode(newNotif.toJson()));
+          if (existingNotifs.length > 50) existingNotifs.removeLast();
+          await prefs.setStringList('local_notifications', existingNotifs);
+          _notificationStreamController.add(newNotif);
+
+          // Show failure snackbar
+          messengerKey.currentState?.showSnackBar(
+            SnackBar(
+              content: Text('Failed to download $categoryName catalogue.'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+            ),
+          );
+
+          // Cleanup
+          await prefs.remove('download_task_$id');
+          await prefs.remove('download_path_$id');
+          await prefs.remove('download_url_$id');
+        }
+      }
+    } catch (e, stack) {
+      debugPrint('=== ERROR in handleMainIsolateDownloadUpdate: $e ===\n$stack');
     }
   }
 }
