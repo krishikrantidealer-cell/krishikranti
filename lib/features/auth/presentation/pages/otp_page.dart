@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:pinput/pinput.dart';
+import 'package:smart_auth/smart_auth.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
@@ -26,6 +27,9 @@ class _OtpPageState extends State<OtpPage> {
   int _secondsRemaining = 60; // 60 second timer (as per integration plan)
   Timer? _timer;
   bool _isLoading = false;
+  String? _errorText;
+  bool _initialized = false;
+  late final SmsRetriever smsRetriever;
 
   void _verifyOtp(String phoneNumber) async {
     final otp = _pinController.text;
@@ -52,7 +56,7 @@ class _OtpPageState extends State<OtpPage> {
             data['refreshToken'],
           );
         }
-        
+
         final user = data['user'];
         final bool isProfileComplete = user?['isProfileComplete'] ?? false;
         final bool isKycComplete = user?['isKycComplete'] ?? false;
@@ -78,9 +82,12 @@ class _OtpPageState extends State<OtpPage> {
       } else {
         final data = jsonDecode(response.body);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Invalid OTP')),
-          );
+          setState(() {
+            _errorText = data['message'] ?? 'Invalid OTP';
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_errorText!)));
         }
       }
     } catch (e) {
@@ -105,7 +112,9 @@ class _OtpPageState extends State<OtpPage> {
         body: {'phoneNumber': phoneNumber},
       );
       if (response.statusCode == 200) {
-        _startTimer();
+        final data = jsonDecode(response.body);
+        final newCooldown = data['cooldown'] ?? 60;
+        _startTimer(newCooldown);
         if (mounted) {
           HapticUtil.success();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -129,11 +138,35 @@ class _OtpPageState extends State<OtpPage> {
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    smsRetriever = SmsRetrieverImpl(SmartAuth.instance);
+
+    // Automatically retrieve and log Android App Signature Hash to debug console
+    SmartAuth.instance
+        .getAppSignature()
+        .then((signature) {
+          debugPrint('[SMS-RETRIEVER] Android App Signature Hash: $signature');
+        })
+        .catchError((error) {
+          debugPrint('[SMS-RETRIEVER] Error getting app signature: $error');
+        });
   }
 
-  void _startTimer() {
-    _secondsRemaining = 60;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      int cooldown = 60;
+      if (args is Map<String, dynamic>) {
+        cooldown = args['cooldown'] ?? 60;
+      }
+      _startTimer(cooldown);
+      _initialized = true;
+    }
+  }
+
+  void _startTimer(int seconds) {
+    _secondsRemaining = seconds;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 0) {
@@ -149,14 +182,20 @@ class _OtpPageState extends State<OtpPage> {
     _pinController.dispose();
     _pinFocusNode.dispose();
     _timer?.cancel(); // Always cancel the timer to prevent memory leaks
+    SmartAuth.instance.removeSmsRetrieverApiListener();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final String phoneNumber =
-        ModalRoute.of(context)?.settings.arguments as String? ?? '9876543210';
+    final args = ModalRoute.of(context)?.settings.arguments;
+    String phoneNumber = '9876543210';
+    if (args is String) {
+      phoneNumber = args;
+    } else if (args is Map<String, dynamic>) {
+      phoneNumber = args['phoneNumber'] ?? '9876543210';
+    }
 
     // Premium Pinput Theme (Unified globally)
     final defaultPinTheme = PinTheme(
@@ -181,6 +220,11 @@ class _OtpPageState extends State<OtpPage> {
       decoration: defaultPinTheme.decoration?.copyWith(
         color: const Color(0xFFE8F5E9),
       ),
+    );
+
+    final errorPinTheme = defaultPinTheme.copyDecorationWith(
+      border: Border.all(color: Colors.red.shade700, width: 2),
+      borderRadius: BorderRadius.circular(10),
     );
 
     return Scaffold(
@@ -285,7 +329,17 @@ class _OtpPageState extends State<OtpPage> {
                       defaultPinTheme: defaultPinTheme,
                       focusedPinTheme: focusedPinTheme,
                       submittedPinTheme: submittedPinTheme,
+                      errorPinTheme: errorPinTheme,
+                      errorText: _errorText,
+                      forceErrorState: _errorText != null,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      smsRetriever: smsRetriever,
                       onCompleted: (pin) => _verifyOtp(phoneNumber),
+                      onChanged: (val) {
+                        if (_errorText != null) {
+                          setState(() => _errorText = null);
+                        }
+                      },
                       hapticFeedbackType: HapticFeedbackType.lightImpact,
                       showCursor: true,
                     ),
@@ -418,4 +472,35 @@ class HeaderClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+class SmsRetrieverImpl implements SmsRetriever {
+  const SmsRetrieverImpl(this.smartAuth);
+
+  final SmartAuth smartAuth;
+
+  @override
+  bool get listenForMultipleSms => false;
+
+  @override
+  Future<void> dispose() {
+    return smartAuth.removeSmsRetrieverApiListener();
+  }
+
+  @override
+  Future<String?> getSmsCode() async {
+    final signature = await smartAuth.getAppSignature();
+    debugPrint(
+      '[SMS-RETRIEVER] Android App Signature Hash (Retriever): $signature',
+    );
+
+    final res = await smartAuth.getSmsWithRetrieverApi();
+    if (res.hasData) {
+      final code = res.requireData.code;
+      debugPrint('[SMS-RETRIEVER] SMS code received: $code');
+      return code;
+    }
+    debugPrint('[SMS-RETRIEVER] SMS Retriever failed or timed out: $res');
+    return null;
+  }
 }

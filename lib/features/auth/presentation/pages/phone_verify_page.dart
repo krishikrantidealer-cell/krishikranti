@@ -52,9 +52,18 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final cooldown = data['cooldown'] ?? 60;
         if (mounted) {
           HapticUtil.success();
-          Navigator.pushNamed(context, '/otp', arguments: phoneNumber);
+          Navigator.pushNamed(
+            context,
+            '/otp',
+            arguments: {
+              'phoneNumber': phoneNumber,
+              'cooldown': cooldown,
+            },
+          );
         }
       } else {
         final data = jsonDecode(response.body);
