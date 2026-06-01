@@ -59,10 +59,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
           Navigator.pushNamed(
             context,
             '/otp',
-            arguments: {
-              'phoneNumber': phoneNumber,
-              'cooldown': cooldown,
-            },
+            arguments: {'phoneNumber': phoneNumber, 'cooldown': cooldown},
           );
         }
       } else {
@@ -332,7 +329,6 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 50),
           ],
         ),
       ),

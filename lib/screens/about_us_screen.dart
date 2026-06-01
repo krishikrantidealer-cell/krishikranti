@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,84 +35,137 @@ class AboutUsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// TOP SECTION
+            /// APP TITLE / BRANDING
             const Text(
               'Krishi Dealer',
               style: TextStyle(
-                fontSize: 28,
+                fontSize: 30,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: Color(0xFF2E7D32),
+                letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'B2B Agrochemical Platform for Dealers',
+              'B2B Agrochemical Platform',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.black.withValues(alpha: 0.6),
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 16),
             Divider(color: Colors.grey.shade300, thickness: 1),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-            /// SECTION 1: ABOUT
-            _buildSectionTitle('About Krishi Dealer'),
-            const SizedBox(height: 12),
+            /// WELCOME / INTRODUCTION SECTION
             const Text(
-              'Krishi Dealer by Krishikranti Organics — India\'s trusted B2B platform for agrochemical dealers, pesticide distributors & fertilizer wholesalers. Bulk pricing. High margins. Direct dealership.',
+              'Welcome to Krishi Dealer by Krishikranti Organics.',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
                 color: Colors.black87,
-                height: 1.6,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 32),
-
-            /// SECTION 2: WHO WE ARE
-            _buildSectionTitle('Who We Are'),
-            const SizedBox(height: 12),
-            const Text(
-              'Krishi Dealer is the official B2B dealer platform of Krishikranti Organics — built exclusively for agrochemical distributors, pesticide retailers, and fertilizer wholesalers across India.\n\nWe cut out the middlemen. You get better prices, higher margins, and a product range that actually moves — season after season.',
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-                height: 1.6,
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            /// SECTION 3: WHAT YOU GET
-            _buildSectionTitle('What You Get as a Dealer'),
             const SizedBox(height: 16),
-            _buildCheckItem('Insecticides, Fungicides, Herbicides & PGRs'),
-            _buildCheckItem('Bio-Pesticides & Organic Agri-inputs'),
-            _buildCheckItem('Fertilizers & Micronutrients'),
-            _buildCheckItem('Bulk Pricing & Volume Discounts'),
-            _buildCheckItem('CIB&RC Registered, Lab-Certified Products'),
-            _buildCheckItem('GST Invoice on Every Order'),
-            _buildCheckItem('PAN-India Delivery | Dedicated Dealer Support'),
-            const SizedBox(height: 32),
+            const Text(
+              'Krishi Dealer is a dedicated B2B platform developed by Krishikranti Organics to simplify bulk purchasing of agricultural inputs for retailers, distributors, wholesalers, and channel partners across India.',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black54,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: 24),
 
-            /// SECTION 4: WHY CHOOSE US
-            _buildSectionTitle('Why Dealers Choose Us'),
-            const SizedBox(height: 20),
-            _buildFeatureItem(
-              'Higher Margins',
-              'Direct-from-brand pricing means more profit per SKU — no unnecessary supply chain markup.',
+            /// MISSION SECTION
+            _buildSectionTitle('Our Mission'),
+            const SizedBox(height: 12),
+            const Text(
+              'Our mission is to make quality agricultural products easily accessible to businesses involved in the agricultural supply chain. Through the Krishi Dealer app, authorized partners can browse products, place bulk orders, track purchases, receive promotional offers, and stay updated with the latest products and schemes offered by Krishikranti Organics.',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black54,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            /// COMMITMENT SECTION
+            _buildSectionTitle('Our Commitment'),
+            const SizedBox(height: 12),
+            const Text(
+              'We are committed to building long-term relationships with our dealer network by providing reliable products, transparent pricing, and efficient support.',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black54,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Whether you are a retailer, distributor, or wholesale partner, Krishi Dealer is designed to help you grow your business with confidence.',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1B5E20),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 36),
+
+            /// CONTACT & COMPANY INFO CARD
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F8E9),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFDCEDC8)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Company Details',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B5E20),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildContactRow(
+                    Icons.business,
+                    'Company Name',
+                    'Krishikranti Organics',
+                  ),
+                  const SizedBox(height: 14),
+                  _buildClickableContactRow(
+                    Icons.email_outlined,
+                    'Email Address',
+                    'info@krishikrantiorganics.com',
+                    () => _launchUrl('mailto:info@krishikrantiorganics.com'),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildClickableContactRow(
+                    Icons.phone_outlined,
+                    'Phone Number',
+                    '+91 7471121210',
+                    () => _launchUrl('tel:+917471121210'),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
-            _buildFeatureItem(
-              'Crop-Ready Portfolio',
-              'Products built around India\'s major crops — Rice, Wheat, Cotton, Sugarcane, Soybean, Vegetables & Fruits — across Kharif, Rabi & Zaid seasons.',
-            ),
-            const SizedBox(height: 20),
-            _buildFeatureItem(
-              'Compliance You Can Trust',
-              'Every product is regulatory-compliant, fully documented with COA and lab reports.',
-            ),
-            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -120,51 +183,84 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCheckItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check, color: Color(0xFF2E7D32), size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureItem(String title, String description) {
-    return Column(
+  Widget _buildContactRow(IconData icon, String label, String value) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          description,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
-            height: 1.5,
+        Icon(icon, color: const Color(0xFF2E7D32), size: 22),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black45,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildClickableContactRow(
+    IconData icon,
+    String label,
+    String value,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: const Color(0xFF2E7D32), size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black45,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

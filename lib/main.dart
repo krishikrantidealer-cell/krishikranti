@@ -34,10 +34,13 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 @pragma('vm:entry-point')
 void downloadCallback(String id, int status, int progress) {
   try {
-    final SendPort? send = IsolateNameServer.lookupPortByName('downloader_send_port');
+    final SendPort? send = IsolateNameServer.lookupPortByName(
+      'downloader_send_port',
+    );
     send?.send([id, status, progress]);
   } catch (e) {
-    if (kDebugMode) debugPrint('=== ERROR in top-level downloadCallback: $e ===');
+    if (kDebugMode)
+      debugPrint('=== ERROR in top-level downloadCallback: $e ===');
   }
 }
 
@@ -106,8 +109,7 @@ class MyApp extends StatelessWidget {
       scaffoldMessengerKey: messengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       locale: languageService.locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: [
