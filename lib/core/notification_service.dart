@@ -16,6 +16,7 @@ import 'package:krishikranti/main.dart'; // To access navigatorKey
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:krishikranti/core/network/auth_service.dart';
 
 // Background message handler must be a top-level function
 @pragma('vm:entry-point')
@@ -156,6 +157,12 @@ class NotificationService {
 
   /// Fetches the current FCM token and sends it to the server
   static Future<void> syncToken() async {
+    final loggedIn = await AuthService.isLoggedIn();
+    if (!loggedIn) {
+      debugPrint("📱 Skipping FCM Token sync: User is not logged in.");
+      return;
+    }
+
     String? token = await _firebaseMessaging.getToken();
     if (token != null) {
       debugPrint("📱 Firebase Messaging Token: $token");

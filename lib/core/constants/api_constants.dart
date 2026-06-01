@@ -30,12 +30,14 @@ class ApiConstants {
   static const String profile = '$baseUrl/api/users/profile';
   static const String addresses = '$baseUrl/api/users/addresses';
   static String address(String id) => '$baseUrl/api/users/addresses/$id';
-  static String addressDefault(String id) => '$baseUrl/api/users/addresses/$id/default';
+  static String addressDefault(String id) =>
+      '$baseUrl/api/users/addresses/$id/default';
 
   // Favourites
   static const String favourites = '$baseUrl/api/favourites';
 
   // Collections
   static const String collections = '$baseUrl/api/collections';
-  static const String collectionsWithProducts = '$baseUrl/api/collections/products';
+  static const String collectionsWithProducts =
+      '$baseUrl/api/collections/products';
 }

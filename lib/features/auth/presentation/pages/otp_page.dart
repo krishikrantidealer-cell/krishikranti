@@ -11,6 +11,7 @@ import 'package:krishikranti/core/utils/haptic_util.dart';
 import 'package:krishikranti/core/utils/device_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/core/notification_service.dart';
 
 class OtpPage extends StatefulWidget {
   const OtpPage({super.key});
@@ -60,6 +61,9 @@ class _OtpPageState extends State<OtpPage> {
           isProfileComplete: isProfileComplete,
           isKycComplete: isKycComplete,
         );
+
+        // Sync FCM token immediately now that the user is logged in
+        NotificationService.syncToken();
 
         if (mounted) {
           HapticUtil.success();
