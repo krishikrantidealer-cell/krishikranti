@@ -1869,10 +1869,168 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  List<HtmlBlock> parseHtml(String html) {
+  Widget _buildStyledBox(
+    String innerHtml,
+    String boxClass,
+    Map<String, Widget> wMap,
+  ) {
+    Color? defaultTextColor;
+    BoxDecoration decoration;
+
+    if (boxClass == 'intro') {
+      decoration = const BoxDecoration(
+        color: Color(0xFFF9F9F9),
+        border: Border(left: BorderSide(color: Color(0xFF00A651), width: 6)),
+      );
+    } else if (boxClass == 'warn') {
+      defaultTextColor = const Color(0xFFCC0000);
+      decoration = const BoxDecoration(
+        color: Color(0xFFFFF5F5),
+        border: Border(left: BorderSide(color: Color(0xFFCC0000), width: 6)),
+      );
+    } else if (boxClass == 'highlight') {
+      decoration = const BoxDecoration(
+        color: Color(0xFFF9F9F9),
+        border: Border(left: BorderSide(color: Colors.black, width: 6)),
+      );
+    } else {
+      // table-note
+      decoration = const BoxDecoration(
+        color: Color(0xFFF9F9F9),
+        border: Border(
+          top: BorderSide(color: Color(0xFF00A651), width: 3),
+          left: BorderSide(color: Color(0xFFDDDDDD), width: 1),
+          right: BorderSide(color: Color(0xFFDDDDDD), width: 1),
+          bottom: BorderSide(color: Color(0xFFDDDDDD), width: 1),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: decoration,
+      child: Builder(
+        builder: (context) {
+          final innerBlocks = parseHtml(innerHtml, widgetMap: wMap);
+          return buildHtmlContent(
+            context,
+            innerBlocks,
+            defaultTextColor: defaultTextColor,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTableWidget(String tableHtml) {
+    return _FaqTableWidget(tableHtml: tableHtml, state: this);
+  }
+
+  Widget _buildFaqWidget(String detailsHtml, Map<String, Widget> wMap) {
+    final summaryRegex = RegExp(
+      r'<summary[^>]*>(.*?)</summary>',
+      dotAll: true,
+      caseSensitive: false,
+    );
+    final summaryMatch = summaryRegex.firstMatch(detailsHtml);
+    String question = 'FAQ';
+    if (summaryMatch != null) {
+      question = summaryMatch.group(1)!;
+    }
+
+    String answerHtml = detailsHtml
+        .replaceFirst(summaryRegex, '')
+        .replaceFirst(RegExp(r'^<details[^>]*>', caseSensitive: false), '')
+        .replaceFirst(RegExp(r'</details>$', caseSensitive: false), '')
+        .trim();
+
+    return _FaqExpansionTile(
+      question: question,
+      answerHtml: answerHtml,
+      widgetMap: wMap,
+      state: this,
+    );
+  }
+
+  List<HtmlBlock> parseHtml(String html, {Map<String, Widget>? widgetMap}) {
     final List<HtmlBlock> blocks = [];
-    final cleanHtml = html.replaceAll('\r', '');
-    final regex = RegExp(r'<[^>]+>|[^<]+');
+    final Map<String, Widget> wMap = widgetMap ?? {};
+
+    // Strip <style> and <script> blocks entirely so their raw content
+    // is not rendered as visible text in the Flutter widget tree.
+    String cleanHtml = html
+        .replaceAll('\r', '')
+        .replaceAll(RegExp(r'''\s*style\s*=\s*["'][^"']*["']''', caseSensitive: false), '')
+        .replaceAll(RegExp(r'''\s*class\s*=\s*["'][^"']*["']''', caseSensitive: false), '')
+        .replaceAll(RegExp(r'''\s*id\s*=\s*["'][^"']*["']''', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(
+            r'<style[^>]*>.*?</style>',
+            dotAll: true,
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .replaceAll(
+          RegExp(
+            r'<script[^>]*>.*?</script>',
+            dotAll: true,
+            caseSensitive: false,
+          ),
+          '',
+        );
+
+    int placeholderCount = wMap.length;
+
+    // 1. Extract <details> (FAQ)
+    final detailsRegex = RegExp(
+      r'<details[^>]*>.*?</details>',
+      dotAll: true,
+      caseSensitive: false,
+    );
+    while (true) {
+      final match = detailsRegex.firstMatch(cleanHtml);
+      if (match == null) break;
+      final detailsHtml = match.group(0)!;
+      final placeholder = '<!--W_${placeholderCount++}-->';
+      wMap[placeholder] = _buildFaqWidget(detailsHtml, wMap);
+      cleanHtml = cleanHtml.replaceRange(match.start, match.end, placeholder);
+    }
+
+    // 2. Extract <table>
+    final tableRegex = RegExp(
+      r'<table[^>]*>.*?</table>',
+      dotAll: true,
+      caseSensitive: false,
+    );
+    while (true) {
+      final match = tableRegex.firstMatch(cleanHtml);
+      if (match == null) break;
+      final tableHtml = match.group(0)!;
+      final placeholder = '<!--W_${placeholderCount++}-->';
+      wMap[placeholder] = _buildTableWidget(tableHtml);
+      cleanHtml = cleanHtml.replaceRange(match.start, match.end, placeholder);
+    }
+
+    // 3. Extract styled boxes (divs with class intro, warn, highlight, table-note)
+    final divRegex = RegExp(
+      r'''<div\s+class=["'](intro|warn|highlight|table-note)["'][^>]*>(.*?)</div>''',
+      dotAll: true,
+      caseSensitive: false,
+    );
+    while (true) {
+      final match = divRegex.firstMatch(cleanHtml);
+      if (match == null) break;
+      final boxClass = match.group(1)!.toLowerCase();
+      final innerHtml = match.group(2)!;
+      final placeholder = '<!--W_${placeholderCount++}-->';
+      wMap[placeholder] = _buildStyledBox(innerHtml, boxClass, wMap);
+      cleanHtml = cleanHtml.replaceRange(match.start, match.end, placeholder);
+    }
+
+    final regex = RegExp(r'<!--W_\d+-->|<[^>]+>|[^<]+');
     final matches = regex.allMatches(cleanHtml);
 
     bool isBold = false;
@@ -1910,11 +2068,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     for (final match in matches) {
       final token = match.group(0)!;
+      if (token.startsWith('<!--W_') && token.endsWith('-->')) {
+        commitBlock();
+        final widget = wMap[token];
+        if (widget != null) {
+          blocks.add(HtmlBlock(spans: [], blockType: 'widget', widget: widget));
+        }
+        continue;
+      }
       if (token.startsWith('<') && token.endsWith('>')) {
         final tag = token.toLowerCase();
 
         if (tag.startsWith('<span')) {
-          final styleMatch = RegExp(r'''style=["']([^"']*)["']''').firstMatch(token);
+          final styleMatch = RegExp(
+            r'''style=["']([^"']*)["']''',
+          ).firstMatch(token);
           bool pushedColor = false;
           bool pushedBg = false;
           bool pushedFont = false;
@@ -1979,7 +2147,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             if (fontStack.isNotEmpty) fontStack.removeLast();
           }
         } else if (tag.startsWith('<a')) {
-          final hrefMatch = RegExp(r'href="([^"]*)"').firstMatch(token);
+          final hrefMatch = RegExp(
+            r'''href=["']([^"']*)["']''',
+          ).firstMatch(token);
           if (hrefMatch != null) {
             currentLinkUrl = hrefMatch.group(1);
           }
@@ -2041,7 +2211,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           commitBlock();
           currentBlockType = 'h1';
           isBold = true;
-          fontSize = 18.0;
+          fontSize = 20.0;
         } else if (tag == '<h2>') {
           commitBlock();
           currentBlockType = 'h2';
@@ -2192,8 +2362,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return null;
   }
 
-  Widget buildHtmlContent(BuildContext context, List<HtmlBlock> blocks) {
+  Widget buildHtmlContent(
+    BuildContext context,
+    List<HtmlBlock> blocks, {
+    Color? defaultTextColor,
+  }) {
     final service = DynamicTranslationService();
+    // kb-blog design constants
+    final Color kBodyColor = defaultTextColor ?? const Color(0xFF111111);
+    const Color kGreen = Color(0xFF00A651);
+    const double kBodyFontSize = 13.0;
+    const double kLineHeight = 1.5;
+
     final List<String> allTexts = [];
     for (final block in blocks) {
       for (final span in block.spans) {
@@ -2217,11 +2397,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: blocks.map((block) {
+            if (block.widget != null) {
+              final blockPadding = block.blockType == 'widget'
+                  ? EdgeInsets.zero
+                  : const EdgeInsets.only(bottom: 12);
+              return Padding(padding: blockPadding, child: block.widget!);
+            }
+
+            // Translate all text spans
             final translatedSpans = block.spans.map((span) {
               if (span is TextSpan && span.text != null) {
+                // Inherit the span's existing style but ensure body color & lineHeight
+                final existing = span.style;
                 return TextSpan(
                   text: service.getTranslation(span.text!),
-                  style: span.style,
+                  style: (existing ?? const TextStyle()).copyWith(
+                    color: existing?.color ?? kBodyColor,
+                    height: existing?.height ?? kLineHeight,
+                    fontSize: existing?.fontSize ?? kBodyFontSize,
+                  ),
                   recognizer: span.recognizer,
                 );
               }
@@ -2229,47 +2423,149 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             }).toList();
 
             Widget widget;
+
+            // ── ORDERED LIST ITEM ──
             if (block.blockType.startsWith('ol-li-')) {
               final number = block.blockType.substring(6);
-              widget = Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '  $number.  ',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: Colors.black87,
+              widget = Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$number. ',
+                      style: TextStyle(
+                        fontSize: kBodyFontSize,
+                        height: kLineHeight,
+                        color: kBodyColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(children: translatedSpans),
-                      textAlign: block.alignment,
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(children: translatedSpans),
+                        textAlign: block.alignment,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
+
+              // ── UNORDERED LIST ITEM ──
             } else if (block.blockType == 'ul-li' || block.blockType == 'li') {
-              widget = Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '  •  ',
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: Colors.black87,
+              widget = Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '• ',
+                      style: const TextStyle(
+                        fontSize: kBodyFontSize,
+                        height: kLineHeight,
+                        color: kGreen,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: RichText(
-                      text: TextSpan(children: translatedSpans),
-                      textAlign: block.alignment,
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(children: translatedSpans),
+                        textAlign: block.alignment,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
+
+              // ── H1 ── black bottom border, bold, large
+            } else if (block.blockType == 'h1') {
+              widget = Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 10),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Color(0xFF000000), width: 2.5),
+                  ),
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    children: translatedSpans.map((s) {
+                      if (s is TextSpan) {
+                        return TextSpan(
+                          text: s.text,
+                          recognizer: s.recognizer,
+                          style: (s.style ?? const TextStyle()).copyWith(
+                            fontSize: 20.0,
+                            fontWeight: FontWeight.w800,
+                            color: s.style?.color ?? const Color(0xFF000000),
+                            height: 1.35,
+                          ),
+                        );
+                      }
+                      return s;
+                    }).toList(),
+                  ),
+                  textAlign: block.alignment,
+                ),
+              );
+
+              // ── H2 ── green bottom border
+            } else if (block.blockType == 'h2') {
+              widget = Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 6),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: kGreen, width: 2)),
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    children: translatedSpans.map((s) {
+                      if (s is TextSpan) {
+                        return TextSpan(
+                          text: s.text,
+                          recognizer: s.recognizer,
+                          style: (s.style ?? const TextStyle()).copyWith(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w700,
+                            color: s.style?.color ?? const Color(0xFF000000),
+                            height: 1.4,
+                          ),
+                        );
+                      }
+                      return s;
+                    }).toList(),
+                  ),
+                  textAlign: block.alignment,
+                ),
+              );
+
+              // ── H3 ──
+            } else if (block.blockType == 'h3') {
+              widget = SizedBox(
+                width: double.infinity,
+                child: RichText(
+                  text: TextSpan(
+                    children: translatedSpans.map((s) {
+                      if (s is TextSpan) {
+                        return TextSpan(
+                          text: s.text,
+                          recognizer: s.recognizer,
+                          style: (s.style ?? const TextStyle()).copyWith(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w700,
+                            color: s.style?.color ?? const Color(0xFF111111),
+                            height: 1.5,
+                          ),
+                        );
+                      }
+                      return s;
+                    }).toList(),
+                  ),
+                  textAlign: block.alignment,
+                ),
+              );
+
+              // ── PARAGRAPH / DEFAULT ──
             } else {
               widget = SizedBox(
                 width: double.infinity,
@@ -2280,19 +2576,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               );
             }
 
-            double bottomPadding = 8.0;
-            if (block.blockType.startsWith('h')) {
-              bottomPadding = 12.0;
+            // Spacing between blocks — mirrors CSS margin rules
+            EdgeInsets blockPadding;
+            if (block.blockType == 'h1') {
+              blockPadding = const EdgeInsets.only(bottom: 8, top: 4);
+            } else if (block.blockType == 'h2') {
+              blockPadding = const EdgeInsets.only(top: 14, bottom: 8);
+            } else if (block.blockType == 'h3') {
+              blockPadding = const EdgeInsets.only(top: 8, bottom: 4);
             } else if (block.blockType == 'ul-li' ||
                 block.blockType == 'li' ||
                 block.blockType.startsWith('ol-li-')) {
-              bottomPadding = 4.0;
+              blockPadding = const EdgeInsets.only(bottom: 3);
+            } else {
+              // paragraph
+              blockPadding = const EdgeInsets.only(bottom: 6);
             }
 
-            return Padding(
-              padding: EdgeInsets.only(bottom: bottomPadding),
-              child: widget,
-            );
+            return Padding(padding: blockPadding, child: widget);
           }).toList(),
         );
       },
@@ -2303,6 +2604,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     const int maxCollapsedLines = 4;
 
     String text = rawText
+        // Strip style/script blocks so CSS/JS doesn't appear as plain text
+        .replaceAll(
+          RegExp(
+            r'<style[^>]*>.*?</style>',
+            dotAll: true,
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .replaceAll(
+          RegExp(
+            r'<script[^>]*>.*?</script>',
+            dotAll: true,
+            caseSensitive: false,
+          ),
+          '',
+        )
         .replaceAll(RegExp(r"<\/?p[^>]*>", caseSensitive: false), '\n\n')
         .replaceAll(RegExp(r"<br\s*\/?>", caseSensitive: false), '\n')
         .replaceAll(RegExp(r"<li>", caseSensitive: false), '\n• ')
@@ -3627,10 +3945,14 @@ class HtmlBlock {
   final TextAlign alignment;
   final String blockType;
 
+  /// When set, buildHtmlContent renders this directly instead of the spans.
+  final Widget? widget;
+
   HtmlBlock({
     required this.spans,
     this.alignment = TextAlign.left,
     this.blockType = 'p',
+    this.widget,
   });
 }
 
@@ -4261,6 +4583,198 @@ class _FullscreenImageItemState extends State<_FullscreenImageItem>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FaqExpansionTile extends StatelessWidget {
+  final String question;
+  final String answerHtml;
+  final Map<String, Widget> widgetMap;
+  final _ProductDetailScreenState state;
+
+  const _FaqExpansionTile({
+    required this.question,
+    required this.answerHtml,
+    required this.widgetMap,
+    required this.state,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final service = DynamicTranslationService();
+    final cleanQuestion = question
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .trim();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (cleanQuestion.isNotEmpty && service.currentLangCode != 'en') {
+        service.ensureTranslated(cleanQuestion);
+      }
+    });
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListenableBuilder(
+            listenable: service,
+            builder: (context, _) {
+              final translated = service.getTranslation(cleanQuestion);
+              return Text(
+                translated,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 6),
+          Builder(
+            builder: (context) {
+              final innerBlocks = state.parseHtml(
+                answerHtml,
+                widgetMap: widgetMap,
+              );
+              return state.buildHtmlContent(context, innerBlocks);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FaqTableWidget extends StatelessWidget {
+  final String tableHtml;
+  final _ProductDetailScreenState state;
+
+  const _FaqTableWidget({required this.tableHtml, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = DynamicTranslationService();
+
+    final trRegex = RegExp(
+      r'<tr[^>]*>(.*?)</tr>',
+      dotAll: true,
+      caseSensitive: false,
+    );
+    final cellRegex = RegExp(
+      r'<(td|th)[^>]*>(.*?)</\1>',
+      dotAll: true,
+      caseSensitive: false,
+    );
+
+    final trMatches = trRegex.allMatches(tableHtml).toList();
+    if (trMatches.isEmpty) return const SizedBox.shrink();
+
+    final List<String> allCellTexts = [];
+
+    for (int rowIndex = 0; rowIndex < trMatches.length; rowIndex++) {
+      final trHtml = trMatches[rowIndex].group(1)!;
+      final cellMatches = cellRegex.allMatches(trHtml).toList();
+
+      for (int colIndex = 0; colIndex < cellMatches.length; colIndex++) {
+        final cellMatch = cellMatches[colIndex];
+        final cellText = cellMatch
+            .group(2)!
+            .replaceAll(RegExp(r'<[^>]*>'), '')
+            .trim();
+        if (cellText.isNotEmpty) {
+          allCellTexts.add(cellText);
+        }
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (allCellTexts.isNotEmpty && service.currentLangCode != 'en') {
+        service.ensureAllTranslated(allCellTexts);
+      }
+    });
+
+    return ListenableBuilder(
+      listenable: service,
+      builder: (context, _) {
+        final List<TableRow> rows = [];
+
+        for (int rowIndex = 0; rowIndex < trMatches.length; rowIndex++) {
+          final trHtml = trMatches[rowIndex].group(1)!;
+          final cellMatches = cellRegex.allMatches(trHtml).toList();
+
+          final List<Widget> rowCells = [];
+          final bool isHeader =
+              trMatches[rowIndex].group(0)!.toLowerCase().startsWith('<tr') &&
+              trHtml.toLowerCase().contains('<th');
+
+          for (int colIndex = 0; colIndex < cellMatches.length; colIndex++) {
+            final cellMatch = cellMatches[colIndex];
+            final cellInnerHtml = cellMatch.group(2)!;
+
+            Widget cellContent;
+            if (isHeader) {
+              final cellBlocks = state.parseHtml(cellInnerHtml);
+              cellContent = state.buildHtmlContent(
+                context,
+                cellBlocks,
+                defaultTextColor: Colors.black87,
+              );
+            } else {
+              bool enforceBold = false;
+              if (colIndex == 0) {
+                enforceBold = true;
+              }
+
+              final cellBlocks = state.parseHtml(cellInnerHtml);
+              Widget child = state.buildHtmlContent(
+                context,
+                cellBlocks,
+              );
+
+              if (enforceBold) {
+                child = DefaultTextStyle.merge(
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  child: child,
+                );
+              }
+              cellContent = child;
+            }
+
+            rowCells.add(
+              Container(
+                color: Colors.transparent,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                alignment: Alignment.centerLeft,
+                child: cellContent,
+              ),
+            );
+          }
+
+          if (rowCells.isNotEmpty) {
+            rows.add(TableRow(children: rowCells));
+          }
+        }
+
+        if (rows.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Table(
+              defaultColumnWidth: const IntrinsicColumnWidth(),
+              border: TableBorder.all(color: const Color(0xFFDDDDDD), width: 1),
+              children: rows,
+            ),
+          ),
+        );
+      },
     );
   }
 }

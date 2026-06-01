@@ -12,8 +12,6 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lottie/lottie.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:flutter/services.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'dart:ui';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -44,7 +42,7 @@ class _SearchScreenState extends State<SearchScreen>
   List<String> _recentSearches = [];
   bool _isVoiceSearching = false;
   static const platform = MethodChannel(
-    'com.example.krishikranti/voice_search',
+    'com.krishi.dealer.retailer/voice_search',
   );
 
   @override

@@ -1,4 +1,4 @@
-package com.example.krishikranti
+package com.krishi.dealer.retailer
 
 import android.app.Activity
 import android.content.Intent
@@ -8,7 +8,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.example.krishikranti/voice_search"
+    private val CHANNEL = "com.krishi.dealer.retailer/voice_search"
     private var pendingResult: MethodChannel.Result? = null
     private val REQUEST_CODE_SPEECH_INPUT = 100
 
