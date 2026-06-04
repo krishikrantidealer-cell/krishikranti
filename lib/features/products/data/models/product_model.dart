@@ -192,6 +192,8 @@ class Variant {
   final double price50_plus;
   final double packVolume;
   final String? basePacking;
+  // Canonical base unit: 'lit', 'kg', or 'pcs' — used for rate suffix display
+  final String basePackingUnit;
   final List<PriceTier> priceTiers;
   final Map<String, String> rates;
 
@@ -205,6 +207,7 @@ class Variant {
     this.price50_plus = 0.0,
     this.packVolume = 1.0,
     this.basePacking,
+    this.basePackingUnit = 'lit',
     this.priceTiers = const [],
     this.rates = const {},
   });
@@ -249,9 +252,55 @@ class Variant {
           ? Product._parseDouble(json['packVolume'])
           : 1.0,
       basePacking: json['basePacking']?.toString(),
+      // Read explicit basePackingUnit; fall back to guessing from basePacking/size string
+      basePackingUnit: _parseBasePackingUnit(
+        json['basePackingUnit']?.toString(),
+        json['basePacking']?.toString(),
+        sizeStr,
+      ),
       priceTiers: tiers,
       rates: ratesMap,
     );
+  }
+
+  /// Resolves the canonical base packing unit with fallback chain:
+  /// 1. Explicit `basePackingUnit` field from backend (new field)
+  /// 2. Parse from `basePacking` string (e.g. "10lit" -> "lit")
+  /// 3. Guess from `size` string (legacy fallback)
+  static String _parseBasePackingUnit(
+    String? explicitUnit,
+    String? basePackingStr,
+    String sizeStr,
+  ) {
+    // 1. Explicit field wins
+    if (explicitUnit != null && explicitUnit.isNotEmpty) {
+      final u = explicitUnit.toLowerCase().trim();
+      if (u == 'pcs' || u == 'piece' || u == 'pieces') return 'pcs';
+      if (u == 'kg' || u == 'kilogram') return 'kg';
+      if (u == 'lit' || u == 'litre' || u == 'l') return 'lit';
+      if (u == 'ml') return 'lit'; // ml -> stored as lit
+      if (u == 'gm' || u == 'gram' || u == 'g') return 'kg'; // gm -> stored as kg
+      return u;
+    }
+    // 2. Parse from basePacking string
+    if (basePackingStr != null && basePackingStr.isNotEmpty) {
+      final clean = basePackingStr.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+      final match = RegExp(
+        r'^[\d.]+(ml|lit|litre|l|gm|gram|g|kg|kilogram|k|pcs|piece|pieces)$',
+      ).firstMatch(clean);
+      if (match != null) {
+        final raw = match.group(1) ?? '';
+        if (raw == 'pcs' || raw == 'piece' || raw == 'pieces') return 'pcs';
+        if (raw == 'kg' || raw == 'kilogram' || raw == 'k') return 'kg';
+        if (raw == 'gm' || raw == 'gram' || raw == 'g') return 'kg';
+        return 'lit'; // ml, lit, litre, l
+      }
+    }
+    // 3. Legacy fallback: guess from size string
+    final s = sizeStr.toLowerCase();
+    if (s.contains('pcs') || s.contains('piece')) return 'pcs';
+    if (s.contains('kg') || s.contains('gm') || s.contains('gram')) return 'kg';
+    return 'lit';
   }
 
   static Map<String, double?> parseTierRange(String name) {

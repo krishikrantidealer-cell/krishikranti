@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   int _currentHintIndex = 0;
   Timer? _hintTimer;
-  bool _routeIsCurrent = false;
+  bool _routeIsCurrent = true;
 
   @override
   void initState() {
@@ -120,7 +120,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               _categoryCardBanners = freshDiscovery.categoryCardBanners;
               _bestOffersBanners = freshDiscovery.bestOffersBanners;
             });
-            _fetchCategoryProducts(freshDiscovery.categories);
+            if (_categoryProducts.isEmpty) {
+              _fetchCategoryProducts(freshDiscovery.categories);
+            }
           }
         })
         .catchError((_) {
@@ -132,35 +134,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// All categories are fetched in parallel and applied in a single setState to avoid
   /// multiple rebuilds that cause scroll flicker.
   Future<void> _fetchCategoryProducts(List<Category> categories) async {
-    final results = await Future.wait(
-      categories.map((cat) async {
-        try {
-          final result = await _productRepository.getProducts(
-            categoryId: cat.id,
-            limit: 4,
-          );
-          final List<Product> products =
-              (result['products'] as List<Product>? ?? []).take(4).toList();
-          return MapEntry(cat.id, products);
-        } catch (_) {
-          return null;
+    for (final cat in categories) {
+      try {
+        final result = await _productRepository.getProducts(
+          categoryId: cat.id,
+          limit: 4,
+        );
+        final List<Product> products =
+            (result['products'] as List<Product>? ?? []).take(4).toList();
+        if (products.isNotEmpty && mounted) {
+          setState(() {
+            _categoryProducts = {..._categoryProducts, cat.id: products};
+          });
         }
-      }),
-    );
-
-    if (!mounted) return;
-
-    // Single setState for all categories — no per-category rebuild flicker
-    final Map<String, List<Product>> batch = {};
-    for (final entry in results) {
-      if (entry != null && entry.value.isNotEmpty) {
-        batch[entry.key] = entry.value;
+      } catch (_) {
+        // Silently continue
       }
-    }
-    if (batch.isNotEmpty) {
-      setState(() {
-        _categoryProducts = {..._categoryProducts, ...batch};
-      });
     }
   }
 
@@ -175,6 +164,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _fetchDiscoveryData({bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      if (mounted) {
+        setState(() {
+          _categoryProducts.clear();
+        });
+      }
+    }
     try {
       // Step 1: Get cached data (instantly)
       final discovery = await _homeRepository.getHomeDiscovery(
@@ -193,7 +189,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _discoveryError = null;
         });
         // Start loading category products in background
-        _fetchCategoryProducts(discovery.categories);
+        if (_categoryProducts.isEmpty) {
+          _fetchCategoryProducts(discovery.categories);
+        }
       }
 
       // Step 2: Background Refresh (SWR)
@@ -212,8 +210,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _categoryCardBanners = freshDiscovery.categoryCardBanners;
             _bestOffersBanners = freshDiscovery.bestOffersBanners;
           });
-          _prefetchData(freshDiscovery.categories);
-          _fetchCategoryProducts(freshDiscovery.categories);
+          if (_categoryProducts.isEmpty) {
+            _fetchCategoryProducts(freshDiscovery.categories);
+          }
         }
       }
     } catch (e) {

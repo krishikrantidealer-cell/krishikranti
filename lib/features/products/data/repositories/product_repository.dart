@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
@@ -16,6 +17,61 @@ class ProductRepository {
 
   Future<void> _initPrefs() async {
     _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  Future<List<Product>> _collectAllCachedProducts() async {
+    await _initPrefs();
+    final allProducts = <Product>[];
+    final seenIds = <String>{};
+    final keys = _prefs?.getKeys() ?? {};
+
+    void addProduct(Product p) {
+      if (p.id.isNotEmpty && p.title.isNotEmpty && !seenIds.contains(p.id)) {
+        seenIds.add(p.id);
+        allProducts.add(p);
+      }
+    }
+
+    for (final key in keys) {
+      final diskData = _prefs?.getString(key);
+      if (diskData == null) continue;
+
+      try {
+        final decoded = jsonDecode(diskData);
+        if (key.startsWith('products_')) {
+          final List productsJson = decoded['products'] ?? [];
+          for (final json in productsJson) {
+            addProduct(Product.fromJson(json));
+          }
+        } else if (key == 'persistent_home_discovery') {
+          final List featuredJson = decoded['featuredProducts'] ?? [];
+          for (final json in featuredJson) {
+            addProduct(Product.fromJson(json));
+          }
+          final List collectionsJson = decoded['collections'] ?? [];
+          for (final colJson in collectionsJson) {
+            final List productsJson = colJson['products'] ?? [];
+            for (final json in productsJson) {
+              addProduct(Product.fromJson(json));
+            }
+          }
+        } else if (key == 'persistent_collections_with_products') {
+          final List collectionsJson = decoded['collections'] ?? [];
+          for (final colJson in collectionsJson) {
+            final List productsJson = colJson['products'] ?? [];
+            for (final json in productsJson) {
+              addProduct(Product.fromJson(json));
+            }
+          }
+        } else if (key.startsWith('product_detail_')) {
+          if (decoded['product'] != null) {
+            addProduct(Product.fromJson(decoded['product']));
+          }
+        }
+      } catch (_) {}
+    }
+
+    return allProducts;
   }
 
   Future<Map<String, dynamic>> getProducts({
@@ -114,7 +170,9 @@ class ProductRepository {
     ).replace(queryParameters: queryParams);
 
     try {
+      debugPrint("[ProductRepository] GET products request: ${uri.toString()}");
       final response = await HttpService.get(uri.toString());
+      debugPrint("[ProductRepository] GET products response: ${response.statusCode} - ${response.body}");
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
@@ -138,9 +196,69 @@ class ProductRepository {
           'isFromCache': false,
         };
       } else {
+        if (response.statusCode == 429) {
+          throw Exception('Too many requests. Please try again after 15 minutes.');
+        }
         throw Exception('Failed to load products');
       }
     } catch (e) {
+      await _initPrefs();
+
+      // 1. Try exact cache key first (non-search queries)
+      if (search == null) {
+        final diskData = _prefs?.getString(cacheKey);
+        if (diskData != null) {
+          try {
+            final Map<String, dynamic> decoded = jsonDecode(diskData);
+            final List productsJson = decoded['products'] ?? [];
+            final products = productsJson
+                .where((json) => json['title'] != null)
+                .map((json) => Product.fromJson(json))
+                .toList();
+
+            debugPrint("[ProductRepository] Network failed, loaded products from disk cache fallback for key: $cacheKey");
+            return {
+              'products': products,
+              'nextCursor': decoded['nextCursor'],
+              'isFromCache': true,
+            };
+          } catch (_) {}
+        }
+      }
+
+      // 2. Harvesting fallback for search or missed specific keys
+      try {
+        final allProducts = await _collectAllCachedProducts();
+        List<Product> filtered = allProducts;
+
+        if (search != null && search.trim().isNotEmpty) {
+          final queryLower = search.trim().toLowerCase();
+          filtered = filtered.where((p) {
+            final titleMatch = p.title.toLowerCase().contains(queryLower);
+            final brandMatch = p.brandName?.toLowerCase().contains(queryLower) ?? false;
+            final techMatch = p.technicalName?.toLowerCase().contains(queryLower) ?? false;
+            return titleMatch || brandMatch || techMatch;
+          }).toList();
+
+          debugPrint("[ProductRepository] Network failed, found ${filtered.length} local matches for search: $search");
+          return {
+            'products': filtered,
+            'nextCursor': null,
+            'isFromCache': true,
+          };
+        } else if (categoryId != null) {
+          filtered = filtered.where((p) => p.categoryId == categoryId).toList();
+          if (filtered.isNotEmpty) {
+            debugPrint("[ProductRepository] Network failed, harvested ${filtered.length} local products for category: $categoryId");
+            return {
+              'products': filtered,
+              'nextCursor': null,
+              'isFromCache': true,
+            };
+          }
+        }
+      } catch (_) {}
+
       rethrow;
     }
   }

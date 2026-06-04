@@ -27,42 +27,60 @@ class HomeRepository {
     const cacheKey = 'persistent_home_discovery';
     await _initPrefs();
 
-    // On forceRefresh: evict memory and disk cache first so we get truly fresh data
+    // On forceRefresh: evict memory cache only (keep disk cache as fallback)
     if (forceRefresh) {
       _discoveryCache.remove(cacheKey);
       _cacheTimestamps.remove(cacheKey);
-      await _prefs?.remove(cacheKey);
     }
 
-    // 1. Check Memory Cache
-    if (_discoveryCache.containsKey(cacheKey)) {
-      final timestamp = _cacheTimestamps[cacheKey];
-      if (timestamp != null &&
-          DateTime.now().difference(timestamp) < _cacheDuration) {
-        return await _discoveryCache[cacheKey]!;
+    // 1. If not forcing refresh, check Memory and Disk cache first for instant load
+    if (!forceRefresh) {
+      // Memory Cache check
+      if (_discoveryCache.containsKey(cacheKey)) {
+        final timestamp = _cacheTimestamps[cacheKey];
+        if (timestamp != null &&
+            DateTime.now().difference(timestamp) < _cacheDuration) {
+          return await _discoveryCache[cacheKey]!;
+        }
+      }
+
+      // Disk Cache check
+      final diskData = _prefs?.getString(cacheKey);
+      if (diskData != null) {
+        try {
+          final data = jsonDecode(diskData);
+          final discovery = HomeDiscovery.fromJson(data);
+
+          // Warm up memory cache
+          _discoveryCache[cacheKey] = Future.value(discovery);
+          _cacheTimestamps[cacheKey] = DateTime.now();
+          return discovery;
+        } catch (_) {}
       }
     }
 
-    // 2. Check Disk Cache
-    final diskData = _prefs?.getString(cacheKey);
-    if (diskData != null) {
-      try {
-        final data = jsonDecode(diskData);
-        final discovery = HomeDiscovery.fromJson(data);
+    // 2. Fetch Fresh Data from Network
+    try {
+      final freshDiscovery = await _fetchDiscoveryInternal(cacheKey);
+      return freshDiscovery;
+    } catch (e) {
+      // Fallback to disk cache on network error (e.g. rate limit, offline status)
+      final diskData = _prefs?.getString(cacheKey);
+      if (diskData != null) {
+        try {
+          final data = jsonDecode(diskData);
+          final discovery = HomeDiscovery.fromJson(data);
 
-        // Warm up memory cache
-        _discoveryCache[cacheKey] = Future.value(discovery);
-        _cacheTimestamps[cacheKey] = DateTime.now();
-        return discovery;
-      } catch (_) {}
+          // Warm up memory cache so subsequent calls can use it
+          _discoveryCache[cacheKey] = Future.value(discovery);
+          _cacheTimestamps[cacheKey] = DateTime.now();
+          return discovery;
+        } catch (_) {}
+      }
+
+      // If no disk cache fallback is available, rethrow the original error
+      rethrow;
     }
-
-    // 3. Fetch Fresh Data
-    final fetchFuture = _fetchDiscoveryInternal(cacheKey);
-    _discoveryCache[cacheKey] = fetchFuture;
-    _cacheTimestamps[cacheKey] = DateTime.now();
-
-    return await fetchFuture;
   }
 
   Future<HomeDiscovery> _fetchDiscoveryInternal(String cacheKey) async {

@@ -59,14 +59,14 @@ class CouponService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List<dynamic> couponsJson = data['coupons'] ?? [];
-        final coupons =
-            couponsJson.map((json) => Coupon.fromJson(json)).toList();
+        final coupons = couponsJson
+            .map((json) => Coupon.fromJson(json))
+            .toList();
 
         // Pre-warm translation cache for coupon descriptions
         DynamicTranslationService().ensureAllTranslated(
           coupons.map((c) => c.description).toList(),
         );
-
         return coupons;
       }
       return [];

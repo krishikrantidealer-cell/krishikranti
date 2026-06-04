@@ -786,16 +786,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   }
 
                   final String? perUnitLabel = _getPerUnitLabel(
-                    v.size,
+                    v.basePackingUnit,
                     unitPrice,
                   );
                   final parsedSize = _parseSize(v.size);
 
-                  final bool isKg =
-                      v.size.toLowerCase().contains('g') ||
-                      v.size.toLowerCase().contains('kg') ||
-                      v.size.toLowerCase().contains('k');
-                  final String unitSuffix = isKg ? "Kg" : "Litre";
+                  final bool isKg = v.basePackingUnit == 'kg';
+                  final bool isPcs = v.basePackingUnit == 'pcs';
+                  final String unitSuffix = isPcs
+                      ? "Pcs"
+                      : isKg
+                      ? "Kg"
+                      : "Litre";
                   final String formattedVol = v.packVolume % 1 == 0
                       ? v.packVolume.toInt().toString()
                       : v.packVolume.toStringAsFixed(
@@ -1327,7 +1329,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ],
                           ),
                         ),
-                        _buildTierMilestonesRow(v, quantity, isKg),
+                        _buildTierMilestonesRow(v, quantity),
                       ],
                     ),
                   );
@@ -1413,14 +1415,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  String? _getPerUnitLabel(String sizeStr, double price) {
-    if (sizeStr.isEmpty) return null;
-
-    final isKg =
-        sizeStr.toLowerCase().contains('g') ||
-        sizeStr.toLowerCase().contains('kg') ||
-        sizeStr.toLowerCase().contains('k');
-    final String unitLabel = isKg ? 'kg' : 'lit.';
+  String? _getPerUnitLabel(String baseUnit, double price) {
+    // baseUnit is 'lit', 'kg', or 'pcs' (from variant.basePackingUnit)
+    final String unitLabel;
+    switch (baseUnit.toLowerCase().trim()) {
+      case 'kg':
+        unitLabel = 'kg';
+        break;
+      case 'pcs':
+        unitLabel = 'pcs';
+        break;
+      default: // 'lit' and any unknown
+        unitLabel = 'lit.';
+    }
 
     final formattedPrice = price % 1 == 0
         ? price.toStringAsFixed(0)
@@ -1962,9 +1969,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     // is not rendered as visible text in the Flutter widget tree.
     String cleanHtml = html
         .replaceAll('\r', '')
-        .replaceAll(RegExp(r'''\s*style\s*=\s*["'][^"']*["']''', caseSensitive: false), '')
-        .replaceAll(RegExp(r'''\s*class\s*=\s*["'][^"']*["']''', caseSensitive: false), '')
-        .replaceAll(RegExp(r'''\s*id\s*=\s*["'][^"']*["']''', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(r'''\s*style\s*=\s*["'][^"']*["']''', caseSensitive: false),
+          '',
+        )
+        .replaceAll(
+          RegExp(r'''\s*class\s*=\s*["'][^"']*["']''', caseSensitive: false),
+          '',
+        )
+        .replaceAll(
+          RegExp(r'''\s*id\s*=\s*["'][^"']*["']''', caseSensitive: false),
+          '',
+        )
         .replaceAll(
           RegExp(
             r'<style[^>]*>.*?</style>',
@@ -3025,9 +3041,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  List<TierInfo> _getValidTiers(Variant v, bool isKg) {
+  List<TierInfo> _getValidTiers(Variant v, String baseUnit) {
     final List<TierInfo> list = [];
-    final String suffix = isKg ? "Kg" : "L";
+    final String suffix = baseUnit == 'pcs'
+        ? " Pcs"
+        : baseUnit == 'kg'
+        ? "Kg"
+        : "L";
 
     if (v.priceTiers.isEmpty || v.rates.isEmpty) {
       if (v.price10_30 > 0) {
@@ -3086,11 +3106,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return list;
   }
 
-  Widget _buildTierMilestonesRow(Variant v, int quantity, bool isKg) {
+  Widget _buildTierMilestonesRow(Variant v, int quantity) {
+    final String baseUnit = v.basePackingUnit;
     final double totalVolume = v.packVolume * quantity;
-    final List<TierInfo> validTiers = _getValidTiers(v, isKg);
+    final List<TierInfo> validTiers = _getValidTiers(v, baseUnit);
 
     if (validTiers.isEmpty || quantity <= 0) return const SizedBox.shrink();
+
+    final String volUnit = baseUnit == 'pcs'
+        ? ' Pcs'
+        : baseUnit == 'kg'
+        ? 'Kg'
+        : 'L';
 
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 4),
@@ -3112,7 +3139,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               const Spacer(),
               if (quantity > 0) ...[
                 Text(
-                  "Current Volume: ${(v.packVolume * quantity) % 1 == 0 ? (v.packVolume * quantity).toInt() : (v.packVolume * quantity).toStringAsFixed(1)}${isKg ? 'Kg' : 'L'}",
+                  "Current Volume: ${(v.packVolume * quantity) % 1 == 0 ? (v.packVolume * quantity).toInt() : (v.packVolume * quantity).toStringAsFixed(1)}$volUnit",
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -3167,7 +3194,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     price: t.price,
                     isUnlocked: isTierUnlocked,
                     isActive: isActiveTier,
-                    isKg: isKg,
+                    isKg: baseUnit == 'kg',
                     variant: v,
                     primaryGreen: primaryGreen,
                     secondaryGreen: secondaryGreen,
@@ -3189,7 +3216,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    "You have unlocked ${t.label}! Enjoying ₹${t.price.toStringAsFixed(0)}/${isKg ? 'kg' : 'lit.'} pricing. 🎉",
+                                    "You have unlocked ${t.label}! Enjoying ₹${t.price.toStringAsFixed(0)}/${baseUnit == 'pcs'
+                                        ? 'pcs'
+                                        : baseUnit == 'kg'
+                                        ? 'kg'
+                                        : 'lit.'} pricing. 🎉",
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -3203,7 +3234,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         );
                       } else {
-                        _showUnlockTierSheet(v, t, quantity, isKg);
+                        _showUnlockTierSheet(v, t, quantity);
                       }
                     },
                   ),
@@ -3258,7 +3289,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return unitPrice;
   }
 
-  void _showUnlockTierSheet(Variant v, TierInfo t, int currentQty, bool isKg) {
+  void _showUnlockTierSheet(Variant v, TierInfo t, int currentQty) {
     final int requiredQty = getRequiredQtyForTier(v, t.key);
     final int diffQty = requiredQty - currentQty;
 
@@ -3266,7 +3297,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final double targetUnitPrice = t.price;
     final double basePrice = v.price;
 
-    final String unitLabel = isKg ? 'kg' : 'lit.';
+    final String unitLabel = v.basePackingUnit == 'pcs'
+        ? 'pcs'
+        : v.basePackingUnit == 'kg'
+        ? 'kg'
+        : 'lit.';
     final double currentVol = v.packVolume * currentQty;
     final double targetVol = v.packVolume * requiredQty;
 
@@ -4110,7 +4145,11 @@ class _TierMilestoneCardState extends State<TierMilestoneCard>
 
   @override
   Widget build(BuildContext context) {
-    final String unitLabel = widget.isKg ? 'kg' : 'lit.';
+    final String unitLabel = widget.variant.basePackingUnit == 'pcs'
+        ? 'pcs'
+        : widget.variant.basePackingUnit == 'kg'
+        ? 'kg'
+        : 'lit.';
     final formattedPrice = widget.price % 1 == 0
         ? widget.price.toStringAsFixed(0)
         : widget.price.toStringAsFixed(2);
@@ -4603,9 +4642,7 @@ class _FaqExpansionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final service = DynamicTranslationService();
-    final cleanQuestion = question
-        .replaceAll(RegExp(r'<[^>]*>'), '')
-        .trim();
+    final cleanQuestion = question.replaceAll(RegExp(r'<[^>]*>'), '').trim();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (cleanQuestion.isNotEmpty && service.currentLangCode != 'en') {
@@ -4729,10 +4766,7 @@ class _FaqTableWidget extends StatelessWidget {
               }
 
               final cellBlocks = state.parseHtml(cellInnerHtml);
-              Widget child = state.buildHtmlContent(
-                context,
-                cellBlocks,
-              );
+              Widget child = state.buildHtmlContent(context, cellBlocks);
 
               if (enforceBold) {
                 child = DefaultTextStyle.merge(

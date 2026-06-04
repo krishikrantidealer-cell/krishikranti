@@ -160,6 +160,27 @@ class CartService extends ChangeNotifier {
   final Map<String, int> _optimisticTargetQty = {};
   final Set<String> _inFlightSyncVariantIds = {};
   final Map<String, int> _inFlightSyncCounts = {};
+  final Map<String, String> _variantToItemId = {};
+
+  Future<void> _syncQueue = Future.value();
+
+  Future<void> _enqueueSync(Future<void> Function() task) {
+    final completer = Completer<void>();
+    _syncQueue = _syncQueue.then((_) async {
+      try {
+        await task();
+        completer.complete();
+      } catch (e, stack) {
+        debugPrint("[CartService Queue] Task failed: $e\n$stack");
+        if (!completer.isCompleted) {
+          completer.completeError(e, stack);
+        }
+      }
+    }).catchError((e) {
+      debugPrint("[CartService Queue] Unhandled error in queue: $e");
+    });
+    return completer.future;
+  }
 
   void _incrementInFlight(String variantId) {
     _inFlightSyncCounts[variantId] = (_inFlightSyncCounts[variantId] ?? 0) + 1;
@@ -211,6 +232,14 @@ class CartService extends ChangeNotifier {
         debugPrint(
           "Cart sync failed: ${response.statusCode} - ${response.body}",
         );
+        if (response.statusCode == 500 &&
+            (response.body.contains("validation failed") ||
+                response.body.contains("Path `product` is required"))) {
+          debugPrint(
+            "[CartService] Corrupted cart document detected on server. Self-healing...",
+          );
+          await clear(syncWithServer: true);
+        }
       }
     } catch (e) {
       debugPrint("Cart sync error: $e");
@@ -340,74 +369,114 @@ class CartService extends ChangeNotifier {
     }
     notifyListeners();
 
-    // Debounce backend sync per product to avoid rapid successive server hits
-    _addDebounceTimers[productId]?.cancel();
-
     final completer = Completer<void>();
     _pendingSyncTask = completer.future;
 
-    _addDebounceTimers[productId] = Timer(
-      const Duration(milliseconds: 300),
-      () async {
-        for (var item in items) {
-          _incrementInFlight(item['variantId']);
-        }
-        final stopwatch = Stopwatch()..start();
-        try {
-          final variantsPayload = items
-              .map(
-                (item) => {
-                  'variantId': item['variantId'],
-                  'quantity': item['quantity'],
-                  'isReplace': isReplace,
-                },
-              )
-              .toList();
+    for (var item in items) {
+      final vId = item['variantId'] as String;
+      _updateDebounceTimers[vId]?.cancel();
 
-          final response = await HttpService.post(
-            ApiConstants.cartItems,
-            body: {'productId': productId, 'variants': variantsPayload},
-          );
-          stopwatch.stop();
-          debugPrint(
-            "[Cart API] POST addItems (debounced) took ${stopwatch.elapsedMilliseconds}ms",
-          );
+      _updateDebounceTimers[vId] = Timer(
+        const Duration(milliseconds: 300),
+        () {
+          _updateDebounceTimers.remove(vId);
+          _enqueueSync(() async {
+            _incrementInFlight(vId);
+            final stopwatch = Stopwatch()..start();
+            try {
+              final localIdx = _items.indexWhere((it) => it.variantId == vId);
+              final targetQty = localIdx != -1 ? _items[localIdx].qty : 0;
+              final activeItemId = localIdx != -1
+                  ? (_items[localIdx].itemId ?? _variantToItemId[vId])
+                  : _variantToItemId[vId];
 
-          if (response.statusCode != 200 && response.statusCode != 201) {
-            throw Exception("Failed to sync cart items");
-          }
-
-          final data = jsonDecode(response.body);
-          final cartMap = data is Map ? (data['cart'] ?? data) : null;
-          if (cartMap != null) {
-            _updateCartFromJson(cartMap);
-          } else {
-            await syncWithBackend();
-          }
-        } catch (e) {
-          debugPrint("Add items error: $e");
-          // Rollback
-          _items = oldItems;
-          notifyListeners();
-          await syncWithBackend();
-        } finally {
-          for (var item in items) {
-            final vId = item['variantId'] as String;
-            _decrementInFlight(vId);
-            final bool hasPendingProductAdd =
-                _addDebounceTimers.containsKey(productId) &&
-                _addDebounceTimers[productId]?.isActive == true;
-            if (!_updateDebounceTimers.containsKey(vId) &&
-                !hasPendingProductAdd) {
+              if (targetQty <= 0) {
+                if (activeItemId != null) {
+                  final response = await HttpService.delete(
+                    "${ApiConstants.cartItems}/$activeItemId",
+                  );
+                  stopwatch.stop();
+                  debugPrint(
+                    "[Cart API] DELETE addItems/removeItem took ${stopwatch.elapsedMilliseconds}ms",
+                  );
+                  if (response.statusCode != 200) {
+                    throw Exception("Failed to remove item");
+                  }
+                  final data = jsonDecode(response.body);
+                  final cartMap = data is Map ? (data['cart'] ?? data) : null;
+                  if (cartMap != null) {
+                    _updateCartFromJson(cartMap);
+                  } else {
+                    await syncWithBackend();
+                  }
+                }
+              } else {
+                if (activeItemId != null) {
+                  final response = await HttpService.patch(
+                    "${ApiConstants.cartItems}/$activeItemId",
+                    body: {'quantity': targetQty},
+                  );
+                  stopwatch.stop();
+                  debugPrint(
+                    "[Cart API] PATCH addItems/updateQty took ${stopwatch.elapsedMilliseconds}ms",
+                  );
+                  if (response.statusCode != 200) {
+                    throw Exception("Failed to update quantity");
+                  }
+                  final data = jsonDecode(response.body);
+                  final cartMap = data is Map ? (data['cart'] ?? data) : null;
+                  if (cartMap != null) {
+                    _updateCartFromJson(cartMap);
+                  } else {
+                    await syncWithBackend();
+                  }
+                } else {
+                  final response = await HttpService.post(
+                    ApiConstants.cartItems,
+                    body: {
+                      'productId': productId,
+                      'variants': [
+                        {
+                          'variantId': vId,
+                          'quantity': targetQty,
+                          'isReplace': true,
+                        }
+                      ],
+                    },
+                  );
+                  stopwatch.stop();
+                  debugPrint(
+                    "[Cart API] POST addItems took ${stopwatch.elapsedMilliseconds}ms",
+                  );
+                  if (response.statusCode != 200 && response.statusCode != 201) {
+                    debugPrint("[Cart API Error] POST addItems failed: ${response.statusCode} - ${response.body}");
+                    throw Exception("Failed to add items");
+                  }
+                  final data = jsonDecode(response.body);
+                  final cartMap = data is Map ? (data['cart'] ?? data) : null;
+                  if (cartMap != null) {
+                    _updateCartFromJson(cartMap);
+                  } else {
+                    await syncWithBackend();
+                  }
+                }
+              }
+            } catch (e) {
+              debugPrint("Error syncing items: $e");
+              _items = oldItems;
+              notifyListeners();
+              await syncWithBackend();
+            } finally {
+              _decrementInFlight(vId);
               _optimisticTargetQty.remove(vId);
+              if (!completer.isCompleted) {
+                completer.complete();
+              }
             }
-          }
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
-        }
-      },
-    );
+          });
+        },
+      );
+    }
 
     return _pendingSyncTask;
   }
@@ -446,8 +515,6 @@ class CartService extends ChangeNotifier {
     if (newQty <= 0) {
       _items.removeAt(index);
       _optimisticTargetQty[variantId] = 0;
-      _addDebounceTimers[item.productId]?.cancel();
-      _addDebounceTimers.remove(item.productId);
     } else {
       _items[index].qty = newQty;
       _optimisticTargetQty[variantId] = newQty;
@@ -462,92 +529,103 @@ class CartService extends ChangeNotifier {
 
     _updateDebounceTimers[variantId] = Timer(
       const Duration(milliseconds: 300),
-      () async {
-        _incrementInFlight(variantId);
-        final stopwatch = Stopwatch()..start();
-        try {
-          final String? itemId = item.itemId;
-          if (itemId == null) {
-            debugPrint(
-              "[Cart API] Warning: itemId is null, executing recovery sync first.",
-            );
-            await syncWithBackend();
-          }
+      () {
+        _updateDebounceTimers.remove(variantId);
+        _enqueueSync(() async {
+          _incrementInFlight(variantId);
+          final stopwatch = Stopwatch()..start();
+          try {
+            final localIdx = _items.indexWhere((it) => it.variantId == variantId);
+            final targetQty = localIdx != -1 ? _items[localIdx].qty : 0;
+            final activeItemId = localIdx != -1
+                ? (_items[localIdx].itemId ?? _variantToItemId[variantId])
+                : _variantToItemId[variantId];
 
-          final updatedIdx = _items.indexWhere(
-            (it) => it.variantId == variantId,
-          );
-          final activeItemId = updatedIdx != -1
-              ? _items[updatedIdx].itemId
-              : item.itemId;
-
-          if (activeItemId != null) {
-            if (newQty <= 0) {
-              final response = await HttpService.delete(
-                "${ApiConstants.cartItems}/$activeItemId",
-              );
-              stopwatch.stop();
-              debugPrint(
-                "[Cart API] DELETE removeItem took ${stopwatch.elapsedMilliseconds}ms",
-              );
-
-              if (response.statusCode != 200) {
-                throw Exception("Failed to remove item");
-              }
-              final data = jsonDecode(response.body);
-              final cartMap = data is Map ? (data['cart'] ?? data) : null;
-              if (cartMap != null) {
-                _updateCartFromJson(cartMap);
-              } else {
-                await syncWithBackend();
+            if (targetQty <= 0) {
+              if (activeItemId != null) {
+                final response = await HttpService.delete(
+                  "${ApiConstants.cartItems}/$activeItemId",
+                );
+                stopwatch.stop();
+                debugPrint(
+                  "[Cart API] DELETE updateQty/removeItem took ${stopwatch.elapsedMilliseconds}ms",
+                );
+                if (response.statusCode != 200) {
+                  throw Exception("Failed to remove item");
+                }
+                final data = jsonDecode(response.body);
+                final cartMap = data is Map ? (data['cart'] ?? data) : null;
+                if (cartMap != null) {
+                  _updateCartFromJson(cartMap);
+                } else {
+                  await syncWithBackend();
+                }
               }
             } else {
-              final response = await HttpService.patch(
-                "${ApiConstants.cartItems}/$activeItemId",
-                body: {'quantity': newQty},
-              );
-              stopwatch.stop();
-              debugPrint(
-                "[Cart API] PATCH updateQty took ${stopwatch.elapsedMilliseconds}ms",
-              );
-
-              if (response.statusCode != 200) {
-                throw Exception("Failed to update quantity");
-              }
-              final data = jsonDecode(response.body);
-              final cartMap = data is Map ? (data['cart'] ?? data) : null;
-              if (cartMap != null) {
-                _updateCartFromJson(cartMap);
+              if (activeItemId != null) {
+                final response = await HttpService.patch(
+                  "${ApiConstants.cartItems}/$activeItemId",
+                  body: {'quantity': targetQty},
+                );
+                stopwatch.stop();
+                debugPrint(
+                  "[Cart API] PATCH updateQty took ${stopwatch.elapsedMilliseconds}ms",
+                );
+                if (response.statusCode != 200) {
+                  throw Exception("Failed to update quantity");
+                }
+                final data = jsonDecode(response.body);
+                final cartMap = data is Map ? (data['cart'] ?? data) : null;
+                if (cartMap != null) {
+                  _updateCartFromJson(cartMap);
+                } else {
+                  await syncWithBackend();
+                }
               } else {
-                await syncWithBackend();
+                // Fallback to POST addItems if activeItemId is null
+                final response = await HttpService.post(
+                  ApiConstants.cartItems,
+                  body: {
+                    'productId': item.productId,
+                    'variants': [
+                      {
+                        'variantId': variantId,
+                        'quantity': targetQty,
+                        'isReplace': true,
+                      }
+                    ],
+                  },
+                );
+                stopwatch.stop();
+                debugPrint(
+                  "[Cart API] POST updateQty/addItems fallback took ${stopwatch.elapsedMilliseconds}ms",
+                );
+                if (response.statusCode != 200 && response.statusCode != 201) {
+                  debugPrint("[Cart API Error] POST updateQty fallback failed: ${response.statusCode} - ${response.body}");
+                  throw Exception("Failed to fallback add items");
+                }
+                final data = jsonDecode(response.body);
+                final cartMap = data is Map ? (data['cart'] ?? data) : null;
+                if (cartMap != null) {
+                  _updateCartFromJson(cartMap);
+                } else {
+                  await syncWithBackend();
+                }
               }
             }
-          } else {
-            stopwatch.stop();
-            debugPrint(
-              "[Cart API] Error: activeItemId unresolved after recovery sync.",
-            );
+          } catch (e) {
+            debugPrint("Error updating quantity: $e");
+            _items = oldItems;
+            notifyListeners();
             await syncWithBackend();
-          }
-        } catch (e) {
-          debugPrint("Error updating quantity: $e");
-          // Rollback
-          _items = oldItems;
-          notifyListeners();
-          await syncWithBackend();
-        } finally {
-          _decrementInFlight(variantId);
-          final bool hasPendingProductAdd =
-              _addDebounceTimers.containsKey(item.productId) &&
-              _addDebounceTimers[item.productId]?.isActive == true;
-          if (!_updateDebounceTimers.containsKey(variantId) &&
-              !hasPendingProductAdd) {
+          } finally {
+            _decrementInFlight(variantId);
             _optimisticTargetQty.remove(variantId);
+            if (!completer.isCompleted) {
+              completer.complete();
+            }
           }
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
-        }
+        });
       },
     );
 
@@ -562,10 +640,6 @@ class CartService extends ChangeNotifier {
     // Cancel any pending update timer for this variant since it is being removed
     _updateDebounceTimers[variantId]?.cancel();
     _updateDebounceTimers.remove(variantId);
-
-    // Cancel any pending add/replace timer for this product
-    _addDebounceTimers[item.productId]?.cancel();
-    _addDebounceTimers.remove(item.productId);
 
     _dataVersion++;
 
@@ -591,55 +665,46 @@ class CartService extends ChangeNotifier {
     _optimisticTargetQty[variantId] = 0;
     notifyListeners();
 
-    final stopwatch = Stopwatch()..start();
-
-    try {
+    await _enqueueSync(() async {
       _incrementInFlight(variantId);
-      final String? itemId = item.itemId;
-      if (itemId == null) {
-        debugPrint(
-          "[Cart API] Warning: itemId is null, executing recovery sync first.",
-        );
-        await syncWithBackend();
-      }
+      final stopwatch = Stopwatch()..start();
+      try {
+        final activeItemId = item.itemId ?? _variantToItemId[variantId];
+        if (activeItemId != null) {
+          final response = await HttpService.delete(
+            "${ApiConstants.cartItems}/$activeItemId",
+          );
+          stopwatch.stop();
+          debugPrint(
+            "[Cart API] DELETE removeItem took ${stopwatch.elapsedMilliseconds}ms",
+          );
 
-      final activeItemId = item.itemId;
-      if (activeItemId != null) {
-        final response = await HttpService.delete(
-          "${ApiConstants.cartItems}/$activeItemId",
-        );
-        stopwatch.stop();
-        debugPrint(
-          "[Cart API] DELETE removeItem took ${stopwatch.elapsedMilliseconds}ms",
-        );
-
-        if (response.statusCode != 200) {
-          throw Exception("Failed to delete item from cart");
-        }
-        final data = jsonDecode(response.body);
-        final cartMap = data is Map ? (data['cart'] ?? data) : null;
-        if (cartMap != null) {
-          _updateCartFromJson(cartMap);
+          if (response.statusCode != 200) {
+            throw Exception("Failed to delete item from cart");
+          }
+          final data = jsonDecode(response.body);
+          final cartMap = data is Map ? (data['cart'] ?? data) : null;
+          if (cartMap != null) {
+            _updateCartFromJson(cartMap);
+          } else {
+            await syncWithBackend();
+          }
         } else {
-          await syncWithBackend();
+          stopwatch.stop();
+          debugPrint(
+            "[Cart API] Info: item not present on backend (itemId is null), skipped delete request.",
+          );
         }
-      } else {
-        stopwatch.stop();
-        debugPrint(
-          "[Cart API] Error: activeItemId unresolved after recovery sync.",
-        );
+      } catch (e) {
+        debugPrint("Error removing item: $e");
+        _items = oldItems;
+        notifyListeners();
         await syncWithBackend();
+      } finally {
+        _decrementInFlight(variantId);
+        _optimisticTargetQty.remove(variantId);
       }
-    } catch (e) {
-      debugPrint("Error removing item: $e");
-      // Rollback
-      _items = oldItems;
-      notifyListeners();
-      await syncWithBackend();
-    } finally {
-      _decrementInFlight(variantId);
-      _optimisticTargetQty.remove(variantId);
-    }
+    });
   }
 
   void _updateCartFromJson(Map cartMap, {bool saveToCache = true}) {
@@ -652,6 +717,14 @@ class CartService extends ChangeNotifier {
     final List<CartItem> parsedFreeItems = freeItemsJson
         .map((j) => CartItem.fromJson(j, isFree: true))
         .toList();
+
+    // Populate variantId to itemId map
+    _variantToItemId.clear();
+    for (var item in parsedItems) {
+      if (item.itemId != null && item.itemId!.isNotEmpty) {
+        _variantToItemId[item.variantId] = item.itemId!;
+      }
+    }
 
     // Build a list of active syncing/debouncing variant IDs
     final Set<String> activeSyncingIds = {
@@ -667,11 +740,7 @@ class CartService extends ChangeNotifier {
       final vId = item.variantId;
       processedVariantIds.add(vId);
 
-      final bool hasPendingProductAdd =
-          _addDebounceTimers.containsKey(item.productId) &&
-          _addDebounceTimers[item.productId]?.isActive == true;
-
-      if (activeSyncingIds.contains(vId) || hasPendingProductAdd) {
+      if (activeSyncingIds.contains(vId)) {
         final targetQty = _optimisticTargetQty[vId];
         if (targetQty != null) {
           if (targetQty <= 0) {
@@ -689,11 +758,8 @@ class CartService extends ChangeNotifier {
     for (var localItem in _items) {
       if (localItem.isFree) continue;
       final vId = localItem.variantId;
-      final bool hasPendingProductAdd =
-          _addDebounceTimers.containsKey(localItem.productId) &&
-          _addDebounceTimers[localItem.productId]?.isActive == true;
 
-      if ((activeSyncingIds.contains(vId) || hasPendingProductAdd) &&
+      if (activeSyncingIds.contains(vId) &&
           !processedVariantIds.contains(vId)) {
         final targetQty = _optimisticTargetQty[vId];
         if (targetQty != null && targetQty > 0) {
