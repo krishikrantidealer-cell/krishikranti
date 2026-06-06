@@ -859,112 +859,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // Left Card: Pack Size card (Stunning pill badge layout - compacted)
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                width: 66,
-                                decoration: BoxDecoration(
-                                  gradient: isSelected
-                                      ? LinearGradient(
-                                          colors: [
-                                            primaryGreen.withOpacity(0.08),
-                                            primaryGreen.withOpacity(0.01),
-                                          ],
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                        )
-                                      : null,
-                                  color: isSelected
-                                      ? null
-                                      : Colors.grey.shade50,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? primaryGreen
-                                        : Colors.grey.shade300,
-                                    width: isSelected ? 1.5 : 1.0,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isSelected
-                                          ? primaryGreen.withOpacity(0.08)
-                                          : Colors.black.withOpacity(0.01),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 8,
-                                ),
-                                child: unit.isNotEmpty
-                                    ? Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            val,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontFamily: Theme.of(context)
-                                                  .textTheme
-                                                  .titleLarge
-                                                  ?.fontFamily,
-                                              fontWeight: FontWeight.w900,
-                                              color: isSelected
-                                                  ? primaryGreen
-                                                  : Colors.black,
-                                              height: 1.1,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 1),
-                                          Text(
-                                            unit.toUpperCase(),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontFamily: Theme.of(context)
-                                                  .textTheme
-                                                  .titleLarge
-                                                  ?.fontFamily,
-                                              fontWeight: FontWeight.w900,
-                                              color: isSelected
-                                                  ? primaryGreen.withOpacity(
-                                                      0.8,
-                                                    )
-                                                  : Colors.black54,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Text(
-                                        val,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 11.5,
-                                          fontFamily: Theme.of(
-                                            context,
-                                          ).textTheme.titleLarge?.fontFamily,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                              ),
-                              const SizedBox(width: 8),
-
-                              // Right Card: Variant Card (Stunning pricing & quantity container - compacted)
-                              Expanded(
+                              GestureDetector(
+                                onTap: (isSelected || isSyncing)
+                                    ? null
+                                    : () => _syncVariantWithCart(v, 1),
+                                behavior: HitTestBehavior.opaque,
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
+                                  width: 66,
                                   decoration: BoxDecoration(
+                                    gradient: isSelected
+                                        ? LinearGradient(
+                                            colors: [
+                                              primaryGreen.withOpacity(0.08),
+                                              primaryGreen.withOpacity(0.01),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          )
+                                        : null,
                                     color: isSelected
-                                        ? Colors.white
-                                        : Colors.grey.shade100,
+                                        ? null
+                                        : Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: isSelected
@@ -976,353 +892,432 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       BoxShadow(
                                         color: isSelected
                                             ? primaryGreen.withOpacity(0.08)
-                                            : Colors.black.withOpacity(0.012),
+                                            : Colors.black.withOpacity(0.01),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 8,
+                                  ),
+                                  child: unit.isNotEmpty
+                                      ? Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                Flexible(
-                                                  child: Text(
-                                                    displayConfigName,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 13.5,
-                                                      fontFamily:
-                                                          Theme.of(context)
-                                                              .textTheme
-                                                              .titleLarge
-                                                              ?.fontFamily,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
+                                            Text(
+                                              val,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontFamily: Theme.of(context)
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.fontFamily,
+                                                fontWeight: FontWeight.w900,
+                                                color: isSelected
+                                                    ? primaryGreen
+                                                    : Colors.black,
+                                                height: 1.1,
+                                              ),
                                             ),
-                                            const SizedBox(height: 3),
-                                            // Row 1: Selling Price and Per-Unit label
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.baseline,
-                                              textBaseline:
-                                                  TextBaseline.alphabetic,
-                                              children: [
-                                                Text(
-                                                  "₹${displayPrice.toStringAsFixed(0)}",
-                                                  style: const TextStyle(
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.w900,
-                                                    fontSize: 13.5,
-                                                  ),
-                                                ),
-                                                if (perUnitLabel != null) ...[
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    "($perUnitLabel)",
-                                                    style: TextStyle(
-                                                      color: primaryGreen,
-                                                      fontSize: 9.5,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
+                                            const SizedBox(height: 1),
+                                            Text(
+                                              unit.toUpperCase(),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontFamily: Theme.of(context)
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.fontFamily,
+                                                fontWeight: FontWeight.w900,
+                                                color: isSelected
+                                                    ? primaryGreen.withOpacity(
+                                                        0.8,
+                                                      )
+                                                    : Colors.black54,
+                                                letterSpacing: 0.5,
+                                              ),
                                             ),
-                                            // Row 2: Original Price and Save Percentage (only if discounted)
-                                            if (displayCompareAtPrice >
-                                                displayPrice) ...[
-                                              const SizedBox(height: 3),
+                                          ],
+                                        )
+                                      : Text(
+                                          val,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 11.5,
+                                            fontFamily: Theme.of(
+                                              context,
+                                            ).textTheme.titleLarge?.fontFamily,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // Right Card: Variant Card (Stunning pricing & quantity container - compacted)
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: (isSelected || isSyncing)
+                                      ? null
+                                      : () => _syncVariantWithCart(v, 1),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? primaryGreen
+                                            : Colors.grey.shade300,
+                                        width: isSelected ? 1.5 : 1.0,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: isSelected
+                                              ? primaryGreen.withOpacity(0.08)
+                                              : Colors.black.withOpacity(0.012),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
                                               Row(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.center,
                                                 children: [
-                                                  Text(
-                                                    "₹${displayCompareAtPrice.toStringAsFixed(0)}",
-                                                    style: const TextStyle(
-                                                      color: Colors.black54,
-                                                      decoration: TextDecoration
-                                                          .lineThrough,
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 6),
                                                   Flexible(
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 5,
-                                                            vertical: 1.5,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(
-                                                          0xFFFFECEB,
-                                                        ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              4,
-                                                            ),
-                                                        border: Border.all(
-                                                          color: Colors
-                                                              .red
-                                                              .shade100,
-                                                          width: 0.5,
-                                                        ),
-                                                      ),
-                                                      child: FittedBox(
-                                                        fit: BoxFit.scaleDown,
-                                                        child: Text(
-                                                          l10n.saveAmount(
-                                                            (displayCompareAtPrice -
-                                                                    displayPrice)
-                                                                .toStringAsFixed(
-                                                                  0,
-                                                                ),
-                                                          ),
-                                                          style: TextStyle(
-                                                            color: Colors
-                                                                .red
-                                                                .shade800,
-                                                            fontWeight:
-                                                                FontWeight.w900,
-                                                            fontSize: 8,
-                                                          ),
-                                                        ),
+                                                    child: Text(
+                                                      displayConfigName,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: 13.5,
+                                                        fontFamily:
+                                                            Theme.of(context)
+                                                                .textTheme
+                                                                .titleLarge
+                                                                ?.fontFamily,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        color: Colors.black,
                                                       ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-
-                                      // Segmented Blinkit-Style quantity controls (Compacted)
-                                      if (isSelected)
-                                        Container(
-                                          width: 80,
-                                          height: 32,
-                                          decoration: BoxDecoration(
-                                            color: primaryGreen,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: primaryGreen.withOpacity(
-                                                  0.15,
-                                                ),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 1.5),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              GestureDetector(
-                                                onTap: isSyncing
-                                                    ? null
-                                                    : () {
-                                                        final qty = quantity > 1
-                                                            ? quantity - 1
-                                                            : 0;
-                                                        _syncVariantWithCart(
-                                                          v,
-                                                          qty,
-                                                        );
-                                                      },
-                                                behavior:
-                                                    HitTestBehavior.opaque,
-                                                child: Container(
-                                                  width: 25,
-                                                  height: double.infinity,
-                                                  alignment: Alignment.center,
-                                                  child: Icon(
-                                                    quantity == 1
-                                                        ? CupertinoIcons
-                                                              .trash_fill
-                                                        : Icons.remove_rounded,
-                                                    size: quantity == 1
-                                                        ? 12
-                                                        : 14,
-                                                    color: isSyncing
-                                                        ? Colors.white54
-                                                        : Colors.white,
+                                              const SizedBox(height: 3),
+                                              // Row 1: Selling Price and Per-Unit label
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.baseline,
+                                                textBaseline:
+                                                    TextBaseline.alphabetic,
+                                                children: [
+                                                  Text(
+                                                    "₹${displayPrice.toStringAsFixed(0)}",
+                                                    style: const TextStyle(
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      fontSize: 13.5,
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-                                              // Clickable number to trigger wholesale quantity input dialog
-                                              Expanded(
-                                                child: GestureDetector(
-                                                  onTap: isSyncing
-                                                      ? null
-                                                      : () =>
-                                                            _showQuantityDialog(
-                                                              v.id,
-                                                              quantity,
-                                                            ),
-                                                  behavior:
-                                                      HitTestBehavior.opaque,
-                                                  child: Container(
-                                                    height: double.infinity,
-                                                    alignment: Alignment.center,
-                                                    child: AnimatedSwitcher(
-                                                      duration: const Duration(
-                                                        milliseconds: 150,
+                                                  if (perUnitLabel != null) ...[
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      "($perUnitLabel)",
+                                                      style: TextStyle(
+                                                        color: primaryGreen,
+                                                        fontSize: 9.5,
+                                                        fontWeight:
+                                                            FontWeight.w900,
                                                       ),
-                                                      transitionBuilder:
-                                                          (
-                                                            child,
-                                                            animation,
-                                                          ) => ScaleTransition(
-                                                            scale: animation,
-                                                            child:
-                                                                FadeTransition(
-                                                                  opacity:
-                                                                      animation,
-                                                                  child: child,
-                                                                ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                              // Row 2: Original Price and Save Percentage (only if discounted)
+                                              if (displayCompareAtPrice >
+                                                  displayPrice) ...[
+                                                const SizedBox(height: 3),
+                                                Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      "₹${displayCompareAtPrice.toStringAsFixed(0)}",
+                                                      style: const TextStyle(
+                                                        color: Colors.black54,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .lineThrough,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Flexible(
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 5,
+                                                              vertical: 1.5,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: const Color(
+                                                            0xFFFFECEB,
                                                           ),
-                                                      child: Text(
-                                                        quantity.toString(),
-                                                        key: ValueKey<int>(
-                                                          quantity,
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                4,
+                                                              ),
+                                                          border: Border.all(
+                                                            color: Colors
+                                                                .red
+                                                                .shade100,
+                                                            width: 0.5,
+                                                          ),
                                                         ),
-                                                        style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w900,
-                                                          fontSize: 12.5,
-                                                          color: Colors.white,
-                                                          decoration:
-                                                              TextDecoration
-                                                                  .underline,
-                                                          decorationStyle:
-                                                              TextDecorationStyle
-                                                                  .solid,
-                                                          decorationColor:
-                                                              Colors.white70,
-                                                          decorationThickness:
-                                                              1.5,
+                                                        child: FittedBox(
+                                                          fit: BoxFit.scaleDown,
+                                                          child: Text(
+                                                            l10n.saveAmount(
+                                                              (displayCompareAtPrice -
+                                                                      displayPrice)
+                                                                  .toStringAsFixed(
+                                                                    0,
+                                                                  ),
+                                                            ),
+                                                            style: TextStyle(
+                                                              color: Colors
+                                                                  .red
+                                                                  .shade800,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900,
+                                                              fontSize: 8,
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
+                                                  ],
                                                 ),
-                                              ),
-                                              GestureDetector(
-                                                onTap: isSyncing
-                                                    ? null
-                                                    : () =>
-                                                          _syncVariantWithCart(
-                                                            v,
-                                                            quantity + 1,
-                                                          ),
-                                                behavior:
-                                                    HitTestBehavior.opaque,
-                                                child: Container(
-                                                  width: 25,
-                                                  height: double.infinity,
-                                                  alignment: Alignment.center,
-                                                  child: Icon(
-                                                    Icons.add_rounded,
-                                                    size: 14,
-                                                    color: isSyncing
-                                                        ? Colors.white54
-                                                        : Colors.white,
-                                                  ),
-                                                ),
-                                              ),
+                                              ],
                                             ],
                                           ),
-                                        )
-                                      else
-                                        GestureDetector(
-                                          onTap: isSyncing
-                                              ? null
-                                              : () =>
-                                                    _syncVariantWithCart(v, 1),
-                                          child: Container(
+                                        ),
+                                        const SizedBox(width: 4),
+
+                                        // Segmented Blinkit-Style quantity controls (Compacted)
+                                        if (isSelected)
+                                          Container(
                                             width: 80,
                                             height: 32,
-                                            alignment: Alignment.center,
                                             decoration: BoxDecoration(
-                                              color: Colors.white,
+                                              color: primaryGreen,
                                               borderRadius:
                                                   BorderRadius.circular(6),
-                                              border: Border.all(
-                                                color: isSyncing
-                                                    ? Colors.grey.shade300
-                                                    : primaryGreen,
-                                                width: 1.5,
-                                              ),
                                               boxShadow: [
                                                 BoxShadow(
                                                   color: primaryGreen
-                                                      .withOpacity(0.04),
+                                                      .withOpacity(0.15),
                                                   blurRadius: 4,
                                                   offset: const Offset(0, 1.5),
                                                 ),
                                               ],
                                             ),
-                                            child: isSyncing
-                                                ? SizedBox(
-                                                    width: 12,
-                                                    height: 12,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 1.5,
-                                                          color: primaryGreen,
-                                                        ),
-                                                  )
-                                                : Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Text(
-                                                        l10n.addLabel,
-                                                        style: TextStyle(
-                                                          fontSize: 11.5,
-                                                          fontWeight:
-                                                              FontWeight.w900,
-                                                          color: primaryGreen,
-                                                          letterSpacing: 0.5,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 3),
-                                                      Icon(
-                                                        Icons.add_rounded,
-                                                        size: 13,
-                                                        color: primaryGreen,
-                                                      ),
-                                                    ],
+                                            child: Row(
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    final qty = quantity > 1
+                                                        ? quantity - 1
+                                                        : 0;
+                                                    _syncVariantWithCart(
+                                                      v,
+                                                      qty,
+                                                    );
+                                                  },
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  child: Container(
+                                                    width: 25,
+                                                    height: double.infinity,
+                                                    alignment: Alignment.center,
+                                                    child: Icon(
+                                                      quantity == 1
+                                                          ? CupertinoIcons
+                                                                .trash_fill
+                                                          : Icons
+                                                                .remove_rounded,
+                                                      size: quantity == 1
+                                                          ? 12
+                                                          : 14,
+                                                      color: Colors.white,
+                                                    ),
                                                   ),
+                                                ),
+                                                // Clickable number to trigger wholesale quantity input dialog
+                                                Expanded(
+                                                  child: GestureDetector(
+                                                    onTap: () =>
+                                                        _showQuantityDialog(
+                                                          v.id,
+                                                          quantity,
+                                                        ),
+                                                    behavior:
+                                                        HitTestBehavior.opaque,
+                                                    child: Container(
+                                                      height: double.infinity,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: AnimatedSwitcher(
+                                                        duration:
+                                                            const Duration(
+                                                              milliseconds: 150,
+                                                            ),
+                                                        transitionBuilder:
+                                                            (
+                                                              child,
+                                                              animation,
+                                                            ) => ScaleTransition(
+                                                              scale: animation,
+                                                              child:
+                                                                  FadeTransition(
+                                                                    opacity:
+                                                                        animation,
+                                                                    child:
+                                                                        child,
+                                                                  ),
+                                                            ),
+                                                        child: Text(
+                                                          quantity.toString(),
+                                                          key: ValueKey<int>(
+                                                            quantity,
+                                                          ),
+                                                          style: const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w900,
+                                                            fontSize: 12.5,
+                                                            color: Colors.white,
+                                                            decoration:
+                                                                TextDecoration
+                                                                    .underline,
+                                                            decorationStyle:
+                                                                TextDecorationStyle
+                                                                    .solid,
+                                                            decorationColor:
+                                                                Colors.white70,
+                                                            decorationThickness:
+                                                                1.5,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: () =>
+                                                      _syncVariantWithCart(
+                                                        v,
+                                                        quantity + 1,
+                                                      ),
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  child: Container(
+                                                    width: 25,
+                                                    height: double.infinity,
+                                                    alignment: Alignment.center,
+                                                    child: Icon(
+                                                      Icons.add_rounded,
+                                                      size: 14,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        else
+                                          GestureDetector(
+                                            onTap: () =>
+                                                _syncVariantWithCart(v, 1),
+                                            child: Container(
+                                              width: 80,
+                                              height: 32,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: primaryGreen,
+                                                  width: 1.5,
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: primaryGreen
+                                                        .withOpacity(0.04),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(
+                                                      0,
+                                                      1.5,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    l10n.addLabel,
+                                                    style: TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      color: primaryGreen,
+                                                      letterSpacing: 0.5,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Icon(
+                                                    Icons.add_rounded,
+                                                    size: 13,
+                                                    color: primaryGreen,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1355,6 +1350,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     return ParsedSize(sizeStr, "Single");
+  }
+
+  double _parseSizeToBaseValue(String packSize, String baseUnit) {
+    final clean = packSize.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    final match = RegExp(
+      r'^([\d.]+)(ml|lit|litre|l|gm|gram|g|kg|kilogram|k|pcs|piece|pieces)?$',
+    ).firstMatch(clean);
+    if (match != null) {
+      final double? val = double.tryParse(match.group(1) ?? '');
+      final unit = match.group(2) ?? '';
+      if (val != null) {
+        if (baseUnit == 'lit') {
+          if (unit == 'ml') return val / 1000.0;
+          return val;
+        } else if (baseUnit == 'kg') {
+          if (unit == 'gm' || unit == 'gram' || unit == 'g') return val / 1000.0;
+          return val;
+        } else if (baseUnit == 'pcs') {
+          return 1.0;
+        }
+      }
+    }
+    return 1.0;
   }
 
   String _getUpdatedConfigName(String config, int quantity) {
@@ -3106,6 +3124,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return list;
   }
 
+  bool _isTierUnlocked(
+    Variant v,
+    String tierKey,
+    double totalVolume,
+    double threshold,
+  ) {
+    if (v.priceTiers.isEmpty || v.rates.isEmpty) {
+      if (tierKey == "10_30") {
+        return totalVolume >= 10.0;
+      } else if (tierKey == "30_50") {
+        return totalVolume > 30.0;
+      } else if (tierKey == "50_plus") {
+        return totalVolume > 50.0;
+      }
+    }
+    return totalVolume >= threshold;
+  }
+
   Widget _buildTierMilestonesRow(Variant v, int quantity) {
     final String baseUnit = v.basePackingUnit;
     final double totalVolume = v.packVolume * quantity;
@@ -3119,6 +3155,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ? 'Kg'
         : 'L';
 
+    final parsed = _parseSize(v.size);
+    final String packSize = parsed.packSize.isNotEmpty ? parsed.packSize : v.size;
+    final double singleUnitVol = _parseSizeToBaseValue(packSize, baseUnit);
+    final double totalUnits = singleUnitVol > 0 ? (totalVolume / singleUnitVol) : quantity.toDouble();
+    final String totalUnitsStr = totalUnits % 1 == 0 ? totalUnits.toInt().toString() : totalUnits.toStringAsFixed(1);
+    final String totalVolumeStr = "${totalVolume % 1 == 0 ? totalVolume.toInt() : totalVolume.toStringAsFixed(1)}$volUnit";
+
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -3127,23 +3170,59 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         children: [
           Row(
             children: [
-              Text(
-                "Wholesale Tier Pricing",
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.grey.shade700,
-                  letterSpacing: 0.2,
+              GestureDetector(
+                onTap: () {
+                  final firstLocked = validTiers.firstWhere(
+                    (t) => !_isTierUnlocked(v, t.key, totalVolume, t.threshold),
+                    orElse: () => validTiers.last,
+                  );
+                  HapticFeedback.lightImpact();
+                  _showUnlockTierSheet(v, firstLocked, quantity);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Wholesale Tier Pricing",
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.grey.shade700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 11.5,
+                      color: Colors.grey.shade600,
+                    ),
+                  ],
                 ),
               ),
               const Spacer(),
               if (quantity > 0) ...[
-                Text(
-                  "Current Volume: ${(v.packVolume * quantity) % 1 == 0 ? (v.packVolume * quantity).toInt() : (v.packVolume * quantity).toStringAsFixed(1)}$volUnit",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "Current Volume: ",
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      TextSpan(
+                        text: "$packSize × $totalUnitsStr = $totalVolumeStr",
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: primaryGreen,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -3155,18 +3234,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               final int index = entry.key;
               final t = entry.value;
 
-              bool isTierUnlocked = false;
-              if (v.priceTiers.isEmpty || v.rates.isEmpty) {
-                if (t.key == "10_30") {
-                  isTierUnlocked = totalVolume >= 10.0;
-                } else if (t.key == "30_50") {
-                  isTierUnlocked = totalVolume > 30.0;
-                } else if (t.key == "50_plus") {
-                  isTierUnlocked = totalVolume > 50.0;
-                }
-              } else {
-                isTierUnlocked = totalVolume >= t.threshold;
-              }
+              final bool isTierUnlocked = _isTierUnlocked(
+                v,
+                t.key,
+                totalVolume,
+                t.threshold,
+              );
 
               // Resolve the highest unlocked tier as the currently active tier
               String activeTierKey = "";
@@ -3242,6 +3315,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               );
             }).toList(),
           ),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: () {
+              final firstLocked = validTiers.firstWhere(
+                (t) => !_isTierUnlocked(v, t.key, totalVolume, t.threshold),
+                orElse: () => validTiers.last,
+              );
+              HapticFeedback.lightImpact();
+              _showUnlockTierSheet(v, firstLocked, quantity);
+            },
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    size: 11.5,
+                    color: Colors.amber.shade700,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Tap any tier to view unlock targets",
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                      letterSpacing: -0.15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -3253,13 +3361,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       final double vol = v.packVolume * qty;
       bool unlocked = false;
       if (v.priceTiers.isEmpty || v.rates.isEmpty) {
-        if (tierKey == "10_30") {
-          unlocked = vol >= 10.0;
-        } else if (tierKey == "30_50") {
-          unlocked = vol > 30.0;
-        } else if (tierKey == "50_plus") {
-          unlocked = vol > 50.0;
-        }
+        unlocked = _isTierUnlocked(v, tierKey, vol, 0.0);
       } else {
         final tier = v.priceTiers.firstWhere(
           (t) => t.id == tierKey,
@@ -3268,7 +3370,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         if (tier.id.isNotEmpty) {
           final range = Variant.parseTierRange(tier.name);
           final threshold = range['min'] ?? 0.0;
-          unlocked = vol >= threshold;
+          unlocked = _isTierUnlocked(v, tierKey, vol, threshold);
         }
       }
       if (unlocked) {
@@ -4042,7 +4144,8 @@ class TierMilestoneCard extends StatefulWidget {
 
 class _TierMilestoneCardState extends State<TierMilestoneCard>
     with TickerProviderStateMixin {
-  late AnimationController _controller;
+  late AnimationController _unlockController;
+  late AnimationController _bounceController;
   late Animation<double> _scaleAnimation;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
@@ -4050,34 +4153,42 @@ class _TierMilestoneCardState extends State<TierMilestoneCard>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _unlockController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 350),
     );
 
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem<double>(
-        tween: Tween<double>(
-          begin: 1.0,
-          end: 1.15,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 40.0,
-      ),
-      TweenSequenceItem<double>(
-        tween: Tween<double>(
-          begin: 1.15,
-          end: 0.95,
-        ).chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 30.0,
-      ),
-      TweenSequenceItem<double>(
-        tween: Tween<double>(
-          begin: 0.95,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30.0,
-      ),
-    ]).animate(_controller);
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
+
+    _scaleAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem<double>(
+            tween: Tween<double>(
+              begin: 1.0,
+              end: 1.15,
+            ).chain(CurveTween(curve: Curves.easeOut)),
+            weight: 40.0,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(
+              begin: 1.15,
+              end: 0.95,
+            ).chain(CurveTween(curve: Curves.easeInOut)),
+            weight: 30.0,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(
+              begin: 0.95,
+              end: 1.0,
+            ).chain(CurveTween(curve: Curves.easeOut)),
+            weight: 30.0,
+          ),
+        ]).animate(
+          CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
+        );
 
     _shakeController = AnimationController(
       vsync: this,
@@ -4115,7 +4226,7 @@ class _TierMilestoneCardState extends State<TierMilestoneCard>
         );
 
     if (widget.isUnlocked) {
-      _controller.value = 1.0;
+      _unlockController.value = 1.0;
     }
   }
 
@@ -4123,22 +4234,29 @@ class _TierMilestoneCardState extends State<TierMilestoneCard>
   void didUpdateWidget(covariant TierMilestoneCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isUnlocked && !oldWidget.isUnlocked) {
-      _controller.forward(from: 0.0);
+      _unlockController.forward(from: 0.0);
+      _bounceController.forward(from: 0.0);
       if (widget.onUnlocked != null) {
         widget.onUnlocked!();
       }
     } else if (!widget.isUnlocked && oldWidget.isUnlocked) {
-      _controller.reverse(from: 1.0);
-    } else if (widget.isUnlocked) {
-      _controller.value = 1.0;
+      _unlockController.reverse(from: 1.0);
     } else {
-      _controller.value = 0.0;
+      // Safe guard against parent rebuilds interrupting active animations.
+      if (!_unlockController.isAnimating) {
+        if (widget.isUnlocked) {
+          _unlockController.value = 1.0;
+        } else {
+          _unlockController.value = 0.0;
+        }
+      }
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _unlockController.dispose();
+    _bounceController.dispose();
     _shakeController.dispose();
     super.dispose();
   }
@@ -4166,9 +4284,13 @@ class _TierMilestoneCardState extends State<TierMilestoneCard>
         }
       },
       child: AnimatedBuilder(
-        animation: Listenable.merge([_controller, _shakeAnimation]),
+        animation: Listenable.merge([
+          _unlockController,
+          _bounceController,
+          _shakeAnimation,
+        ]),
         builder: (context, child) {
-          final double animValue = _controller.value;
+          final double animValue = _unlockController.value;
 
           final Color backgroundColor = Color.lerp(
             Colors.grey.shade100,

@@ -9,6 +9,8 @@ import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/dynamic_translation_service.dart';
+import 'package:krishikranti/core/remote_config_service.dart';
+import 'package:krishikranti/widgets/force_update_dialog.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -28,6 +30,21 @@ class _SplashPageState extends State<SplashPage> {
     // Navigate to the next screen based on auth status and language selection
     Timer(const Duration(seconds: 3), () async {
       if (mounted) {
+        // Perform Firebase Remote Config Force Update check
+        final bool updateRequired = await RemoteConfigService().isUpdateRequired();
+        if (updateRequired && mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => ForceUpdateDialog(
+              title: RemoteConfigService().updateTitle,
+              message: RemoteConfigService().updateMessage,
+              storeUrl: RemoteConfigService().storeUrl,
+            ),
+          );
+          return; // Block entry to the app
+        }
+
         final loggedIn = await AuthService.isLoggedIn();
 
         if (loggedIn) {

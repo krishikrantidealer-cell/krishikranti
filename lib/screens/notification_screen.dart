@@ -34,11 +34,22 @@ class _NotificationScreenState extends State<NotificationScreen>
     super.dispose();
   }
 
-  List<NotificationModel> _getFilteredNotifications(List<NotificationModel> allNotifications, int tabIndex) {
+  List<NotificationModel> _getFilteredNotifications(
+    List<NotificationModel> allNotifications,
+    int tabIndex,
+  ) {
     if (tabIndex == 1) {
-      return allNotifications
-          .where((n) => n.category == NotificationCategory.utility)
-          .toList();
+      return allNotifications.where((n) {
+        final titleLower = n.title.toLowerCase();
+        final descLower = n.description.toLowerCase();
+        final isCatalogue =
+            titleLower.contains('catalogue') || descLower.contains('catalogue');
+        final isDownload =
+            titleLower.contains('download') || descLower.contains('download');
+        return n.category == NotificationCategory.utility &&
+            !isCatalogue &&
+            !isDownload;
+      }).toList();
     } else if (tabIndex == 2) {
       return allNotifications
           .where((n) => n.category == NotificationCategory.marketing)
@@ -175,8 +186,15 @@ class _NotificationScreenState extends State<NotificationScreen>
     );
   }
 
-  Widget _buildNotificationList(int tabIndex, NotificationProvider provider, ThemeData theme) {
-    final filteredList = _getFilteredNotifications(provider.notifications, tabIndex);
+  Widget _buildNotificationList(
+    int tabIndex,
+    NotificationProvider provider,
+    ThemeData theme,
+  ) {
+    final filteredList = _getFilteredNotifications(
+      provider.notifications,
+      tabIndex,
+    );
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -310,7 +328,9 @@ class _NotificationScreenState extends State<NotificationScreen>
                     onTap: () {
                       provider.toggleReadStatus(notification.id);
                       if (notification.payload != null) {
-                        NotificationService.handleNotificationTap(notification.payload);
+                        NotificationService.handleNotificationTap(
+                          notification.payload,
+                        );
                       }
                     },
                     child: Padding(

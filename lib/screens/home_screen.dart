@@ -22,6 +22,7 @@ import 'package:krishikranti/screens/cart_screen.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/screens/catalogue_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
+import 'package:krishikranti/screens/favorites_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/widgets/category_card.dart';
 import 'package:krishikranti/widgets/product_card.dart';
@@ -540,39 +541,69 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 );
               },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Colors.white, Colors.white.withValues(alpha: 0.8)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(2),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                  ),
-                  child: Center(
-                    child: TranslatableText(
-                      profile.avatarLetter,
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+              child: Consumer<FavoriteService>(
+                builder: (context, favService, child) {
+                  final hasFavorites = favService.favorites.isNotEmpty;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white,
+                              Colors.white.withValues(alpha: 0.8),
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(2),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                          ),
+                          child: Center(
+                            child: TranslatableText(
+                              profile.avatarLetter,
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
+                      if (hasFavorites)
+                        Positioned(
+                          right: -1,
+                          top: -1,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF20823C),
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -618,6 +649,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             const SizedBox(width: 8),
             _buildCartButton(context, theme),
           ],
@@ -775,7 +807,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── _sectionTitle replaced by HomeSectionTitle widget ────────────────────
   // Use HomeSectionTitle(...) directly in the widget tree instead.
-
 
   Widget _buildCategories(BuildContext context, ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
@@ -1182,37 +1213,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           top: BorderSide(color: Colors.grey.shade100, width: 1.5),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
       child: Column(
         children: [
           // Trust Badges - Larger & More Visual
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildTrustItem(
-                Icons.security_outlined,
-                l10n.footerBadgeSecure,
-                Colors.green.shade600,
+              Expanded(
+                child: _buildTrustItem(
+                  Icons.security_outlined,
+                  l10n.footerBadgeSecure,
+                  Colors.green.shade600,
+                ),
               ),
-              _buildTrustItem(
-                Icons.local_shipping_outlined,
-                l10n.footerBadgeFast,
-                Colors.blue.shade600,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTrustItem(
+                  Icons.local_shipping_outlined,
+                  l10n.footerBadgeFast,
+                  Colors.blue.shade600,
+                ),
               ),
-              _buildTrustItem(
-                Icons.workspace_premium_outlined,
-                l10n.footerBadgeOrganic,
-                Colors.orange.shade600,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTrustItem(
+                  Icons.workspace_premium_outlined,
+                  l10n.footerBadgeOrganic,
+                  Colors.orange.shade600,
+                ),
               ),
-              _buildTrustItem(
-                Icons.verified_user_outlined,
-                l10n.footerBadgeTrusted,
-                Colors.purple.shade600,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTrustItem(
+                  Icons.verified_user_outlined,
+                  l10n.footerBadgeTrusted,
+                  Colors.purple.shade600,
+                ),
               ),
             ],
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
 
           // Brand & Support Row
           Row(
@@ -1232,14 +1273,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         letterSpacing: -0.2,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        _buildSocialIcon(Icons.facebook_rounded),
-                        const SizedBox(width: 16),
-                        _buildSocialIcon(Icons.camera_alt_rounded),
-                        const SizedBox(width: 16),
-                        _buildSocialIcon(Icons.play_circle_filled_rounded),
+                        _buildSocialIcon(
+                          "assets/icons/facebook-circle-logo-png.png",
+                          "https://www.facebook.com/krishikrantiorganics12/",
+                          isFirst: true,
+                        ),
+                        _buildSocialIcon(
+                          "assets/icons/1725819461instagram-logo.png",
+                          "https://www.instagram.com/reel/DYEVPeiGg73/",
+                        ),
+                        _buildSocialIcon(
+                          "assets/icons/1701508703YouTube-Icon-PNG.png",
+                          "https://www.youtube.com/@krishikrantiorganics",
+                        ),
                       ],
                     ),
                   ],
@@ -1342,33 +1391,77 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildTrustItem(IconData icon, String label, Color color) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.06),
-            shape: BoxShape.circle,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 0),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.015),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          child: Icon(icon, size: 28, color: color),
-        ),
-        const SizedBox(height: 8),
-        TranslatableText(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey.shade800,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.2,
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [color.withOpacity(0.12), color.withOpacity(0.03)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withOpacity(0.15), width: 1),
+            ),
+            child: Icon(icon, size: 22, color: color),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          TranslatableText(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey.shade800,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildSocialIcon(IconData icon) {
-    return Icon(icon, size: 24, color: Colors.grey.shade400);
+  Widget _buildSocialIcon(
+    String assetPath,
+    String urlString, {
+    bool isFirst = false,
+  }) {
+    return InkWell(
+      onTap: () async {
+        HapticFeedback.lightImpact();
+        final url = Uri.parse(urlString);
+        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+          await launchUrl(url, mode: LaunchMode.platformDefault);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(isFirst ? 0.0 : 8.0, 0.0, 8.0, 0.0),
+        child: Image.asset(
+          assetPath,
+          width: 32,
+          height: 32,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
   }
 }
 

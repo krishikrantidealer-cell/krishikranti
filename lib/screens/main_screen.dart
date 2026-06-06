@@ -12,6 +12,7 @@ import 'home_screen.dart';
 import 'catalogue_screen.dart';
 import 'notification_screen.dart';
 import 'profile_screen.dart';
+import 'package:krishikranti/core/favorite_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -381,6 +382,35 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
                         height: 1.0,
                       ),
                     ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    if (widget.index == 3) {
+      return Consumer<FavoriteService>(
+        builder: (context, favService, child) {
+          final count = favService.favorites.length;
+          if (count == 0) {
+            return iconWidget;
+          }
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              iconWidget,
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.redAccent,
+                    shape: BoxShape.circle,
                   ),
                 ),
               ),

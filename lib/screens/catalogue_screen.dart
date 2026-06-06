@@ -63,8 +63,11 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     }
     _startHintTimer();
 
-    _notificationSubscription = NotificationService.onNewNotification.listen((notif) {
-      if (notif.title.endsWith('Catalogue Ready') || notif.title.endsWith('Download Failed')) {
+    _notificationSubscription = NotificationService.onNewNotification.listen((
+      notif,
+    ) {
+      if (notif.title.endsWith('Catalogue Ready') ||
+          notif.title.endsWith('Download Failed')) {
         _checkDownloadedCatalogues();
       }
     });
@@ -571,19 +574,11 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                                 ? _collections.length
                                 : _categories.length,
                             gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: widget.isShowingCollections
-                                      ? 3
-                                      : 2,
-                                  mainAxisSpacing: widget.isShowingCollections
-                                      ? 12
-                                      : 8,
-                                  crossAxisSpacing: widget.isShowingCollections
-                                      ? 12
-                                      : 8,
-                                  childAspectRatio: widget.isShowingCollections
-                                      ? 0.82
-                                      : 2.3,
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 0.82,
                                 ),
                             itemBuilder: (context, index) {
                               return _StaggeredEntrance(
@@ -733,11 +728,11 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 6,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isCol ? 3 : 2,
-        crossAxisSpacing: isCol ? 12 : 8,
-        mainAxisSpacing: isCol ? 12 : 8,
-        childAspectRatio: isCol ? 0.82 : 2.3,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.82,
       ),
       itemBuilder: (context, index) {
         return Container(
@@ -827,8 +822,10 @@ class _CatalogueScreenState extends State<CatalogueScreen>
         url: pdfUrl,
         savedDir: saveDir,
         fileName: safeFileName,
-        showNotification: true, // Let the native OS handle the download progress bar natively
-        openFileFromNotification: true, // Let the native OS handle tapping the notification to open the file
+        showNotification:
+            true, // Let the native OS handle the download progress bar natively
+        openFileFromNotification:
+            true, // Let the native OS handle tapping the notification to open the file
         requiresStorageNotLow: false,
       );
 
@@ -862,7 +859,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       }
       NotificationService.addSilentNotification(
         title: 'Catalogue Download Failed',
-        body: 'Could not start download for $categoryName catalogue. Opened in browser.',
+        body:
+            'Could not start download for $categoryName catalogue. Opened in browser.',
         category: NotificationCategory.utility,
       );
     }
@@ -1141,9 +1139,61 @@ class RectangularCategoryCard extends StatefulWidget {
 class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
   bool _isPressed = false;
 
+  String _getCategoryAssetIcon(String name) {
+    final clean = name.trim().toLowerCase();
+    switch (clean) {
+      case 'insecticides':
+        return 'assets/icons/Krishi kranti graphics (6).png';
+      case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
+        return 'assets/icons/Krishi kranti graphics (7).png';
+      case 'fertilizers':
+        return 'assets/icons/Krishi kranti graphics (8).png';
+      case 'pgr':
+      case 'pgrs':
+        return 'assets/icons/Krishi kranti graphics (9).png';
+      case 'herbicides':
+        return 'assets/icons/Krishi kranti graphics (10).png';
+      case 'fungicides':
+        return 'assets/icons/Krishi kranti graphics (11).png';
+      default:
+        return 'assets/icons/category.png';
+    }
+  }
+
+  String _getLocalizedCategoryName(String name, AppLocalizations l10n) {
+    final clean = name.trim().toLowerCase();
+    switch (clean) {
+      case 'insecticides':
+        return l10n.categoryInsecticides;
+      case 'fungicides':
+        return l10n.categoryFungicides;
+      case 'pgr':
+      case 'pgrs':
+        return l10n.categoryPgrs;
+      case 'fertilizers':
+        return l10n.categoryFertilizers;
+      case 'herbicides':
+        return l10n.categoryHerbicides;
+      case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
+        return l10n.categoryBioProducts;
+      default:
+        return name;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final displayName = l10n != null
+        ? _getLocalizedCategoryName(widget.category.name, l10n)
+        : widget.category.name;
+    final assetIcon = _getCategoryAssetIcon(widget.category.name);
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
@@ -1154,78 +1204,65 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
         duration: const Duration(milliseconds: 100),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade100, width: 0.8),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.01),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CachedNetworkImage(
-                  imageUrl: widget.imageUrl,
-                  fit: BoxFit.fill,
-                  placeholder: (context, url) =>
-                      Container(color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => CachedNetworkImage(
-                    imageUrl: widget.fallbackImage,
-                    fit: BoxFit.fill,
-                    placeholder: (context, url) =>
-                      Container(color: Colors.grey[200]),
-                    errorWidget: (context, url, error) => Container(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      child: Center(
-                        child: Icon(
-                          widget.icon,
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.2,
-                          ),
-                          size: 40,
-                        ),
-                      ),
-                    ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Circular logo icon
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.06),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(6),
+                child: Image.asset(
+                  assetIcon,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    widget.icon,
+                    color: theme.colorScheme.primary,
+                    size: 20,
                   ),
                 ),
-                if (widget.onDownloadTap != null)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        widget.onDownloadTap!();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.18),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          widget.isDownloaded
-                              ? Icons.open_in_new_rounded
-                              : Icons.download_rounded,
-                          color: const Color(0xFF2E7D32),
-                          size: 18,
-                        ),
-                      ),
-                    ),
+              ),
+              const SizedBox(height: 10),
+              // Category Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  displayName,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    fontFamily: 'Poppins',
+                    letterSpacing: -0.2,
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

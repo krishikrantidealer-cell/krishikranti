@@ -12,6 +12,7 @@ import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
+import 'package:krishikranti/core/favorite_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -400,16 +401,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                             ),
-                            _ActionTile(
-                              icon: CupertinoIcons.heart_fill,
-                              title: l10n.favorites,
-                              color: Colors.redAccent,
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const FavoritesScreen(),
-                                ),
-                              ),
+                            Consumer<FavoriteService>(
+                              builder: (context, favService, child) {
+                                final count = favService.favorites.length;
+                                return _ActionTile(
+                                  icon: CupertinoIcons.heart_fill,
+                                  title: l10n.favorites,
+                                  color: Colors.redAccent,
+                                  trailing: count > 0
+                                      ? Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            count.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.redAccent,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const FavoritesScreen(),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                             _ActionTile(
                               icon: CupertinoIcons.globe,
@@ -606,6 +636,7 @@ class _ActionTile extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   final bool showDivider;
+  final Widget? trailing;
 
   const _ActionTile({
     required this.icon,
@@ -613,6 +644,7 @@ class _ActionTile extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.showDivider = true,
+    this.trailing,
   });
 
   @override
@@ -647,6 +679,7 @@ class _ActionTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
                 Container(
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(

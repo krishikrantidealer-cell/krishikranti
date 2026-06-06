@@ -11,7 +11,12 @@ class AuthService {
   static const _isProfileCompleteKey = 'is_profile_complete';
   static const _isKycCompleteKey = 'is_kyc_complete';
 
+  static String? _cachedToken;
+  static String? _cachedRefreshToken;
+
   static Future<void> saveTokens(String token, String refreshToken) async {
+    _cachedToken = token;
+    _cachedRefreshToken = refreshToken;
     await _storage.write(key: _tokenKey, value: token);
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
   }
@@ -31,11 +36,15 @@ class AuthService {
   }
 
   static Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    if (_cachedToken != null) return _cachedToken;
+    _cachedToken = await _storage.read(key: _tokenKey);
+    return _cachedToken;
   }
 
   static Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _refreshTokenKey);
+    if (_cachedRefreshToken != null) return _cachedRefreshToken;
+    _cachedRefreshToken = await _storage.read(key: _refreshTokenKey);
+    return _cachedRefreshToken;
   }
 
   static Future<bool> isProfileComplete() async {
@@ -49,6 +58,8 @@ class AuthService {
   }
 
   static Future<void> logout() async {
+    _cachedToken = null;
+    _cachedRefreshToken = null;
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _isProfileCompleteKey);

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
 import 'package:krishikranti/screens/product_list_screen.dart'; // For ShimmerCard
 import 'package:krishikranti/widgets/product_card.dart'; // Standardized Premium ProductCard
@@ -45,16 +46,147 @@ class _SearchScreenState extends State<SearchScreen>
     'com.krishi.dealer.retailer/voice_search',
   );
 
+  List<Category> _allCategories = [];
+  List<Category> _randomCategories = [];
+
   @override
   void initState() {
     super.initState();
     _loadRecentSearches();
+    _loadRandomCategories();
 
     if (widget.startVoiceSearch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showBlinkitVoiceSearch();
       });
     }
+  }
+
+  Future<void> _loadRandomCategories() async {
+    try {
+      final categories = await _productRepository.getCategories();
+      if (categories.isNotEmpty && mounted) {
+        final shuffled = List<Category>.from(categories)..shuffle();
+        setState(() {
+          _allCategories = categories;
+          _randomCategories = shuffled.take(3).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading categories in search: $e");
+    }
+  }
+
+  Category? _findCategoryByQuery(String query, AppLocalizations l10n) {
+    if (query.trim().isEmpty) return null;
+    final cleanQuery = query.trim().toLowerCase();
+
+    // First, look for an exact match (either localized name or database name)
+    for (final category in _allCategories) {
+      final localizedName = _getLocalizedCategoryName(
+        category.name,
+        l10n,
+      ).toLowerCase();
+      final originalName = category.name.toLowerCase();
+      if (cleanQuery == localizedName || cleanQuery == originalName) {
+        return category;
+      }
+    }
+
+    // Fallback: look for a fuzzy or partial match if the query is at least 3 characters
+    if (cleanQuery.length >= 3) {
+      for (final category in _allCategories) {
+        final localizedName = _getLocalizedCategoryName(
+          category.name,
+          l10n,
+        ).toLowerCase();
+        final originalName = category.name.toLowerCase();
+        if (localizedName.contains(cleanQuery) ||
+            originalName.contains(cleanQuery)) {
+          return category;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  IconData _getIconForCategory(String name) {
+    switch (name.trim().toLowerCase()) {
+      case 'insecticides':
+        return Icons.bug_report_rounded;
+      case 'fungicides':
+        return Icons.science_rounded;
+      case 'pgr':
+      case 'pgrs':
+        return Icons.grass_rounded;
+      case 'fertilizers':
+        return Icons.eco_rounded;
+      case 'herbicides':
+        return Icons.agriculture_rounded;
+      case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
+        return Icons.psychology_alt_rounded;
+      default:
+        return Icons.category_rounded;
+    }
+  }
+
+  String _getLocalizedCategoryName(String name, AppLocalizations l10n) {
+    final clean = name.trim().toLowerCase();
+    switch (clean) {
+      case 'insecticides':
+        return l10n.categoryInsecticides;
+      case 'fungicides':
+        return l10n.categoryFungicides;
+      case 'pgr':
+      case 'pgrs':
+        return l10n.categoryPgrs;
+      case 'fertilizers':
+        return l10n.categoryFertilizers;
+      case 'herbicides':
+        return l10n.categoryHerbicides;
+      case 'bio-products':
+      case 'bio products':
+      case 'bioproducts':
+        return l10n.categoryBioProducts;
+      default:
+        return name;
+    }
+  }
+
+  Widget _buildLoadingChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey.shade200,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 50,
+            height: 12,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              color: Colors.grey.shade200,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showBlinkitVoiceSearch() async {
@@ -149,10 +281,25 @@ class _SearchScreenState extends State<SearchScreen>
   Future<void> _performSearch(String query) async {
     if (!mounted) return;
     try {
-      final result = await _productRepository.getProducts(
-        search: query.trim(),
-        limit: 50,
-      );
+      final l10n = AppLocalizations.of(context)!;
+      final matchedCategory = _findCategoryByQuery(query, l10n);
+
+      final Map<String, dynamic> result;
+      if (matchedCategory != null) {
+        debugPrint(
+          "[SearchScreen] Matched query '$query' to category: ${matchedCategory.name} (${matchedCategory.id})",
+        );
+        result = await _productRepository.getProducts(
+          categoryId: matchedCategory.id,
+          limit: 50,
+        );
+      } else {
+        result = await _productRepository.getProducts(
+          search: query.trim(),
+          limit: 50,
+        );
+      }
+
       if (mounted && _searchQuery.trim() == query.trim()) {
         setState(() {
           _searchResults = result['products'] as List<Product>;
@@ -576,20 +723,26 @@ class _SearchScreenState extends State<SearchScreen>
                               alignment: WrapAlignment.center,
                               spacing: 10,
                               runSpacing: 10,
-                              children: [
-                                _buildQuickChip(
-                                  l10n.seedsLabel,
-                                  CupertinoIcons.leaf_arrow_circlepath,
-                                ),
-                                _buildQuickChip(
-                                  l10n.crops,
-                                  CupertinoIcons.tree,
-                                ),
-                                _buildQuickChip(
-                                  l10n.toolsLabel,
-                                  CupertinoIcons.wrench,
-                                ),
-                              ],
+                              children: _randomCategories.isEmpty
+                                  ? [
+                                      _buildLoadingChip(),
+                                      _buildLoadingChip(),
+                                      _buildLoadingChip(),
+                                    ]
+                                  : _randomCategories.map((category) {
+                                      final localizedName =
+                                          _getLocalizedCategoryName(
+                                            category.name,
+                                            l10n,
+                                          );
+                                      final icon = _getIconForCategory(
+                                        category.name,
+                                      );
+                                      return _buildQuickChip(
+                                        localizedName,
+                                        icon,
+                                      );
+                                    }).toList(),
                             ),
                           ],
                         ),

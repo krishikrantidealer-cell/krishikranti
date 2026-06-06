@@ -50,11 +50,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             listenable: _favoriteService,
             builder: (context, _) {
               final favorites = _favoriteService.favorites;
-
-              if (favorites.isEmpty && !_favoriteService.isSyncing) {
-                return _buildEmptyState(context, l10n);
-              }
-
               return AnimationLimiter(
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(
@@ -65,6 +60,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     if (_favoriteService.isSyncing && favorites.isEmpty)
                       const SliverFillRemaining(
                         child: Center(child: CupertinoActivityIndicator()),
+                      )
+                    else if (favorites.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _buildEmptyState(context, l10n),
                       )
                     else
                       SliverPadding(

@@ -9,6 +9,7 @@ import 'package:krishikranti/main.dart'; // Import navigatorKey
 
 class HttpService {
   static final dio.Dio _dio = dio.Dio();
+  static final http.Client _client = http.Client();
 
   static void _forceLogout() {
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
@@ -31,7 +32,7 @@ class HttpService {
   }) async {
     try {
       final defaultHeaders = await _getHeaders();
-      var response = await http.get(
+      var response = await _client.get(
         Uri.parse(url),
         headers: {...defaultHeaders, ...?headers},
       );
@@ -40,7 +41,7 @@ class HttpService {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
           final newHeaders = await _getHeaders();
-          response = await http.get(
+          response = await _client.get(
             Uri.parse(url),
             headers: {...newHeaders, ...?headers},
           );
@@ -61,7 +62,7 @@ class HttpService {
   }) async {
     try {
       final defaultHeaders = await _getHeaders();
-      var response = await http.post(
+      var response = await _client.post(
         Uri.parse(url),
         headers: {...defaultHeaders, ...?headers},
         body: body != null ? jsonEncode(body) : null,
@@ -71,7 +72,7 @@ class HttpService {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
           final newHeaders = await _getHeaders();
-          response = await http.post(
+          response = await _client.post(
             Uri.parse(url),
             headers: {...newHeaders, ...?headers},
             body: body != null ? jsonEncode(body) : null,
@@ -93,7 +94,7 @@ class HttpService {
   }) async {
     try {
       final defaultHeaders = await _getHeaders();
-      var response = await http.patch(
+      var response = await _client.patch(
         Uri.parse(url),
         headers: {...defaultHeaders, ...?headers},
         body: body != null ? jsonEncode(body) : null,
@@ -103,7 +104,7 @@ class HttpService {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
           final newHeaders = await _getHeaders();
-          response = await http.patch(
+          response = await _client.patch(
             Uri.parse(url),
             headers: {...newHeaders, ...?headers},
             body: body != null ? jsonEncode(body) : null,
@@ -125,7 +126,7 @@ class HttpService {
   }) async {
     try {
       final defaultHeaders = await _getHeaders();
-      var response = await http.delete(
+      var response = await _client.delete(
         Uri.parse(url),
         headers: {...defaultHeaders, ...?headers},
         body: body != null ? jsonEncode(body) : null,
@@ -135,7 +136,7 @@ class HttpService {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
           final newHeaders = await _getHeaders();
-          response = await http.delete(
+          response = await _client.delete(
             Uri.parse(url),
             headers: {...newHeaders, ...?headers},
             body: body != null ? jsonEncode(body) : null,

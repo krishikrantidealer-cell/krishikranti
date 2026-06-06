@@ -1653,7 +1653,7 @@ class _ModernQtySelector extends StatelessWidget {
           children: [
             _qtyBtn(
               qty == 1 ? CupertinoIcons.trash_fill : CupertinoIcons.minus,
-              isSyncing ? () {} : onMinus,
+              onMinus,
               size: qty == 1 ? 10 : 11,
               color: qty == 1 ? const Color(0xFFED4337) : Colors.black87,
               isFirst: true,
@@ -1661,33 +1661,24 @@ class _ModernQtySelector extends StatelessWidget {
             Container(
               constraints: const BoxConstraints(minWidth: 26),
               alignment: Alignment.center,
-              child: isSyncing
-                  ? const SizedBox(
-                      width: 11,
-                      height: 11,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        color: Color(0xFF298E4D),
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap: isSyncing || isFree || onQtyChanged == null
-                          ? null
-                          : () => _showQuantityEditDialog(context, qty),
-                      behavior: HitTestBehavior.opaque,
-                      child: Text(
-                        "$qty",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
+              child: GestureDetector(
+                onTap: isFree || onQtyChanged == null
+                    ? null
+                    : () => _showQuantityEditDialog(context, qty),
+                behavior: HitTestBehavior.opaque,
+                child: Text(
+                  "$qty",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
             ),
             _qtyBtn(
               CupertinoIcons.plus,
-              isSyncing ? () {} : onPlus,
+              onPlus,
               size: 11,
               color: const Color(0xFF298E4D),
               isLast: true,

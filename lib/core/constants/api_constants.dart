@@ -19,6 +19,7 @@ class ApiConstants {
   // Cart & Coupon Endpoints
   static const String cart = '$baseUrl/api/cart';
   static const String cartItems = '$baseUrl/api/cart/items';
+  static const String cartSync = '$baseUrl/api/cart/sync';
   static const String applyCoupon = '$baseUrl/api/cart/coupon';
   static const String activeCoupons = '$baseUrl/api/coupons/active';
 
