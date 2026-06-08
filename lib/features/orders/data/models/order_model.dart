@@ -66,7 +66,7 @@ class Order {
       shippingAddress: ShippingAddress.fromJson(json['shippingAddress'] ?? {}),
       paymentMethod: json['paymentMethod'] ?? 'Online',
       paymentStatus: json['paymentStatus'] ?? 'Pending',
-      orderStatus: json['orderStatus'] ?? 'Pending',
+      orderStatus: json['orderStatus'] ?? 'Processing',
       createdAt: DateTime.parse(
         json['createdAt'] ?? DateTime.now().toIso8601String(),
       ).toLocal(),
