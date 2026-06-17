@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/cart_service.dart';
@@ -201,16 +202,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _processPayment() async {
     final l10n = AppLocalizations.of(context)!;
     if (selectedPaymentMethod == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseSelectPaymentMethod)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectPaymentMethod)));
       return;
     }
 
     if (!hasSelectedAddress) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseSelectAddress)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.pleaseSelectAddress)));
       return;
     }
 
@@ -295,9 +296,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       } catch (e) {
         setState(() => _isProcessing = false);
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.errorLaunchingRazorpay(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorLaunchingRazorpay(e.toString()))),
+        );
       }
     } catch (e) {
       setState(() => _isProcessing = false);
@@ -431,14 +432,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Builder(
-            builder: (context) {
-              final l10n = AppLocalizations.of(context)!;
-              return Text(
-                l10n.orderSyncRequired,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              );
-            },
-          ),
+                  builder: (context) {
+                    final l10n = AppLocalizations.of(context)!;
+                    return Text(
+                      l10n.orderSyncRequired,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -451,7 +455,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 children: [
                   Text(
                     l10n.orderSyncDescription,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -511,9 +518,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: paymentId));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(l10n.paymentRefCopied),
-                      ),
+                      SnackBar(content: Text(l10n.paymentRefCopied)),
                     );
                   },
                   child: Text(l10n.copyId),
@@ -625,79 +630,81 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           centerTitle: true,
         ),
-        body: Stack(
-          children: [
-            // Background subtle ambient glows
-            Positioned(
-              top: -40,
-              left: -40,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: primaryGreen.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 250,
-              right: -60,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.blue.shade600.withValues(alpha: 0.03),
-                ),
-              ),
-            ),
-            Column(
-              children: [
-                SizedBox(
-                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
-                ),
-                const CheckoutStepper(activeStep: 1),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildShippingAddressSection(),
-                        const SizedBox(height: 16),
-                        _buildOrderSummary(),
-                        if (discountAmount > 0 ||
-                            selectedCoupon == "DEALERDHAMAKA") ...[
-                          const SizedBox(height: 12),
-                          _buildSavingsBanner(),
-                        ],
-                        const SizedBox(height: 16),
-                        _buildTrustBadges(),
-                        const SizedBox(height: 20),
-                        Text(
-                          AppLocalizations.of(context)!.paymentMode,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.3,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildOnlinePaymentOption(),
-                        const SizedBox(height: 10),
-                        _buildPartialPaymentOption(),
-                        const SizedBox(height: 24),
-                      ],
-                    ),
+        body: KycBarrierWidget(
+          child: Stack(
+            children: [
+              // Background subtle ambient glows
+              Positioned(
+                top: -40,
+                left: -40,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: primaryGreen.withValues(alpha: 0.05),
                   ),
                 ),
-                _buildBottomSection(),
-              ],
-            ),
-          ],
+              ),
+              Positioned(
+                top: 250,
+                right: -60,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue.shade600.withValues(alpha: 0.03),
+                  ),
+                ),
+              ),
+              Column(
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                  ),
+                  const CheckoutStepper(activeStep: 1),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildShippingAddressSection(),
+                          const SizedBox(height: 16),
+                          _buildOrderSummary(),
+                          if (discountAmount > 0 ||
+                              selectedCoupon == "DEALERDHAMAKA") ...[
+                            const SizedBox(height: 12),
+                            _buildSavingsBanner(),
+                          ],
+                          const SizedBox(height: 16),
+                          _buildTrustBadges(),
+                          const SizedBox(height: 20),
+                          Text(
+                            AppLocalizations.of(context)!.paymentMode,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.3,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildOnlinePaymentOption(),
+                          const SizedBox(height: 10),
+                          _buildPartialPaymentOption(),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                  _buildBottomSection(),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -867,20 +874,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Builder(
-            builder: (context) {
-              final l10n = AppLocalizations.of(context)!;
-              return Text(
-                isDealerDhamaka
-                    ? l10n.dealerDhamakaBanner
-                    : l10n.couponSavingsBannerCheckout(discountAmount.toStringAsFixed(0)),
-                style: TextStyle(
-                  color: isDealerDhamaka ? primaryGreen : Colors.orange.shade900,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12.5,
-                ),
-              );
-            },
-          ),
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Text(
+                  isDealerDhamaka
+                      ? l10n.dealerDhamakaBanner
+                      : l10n.couponSavingsBannerCheckout(
+                          discountAmount.toStringAsFixed(0),
+                        ),
+                  style: TextStyle(
+                    color: isDealerDhamaka
+                        ? primaryGreen
+                        : Colors.orange.shade900,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12.5,
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -1112,7 +1123,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          AppLocalizations.of(context)!.partialBookingAdvanceDesc,
+                          AppLocalizations.of(
+                            context,
+                          )!.partialBookingAdvanceDesc,
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 11.5,

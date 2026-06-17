@@ -6,6 +6,11 @@ class UserModel {
   final String phoneNumber;
   final UserAddress? address;
   final String? avatarUrl;
+  final bool isKycComplete;
+  final String kycStatus;
+  final String? licenceImage;
+  final String? shopImage;
+  final String? gstNumber;
 
   UserModel({
     required this.name,
@@ -13,6 +18,11 @@ class UserModel {
     required this.phoneNumber,
     this.address,
     this.avatarUrl,
+    this.isKycComplete = false,
+    this.kycStatus = 'pending',
+    this.licenceImage,
+    this.shopImage,
+    this.gstNumber,
   });
 
   String get avatarLetter => name.isNotEmpty ? name[0].toUpperCase() : 'U';
@@ -31,6 +41,11 @@ class UserModel {
       phoneNumber: user['phoneNumber'] ?? user['phone'] ?? '',
       avatarUrl: user['avatarUrl'],
       address: user['address'] != null ? UserAddress.fromJson(user['address']) : null,
+      isKycComplete: user['isKycComplete'] ?? false,
+      kycStatus: user['kycStatus'] ?? 'pending',
+      licenceImage: user['licenceImage'],
+      shopImage: user['shopImage'],
+      gstNumber: user['gstNumber'],
     );
   }
 
@@ -41,6 +56,11 @@ class UserModel {
       'phoneNumber': phoneNumber,
       'avatarUrl': avatarUrl,
       'address': address?.toMap(),
+      'isKycComplete': isKycComplete,
+      'kycStatus': kycStatus,
+      'licenceImage': licenceImage,
+      'shopImage': shopImage,
+      'gstNumber': gstNumber,
     };
   }
 
@@ -55,6 +75,11 @@ class UserModel {
     String? phoneNumber,
     UserAddress? address,
     String? avatarUrl,
+    bool? isKycComplete,
+    String? kycStatus,
+    String? licenceImage,
+    String? shopImage,
+    String? gstNumber,
   }) {
     return UserModel(
       name: name ?? this.name,
@@ -62,6 +87,11 @@ class UserModel {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       address: address ?? this.address,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      isKycComplete: isKycComplete ?? this.isKycComplete,
+      kycStatus: kycStatus ?? this.kycStatus,
+      licenceImage: licenceImage ?? this.licenceImage,
+      shopImage: shopImage ?? this.shopImage,
+      gstNumber: gstNumber ?? this.gstNumber,
     );
   }
 }
@@ -98,6 +128,7 @@ class UserAddress {
       'cityTehsil': cityTehsil,
       'state': state,
       'addressLine2': addressLine2,
+      'address2': addressLine2,
     };
   }
 }

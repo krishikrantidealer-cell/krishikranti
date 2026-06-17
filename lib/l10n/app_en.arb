@@ -88,6 +88,7 @@
   "completeVerification": "Complete Verification",
   "dataSecureNotice": "Your data is encrypted and secure.",
   "uploadLimitNotice": "Only images, PDFs, and Word documents are allowed!",
+  "tapToUploadNotice": "Tap to upload",
   "notifications": "Notifications",
   "shippingAddress": "Shipping Address",
   "addAddress": "Add Address",
@@ -641,5 +642,11 @@
   "zeroReviews": " (0 reviews)",
   "stepCart": "Cart",
   "stepCheckout": "Checkout",
-  "stepPayment": "Payment"
+  "stepPayment": "Payment",
+  "updateRequired": "Update Required",
+  "updateAvailable": "Update Available",
+  "forceUpdateMsg": "A critical update is available. Please update the app to continue using our services.",
+  "optionalUpdateMsg": "A new version of the app is available with new features and improvements.",
+  "later": "LATER",
+  "updateNow": "UPDATE NOW"
 }

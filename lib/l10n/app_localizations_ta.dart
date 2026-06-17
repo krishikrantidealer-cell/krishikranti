@@ -246,6 +246,9 @@ class AppLocalizationsTa extends AppLocalizations {
       'படங்கள், பிடிஎஃப் மற்றும் வேர்ட் ஆவணங்கள் மட்டுமே அனுமதிக்கப்படும்!';
 
   @override
+  String get tapToUploadNotice => 'பதிவேற்ற தட்டவும்';
+
+  @override
   String get notifications => 'அறிவிப்புகள்';
 
   @override
@@ -1321,4 +1324,24 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get stepPayment => 'பணம் செலுத்து';
+
+  @override
+  String get updateRequired => 'புதுப்பித்தல் தேவை';
+
+  @override
+  String get updateAvailable => 'புதுப்பித்தல் கிடைக்கிறது';
+
+  @override
+  String get forceUpdateMsg =>
+      'ஒரு முக்கியமான புதுப்பிப்பு கிடைக்கிறது. எங்கள் சேவைகளைத் தொடர்ந்து பயன்படுத்த பயன்பாட்டைப் புதுப்பிக்கவும்.';
+
+  @override
+  String get optionalUpdateMsg =>
+      'புதிய அம்சங்கள் மற்றும் மேம்பாடுகளுடன் பயன்பாட்டின் புதிய பதிப்பு கிடைக்கிறது.';
+
+  @override
+  String get later => 'பின்னர்';
+
+  @override
+  String get updateNow => 'இப்போது புதுப்பி';
 }

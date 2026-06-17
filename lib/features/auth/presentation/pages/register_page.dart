@@ -28,6 +28,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _villageController = TextEditingController();
+  final TextEditingController _addressLine2Controller = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _stateController = TextEditingController();
   final TextEditingController _pincodeController = TextEditingController();
@@ -37,6 +38,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _villageController.dispose();
+    _addressLine2Controller.dispose();
     _cityController.dispose();
     _stateController.dispose();
     _pincodeController.dispose();
@@ -110,6 +112,8 @@ class _RegisterPageState extends State<RegisterPage> {
       'addressType': _selectedAddressType,
       'address': {
         'villageArea': _villageController.text.trim(),
+        'addressLine2': _addressLine2Controller.text.trim(),
+        'address2': _addressLine2Controller.text.trim(),
         'cityTehsil': _cityController.text.trim(),
         'state': _stateController.text.trim(),
         'pincode': _pincodeController.text.trim(),
@@ -135,7 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
             phone: '', // Phone is already verified
             pincode: _pincodeController.text,
             address1: _villageController.text,
-            address2: '',
+            address2: _addressLine2Controller.text.trim(),
             city: _cityController.text,
             state: _stateController.text,
           );
@@ -180,7 +184,7 @@ class _RegisterPageState extends State<RegisterPage> {
               clipper: HeaderClipper(),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.only(top: 50, bottom: 90),
+                padding: const EdgeInsets.only(top: 36, bottom: 64),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -196,15 +200,15 @@ class _RegisterPageState extends State<RegisterPage> {
                       children: [
                         Image.asset(
                           'assets/images/logo.png',
-                          width: 50,
+                          width: 40,
                           fit: BoxFit.cover,
-                          height: 50,
+                          height: 40,
                         ),
                         RichText(
                           text: TextSpan(
                             style: Theme.of(
                               context,
-                            ).textTheme.headlineMedium?.copyWith(fontSize: 28),
+                            ).textTheme.headlineMedium?.copyWith(fontSize: 24),
                             children: [
                               TextSpan(
                                 text: l10n.krishi,
@@ -223,14 +227,14 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
                     Text(
                       l10n.createYourAccount,
                       style: Theme.of(
                         context,
-                      ).textTheme.headlineMedium?.copyWith(fontSize: 26),
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 22),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       l10n.registerSubtitle,
                       textAlign: TextAlign.center,
@@ -239,23 +243,23 @@ class _RegisterPageState extends State<RegisterPage> {
                         letterSpacing: 0.1,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
+                        horizontal: 14,
+                        vertical: 4,
                       ),
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(15),
-                          topRight: Radius.circular(15),
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
                         ),
                       ),
                       child: Text(
                         l10n.step1Of2,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: const Color(0xFF2E7D32),
                           fontWeight: FontWeight.bold,
                         ),
@@ -268,7 +272,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
             // Layer 2: Form Card
             Transform.translate(
-              offset: const Offset(0, -90),
+              offset: const Offset(0, -64),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
@@ -296,6 +300,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               child: _buildTextField(
                                 l10n.firstName,
                                 _firstNameController,
+                                hint: "First",
                                 prefixIcon: Icons.person_outline_rounded,
                               ),
                             ),
@@ -304,64 +309,79 @@ class _RegisterPageState extends State<RegisterPage> {
                               child: _buildTextField(
                                 l10n.lastName,
                                 _lastNameController,
+                                hint: "Last",
                                 prefixIcon: Icons.person_outline_rounded,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
 
                         // 2. Address Type
                         Text(
                           l10n.addressType,
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black87,
                               ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _buildAddressTypeSelector(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
 
-                        // 3. Detailed Address (Full Width for long strings)
+                        // 3. Detailed Address Line 1 (Full Width)
                         _buildTextField(
-                          l10n.villageArea,
+                          l10n.addressLine1,
                           _villageController,
+                          hint: l10n.addressHint,
                           prefixIcon: Icons.map_outlined,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
 
-                        // 4. Regional Row (City | State)
+                        // 3b. Detailed Address Line 2 (Optional)
+                        _buildTextField(
+                          l10n.addressLine2Optional,
+                          _addressLine2Controller,
+                          hint: l10n.address2Hint,
+                          prefixIcon: Icons.map_outlined,
+                          isOptional: true,
+                        ),
+                        const SizedBox(height: 10),
+
+                        // 4. Regional Row (City | Pincode)
                         Row(
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                l10n.cityTehsil,
+                                l10n.cityDistrict,
                                 _cityController,
+                                hint: "Pune",
                                 prefixIcon: Icons.location_city_rounded,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildTextField(
-                                "State",
-                                _stateController,
-                                prefixIcon: Icons.map_sharp,
+                                l10n.pincode,
+                                _pincodeController,
+                                hint: "411001",
+                                prefixIcon: Icons.pin_drop_outlined,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
 
-                        // 5. Postal Code (Full Width)
+                        // 5. State (Full Width)
                         _buildTextField(
-                          l10n.pincode,
-                          _pincodeController,
-                          prefixIcon: Icons.pin_drop_outlined,
+                          l10n.state,
+                          _stateController,
+                          hint: "Maharashtra",
+                          prefixIcon: Icons.map_sharp,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 14),
 
                         // Use Current Location Button
                         InkWell(
@@ -369,7 +389,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE8F5E9),
                               borderRadius: BorderRadius.circular(10),
@@ -390,7 +410,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   const Icon(
                                     Icons.location_on,
                                     color: Color(0xFF2E7D32),
-                                    size: 18,
+                                    size: 16,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -398,21 +418,21 @@ class _RegisterPageState extends State<RegisterPage> {
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelLarge
-                                        ?.copyWith(fontSize: 13),
+                                        ?.copyWith(fontSize: 12),
                                   ),
                                 ],
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
 
                         // Submit Button
                         Container(
                           width: double.infinity,
-                          height: 56,
+                          height: 46,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(14),
                             gradient: const LinearGradient(
                               colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
                             ),
@@ -421,8 +441,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                 color: const Color(
                                   0xFF1B5E20,
                                 ).withValues(alpha: 0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
                               ),
                             ],
                           ),
@@ -431,14 +451,17 @@ class _RegisterPageState extends State<RegisterPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                             ),
                             child: _isLoading
                                 ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
+                                    height: 18,
+                                    width: 18,
                                     child: CircularProgressIndicator(
                                       color: Colors.white,
                                       strokeWidth: 2,
@@ -450,8 +473,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                         .textTheme
                                         .labelLarge
                                         ?.copyWith(
-                                          fontSize: 18,
+                                          fontSize: 15,
                                           color: Colors.white,
+                                          height: 1.0,
                                         ),
                                   ),
                           ),
@@ -473,48 +497,71 @@ class _RegisterPageState extends State<RegisterPage> {
     TextEditingController controller, {
     String? hint,
     IconData? prefixIcon,
+    bool isOptional = false,
   }) {
     final l10n = AppLocalizations.of(context)!;
-    return TextFormField(
-      controller: controller,
-      validator: (value) {
-        if (value == null || value.isEmpty) return l10n.fieldRequired;
-        if (label == l10n.pincode && value.length != 6)
-          return l10n.invalidPincode;
-        return null;
-      },
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-      ),
-      decoration: InputDecoration(
-        hintText: label,
-        prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: const Color(0xFF2E7D32), size: 18)
-            : null,
-        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Colors.grey.shade500,
-          fontSize: 13,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 14),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+        const SizedBox(height: 3),
+        TextFormField(
+          controller: controller,
+          validator: (value) {
+            if (isOptional) return null;
+            if (value == null || value.isEmpty) return l10n.fieldRequired;
+            if (label == l10n.pincode && value.length != 6)
+              return l10n.invalidPincode;
+            return null;
+          },
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: hint ?? label,
+            prefixIcon: prefixIcon != null
+                ? Icon(prefixIcon, color: const Color(0xFF2E7D32), size: 16)
+                : null,
+            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade400,
+              fontSize: 12,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: Color(0xFF2E7D32),
+                width: 1.2,
+              ),
+            ),
+            errorStyle: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontSize: 10),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
-        ),
-        errorStyle: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(fontSize: 11),
-      ),
+      ],
     );
   }
 
@@ -525,10 +572,10 @@ class _RegisterPageState extends State<RegisterPage> {
       length: types.length,
       initialIndex: 0,
       child: Container(
-        height: 40,
+        height: 32,
         decoration: BoxDecoration(
           color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: TabBar(
           onTap: (index) {
@@ -540,13 +587,13 @@ class _RegisterPageState extends State<RegisterPage> {
           labelPadding: EdgeInsets.zero,
           indicatorSize: TabBarIndicatorSize.tab,
           indicator: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             color: const Color(0xFF2E7D32),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF2E7D32).withValues(alpha: 0.2),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -554,9 +601,9 @@ class _RegisterPageState extends State<RegisterPage> {
           unselectedLabelColor: Colors.black54,
           labelStyle: Theme.of(
             context,
-          ).textTheme.labelLarge?.copyWith(fontSize: 12),
+          ).textTheme.labelLarge?.copyWith(fontSize: 11),
           unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium
-              ?.copyWith(fontSize: 12, fontWeight: FontWeight.w500),
+              ?.copyWith(fontSize: 11, fontWeight: FontWeight.w500),
           dividerColor: Colors.transparent,
           tabs: types.map((type) => Tab(text: type)).toList(),
         ),
@@ -569,12 +616,12 @@ class HeaderClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     Path path = Path();
-    path.lineTo(0, size.height - 80);
+    path.lineTo(0, size.height - 45);
     path.quadraticBezierTo(
       size.width / 2,
-      size.height + 100, // Deepened the arc dip
+      size.height + 40,
       size.width,
-      size.height - 80,
+      size.height - 45,
     );
     path.lineTo(size.width, 0);
     path.close();

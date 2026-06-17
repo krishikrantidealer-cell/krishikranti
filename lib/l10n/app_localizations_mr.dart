@@ -244,6 +244,9 @@ class AppLocalizationsMr extends AppLocalizations {
       'केवळ प्रतिमा, पीडीएफ आणि वर्ड दस्तऐवज उपलब्ध आहेत!';
 
   @override
+  String get tapToUploadNotice => 'अपलोड करण्यासाठी टॅप करा';
+
+  @override
   String get notifications => 'सूचना';
 
   @override
@@ -1306,4 +1309,24 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get stepPayment => 'पेमेंट';
+
+  @override
+  String get updateRequired => 'अपडेट आवश्यक आहे';
+
+  @override
+  String get updateAvailable => 'अपडेट उपलब्ध आहे';
+
+  @override
+  String get forceUpdateMsg =>
+      'एक महत्त्वाचा अपडेट उपलब्ध आहे. कृपया आमची सेवा सुरू ठेवण्यासाठी अॅप अपडेट करा.';
+
+  @override
+  String get optionalUpdateMsg =>
+      'नवीन वैशिष्ट्ये आणि सुधारणांसह अॅपची नवीन आवृत्ती उपलब्ध आहे.';
+
+  @override
+  String get later => 'नंतर';
+
+  @override
+  String get updateNow => 'आता अपडेट करा';
 }

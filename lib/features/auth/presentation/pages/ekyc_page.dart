@@ -14,6 +14,8 @@ import 'package:krishikranti/core/utils/haptic_util.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:krishikranti/core/profile_service.dart';
 
 class EkycPage extends StatefulWidget {
   const EkycPage({super.key});
@@ -29,12 +31,13 @@ class _EkycPageState extends State<EkycPage> {
   final TextEditingController _gstNumberController = TextEditingController();
 
   File? _licenseImage;
+  File? _shopImage;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   double _uploadProgress = 0;
   String _loadingMessage = "";
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(ImageSource source, bool isLicense) async {
     try {
       final XFile? image = await _picker.pickImage(
         source: source,
@@ -45,7 +48,11 @@ class _EkycPageState extends State<EkycPage> {
       if (image != null) {
         HapticUtil.success();
         setState(() {
-          _licenseImage = File(image.path);
+          if (isLicense) {
+            _licenseImage = File(image.path);
+          } else {
+            _shopImage = File(image.path);
+          }
         });
       }
     } catch (e) {
@@ -53,7 +60,7 @@ class _EkycPageState extends State<EkycPage> {
     }
   }
 
-  Future<void> _pickDocument() async {
+  Future<void> _pickDocument(bool isLicense) async {
     try {
       final FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
@@ -63,7 +70,11 @@ class _EkycPageState extends State<EkycPage> {
       if (result != null && result.files.single.path != null) {
         HapticUtil.success();
         setState(() {
-          _licenseImage = File(result.files.single.path!);
+          if (isLicense) {
+            _licenseImage = File(result.files.single.path!);
+          } else {
+            _shopImage = File(result.files.single.path!);
+          }
         });
       }
     } catch (e) {
@@ -75,16 +86,20 @@ class _EkycPageState extends State<EkycPage> {
     return path.extension(filePath).toLowerCase() == '.pdf';
   }
 
-  void _removeImage() {
+  void _removeImage(bool isLicense) {
     // Stronger feedback for a destructive action
     HapticUtil.error();
     setState(() {
-      _licenseImage = null;
+      if (isLicense) {
+        _licenseImage = null;
+      } else {
+        _shopImage = null;
+      }
     });
   }
 
-  void _showFullImage() {
-    if (_licenseImage == null) return;
+  void _showFullImage(File? image) {
+    if (image == null) return;
     // Medium is better for general selection
     HapticUtil.medium();
     showDialog(
@@ -97,7 +112,7 @@ class _EkycPageState extends State<EkycPage> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.file(_licenseImage!, fit: BoxFit.contain),
+              child: Image.file(image, fit: BoxFit.contain),
             ),
             Positioned(
               top: 10,
@@ -116,7 +131,59 @@ class _EkycPageState extends State<EkycPage> {
     );
   }
 
-  void _showImagePickerOptions() {
+  void _showFullRemoteImage(String url) {
+    if (url.isEmpty) return;
+    HapticUtil.medium();
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: url.toLowerCase().endsWith('.pdf')
+                  ? Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(24),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.picture_as_pdf_rounded,
+                            color: Colors.redAccent,
+                            size: 64,
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            "PDF Document Details",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Image.network(url, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showImagePickerOptions(bool isLicense) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -140,7 +207,7 @@ class _EkycPageState extends State<EkycPage> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
+                  _pickImage(ImageSource.camera, isLicense);
                 },
               ),
               ListTile(
@@ -154,23 +221,24 @@ class _EkycPageState extends State<EkycPage> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
+                  _pickImage(ImageSource.gallery, isLicense);
                 },
               ),
-              ListTile(
-                leading: const Icon(
-                  Icons.description_rounded,
-                  color: Color(0xFF2E7D32),
+              if (isLicense)
+                ListTile(
+                  leading: const Icon(
+                    Icons.description_rounded,
+                    color: Color(0xFF2E7D32),
+                  ),
+                  title: const Text(
+                    'Document (PDF, Word, Image)',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickDocument(isLicense);
+                  },
                 ),
-                title: const Text(
-                  'Document (PDF, Word, Image)',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickDocument();
-                },
-              ),
             ],
           ),
         ),
@@ -188,6 +256,47 @@ class _EkycPageState extends State<EkycPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final profileService = Provider.of<ProfileService>(context);
+    final user = profileService.user;
+
+    final bool hasSubmitted =
+        user != null &&
+        user.licenceImage != null &&
+        user.licenceImage!.isNotEmpty;
+    final bool isReadOnly =
+        (user?.isKycComplete == true) ||
+        (hasSubmitted && user?.kycStatus != 'rejected');
+
+    if (isReadOnly) {
+      if (_shopNameController.text.isEmpty && user?.shopName != null) {
+        _shopNameController.text = user!.shopName;
+      }
+      if (_gstNumberController.text.isEmpty && user?.gstNumber != null) {
+        _gstNumberController.text = user!.gstNumber!;
+      }
+    }
+
+    final String uploadShopImageText;
+    final String currentLocale = Localizations.localeOf(context).languageCode;
+    switch (currentLocale) {
+      case 'te':
+        uploadShopImageText = 'షాప్ చిత్రాన్ని అప్‌లోడ్ చేయండి';
+        break;
+      case 'ta':
+        uploadShopImageText = 'கடை புகைப்படத்தைப் பதிவேற்றவும்';
+        break;
+      case 'hi':
+        uploadShopImageText = 'दुकान की तस्वीर अपलोड करें';
+        break;
+      case 'kn':
+        uploadShopImageText = 'ಅಂಗಡಿಯ ಚಿತ್ರವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ';
+        break;
+      case 'mr':
+        uploadShopImageText = 'दुकान फोटो अपलोड करा';
+        break;
+      default:
+        uploadShopImageText = 'Upload Shop Image';
+    }
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
@@ -296,6 +405,55 @@ class _EkycPageState extends State<EkycPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              if (isReadOnly) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: (user?.isKycComplete == true)
+                                        ? const Color(0xFFE8F5E9)
+                                        : const Color(0xFFFFF3E0),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: (user?.isKycComplete == true)
+                                          ? const Color(0xFF81C784)
+                                          : const Color(0xFFFFB74D),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        (user?.isKycComplete == true)
+                                            ? Icons.check_circle_rounded
+                                            : Icons.info_rounded,
+                                        color: (user?.isKycComplete == true)
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFFE65100),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          (user?.isKycComplete == true)
+                                              ? "Your KYC is fully verified and active. You are a registered dealer."
+                                              : "Documents under review",
+                                          style: TextStyle(
+                                            color: (user?.isKycComplete == true)
+                                                ? const Color(0xFF1B5E20)
+                                                : const Color(0xFFE65100),
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                               Center(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -342,6 +500,7 @@ class _EkycPageState extends State<EkycPage> {
                                 l10n.shopName,
                                 _shopNameController,
                                 prefixIcon: Icons.storefront_rounded,
+                                enabled: !isReadOnly,
                               ),
                               const SizedBox(height: 16),
                               _buildTextField(
@@ -349,291 +508,380 @@ class _EkycPageState extends State<EkycPage> {
                                 _gstNumberController,
                                 prefixIcon: Icons.assignment_turned_in_outlined,
                                 isGst: true,
+                                isOptional: true,
+                                enabled: !isReadOnly,
                               ),
                               const SizedBox(height: 28),
                               _buildUploadArea(
                                 l10n.uploadLicense,
                                 _licenseImage,
-                                _showImagePickerOptions,
+                                user?.licenceImage,
+                                isReadOnly,
+                                () => _showImagePickerOptions(true),
+                                () => _removeImage(true),
                               ),
-                              const SizedBox(height: 32),
-                              // Professional Submit Button
-                              Container(
-                                width: double.infinity,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(18),
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF1B5E20),
-                                      Color(0xFF2E7D32),
+                              const SizedBox(height: 16),
+                              _buildUploadArea(
+                                uploadShopImageText,
+                                _shopImage,
+                                user?.shopImage,
+                                isReadOnly,
+                                () => _showImagePickerOptions(false),
+                                () => _removeImage(false),
+                              ),
+                              if (!isReadOnly) ...[
+                                const SizedBox(height: 32),
+                                // Professional Submit Button
+                                Container(
+                                  width: double.infinity,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(18),
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF1B5E20),
+                                        Color(0xFF2E7D32),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF1B5E20,
+                                        ).withValues(alpha: 0.3),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 5),
+                                      ),
                                     ],
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFF1B5E20,
-                                      ).withValues(alpha: 0.3),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 5),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: _isLoading
-                                      ? null
-                                      : () async {
-                                          if (_formKey.currentState!
-                                              .validate()) {
-                                            if (_licenseImage == null) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    "Please upload your business license",
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading
+                                        ? null
+                                        : () async {
+                                            if (_formKey.currentState!
+                                                .validate()) {
+                                              if (_licenseImage == null) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      "Please upload your business license",
+                                                    ),
+                                                    backgroundColor:
+                                                        Colors.redAccent,
                                                   ),
-                                                  backgroundColor:
-                                                      Colors.redAccent,
-                                                ),
-                                              );
-                                              return;
-                                            }
+                                                );
+                                                return;
+                                              }
 
-                                            // Pre-upload validation for file types
-                                            final allowedExtensions = [
-                                              '.jpg',
-                                              '.jpeg',
-                                              '.png',
-                                              '.pdf',
-                                              '.doc',
-                                              '.docx',
-                                            ];
-                                            final ext = path
-                                                .extension(_licenseImage!.path)
-                                                .toLowerCase();
-                                            if (!allowedExtensions.contains(
-                                              ext,
-                                            )) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    l10n.uploadLimitNotice,
+                                              if (_shopImage == null) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      "Please upload your shop image",
+                                                    ),
+                                                    backgroundColor:
+                                                        Colors.redAccent,
                                                   ),
-                                                  backgroundColor:
-                                                      Colors.orange.shade800,
-                                                ),
-                                              );
-                                              return;
-                                            }
+                                                );
+                                                return;
+                                              }
 
-                                            setState(() {
-                                              _isLoading = true;
-                                              _uploadProgress = 0;
-                                              _loadingMessage =
-                                                  "Optimizing document...";
-                                            });
-                                            HapticUtil.medium();
-
-                                            try {
-                                              String finalPath =
-                                                  _licenseImage!.path;
-
-                                              // Compress if it's an image
-                                              final ext = path
-                                                  .extension(finalPath)
-                                                  .toLowerCase();
-                                              if ([
+                                              // Pre-upload validation for file types
+                                              final allowedExtensions = [
                                                 '.jpg',
                                                 '.jpeg',
                                                 '.png',
-                                              ].contains(ext)) {
-                                                final tempDir =
-                                                    await getTemporaryDirectory();
-                                                final targetPath = path.join(
-                                                  tempDir.path,
-                                                  "compressed_${DateTime.now().millisecondsSinceEpoch}$ext",
-                                                );
+                                                '.pdf',
+                                                '.doc',
+                                                '.docx',
+                                              ];
+                                              final extLic = path
+                                                  .extension(
+                                                    _licenseImage!.path,
+                                                  )
+                                                  .toLowerCase();
+                                              final extShop = path
+                                                  .extension(_shopImage!.path)
+                                                  .toLowerCase();
 
-                                                final compressedFile =
-                                                    await FlutterImageCompress.compressAndGetFile(
-                                                      finalPath,
-                                                      targetPath,
-                                                      quality: 60,
-                                                    );
-
-                                                if (compressedFile != null) {
-                                                  finalPath =
-                                                      compressedFile.path;
-                                                }
-                                              }
-
-                                              setState(() {
-                                                _loadingMessage =
-                                                    "Uploading to secure server...";
-                                              });
-
-                                              final response =
-                                                  await HttpService.uploadFile(
-                                                    ApiConstants.kyc,
-                                                    fields: {
-                                                      'shopName':
-                                                          _shopNameController
-                                                              .text
-                                                              .trim(),
-                                                      'gstNumber':
-                                                          _gstNumberController
-                                                              .text
-                                                              .trim()
-                                                              .toUpperCase(),
-                                                      'userType':
-                                                          'Retailer and Distributor',
-                                                    },
-                                                    fileKey: 'licenceImage',
-                                                    filePath: finalPath,
-                                                    onProgress: (sent, total) {
-                                                      setState(() {
-                                                        _uploadProgress =
-                                                            sent / total;
-                                                      });
-                                                    },
-                                                  );
-
-                                              if (response.statusCode == 200 ||
-                                                  response.statusCode == 201) {
-                                                if (mounted) {
-                                                  setState(() {
-                                                    _isLoading = false;
-                                                    _uploadProgress = 1.0;
-                                                  });
-                                                  await AuthService.saveUserStatus(
-                                                    isProfileComplete: true,
-                                                    isKycComplete: true,
-                                                  );
-                                                  HapticUtil.success();
-                                                  Navigator.pushNamedAndRemoveUntil(
-                                                    context,
-                                                    '/dashboard',
-                                                    (route) => false,
-                                                  );
-                                                }
-                                              } else {
-                                                throw Exception(
-                                                  'Failed to upload KYC documents',
-                                                );
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                setState(
-                                                  () => _isLoading = false,
-                                                );
-
-                                                String errorMessage = e
-                                                    .toString();
-                                                if (errorMessage.contains(
-                                                  'DioException',
-                                                )) {
-                                                  errorMessage =
-                                                      "Network error. Please check your connection.";
-                                                }
-
+                                              if (!allowedExtensions.contains(
+                                                extLic,
+                                              )) {
                                                 ScaffoldMessenger.of(
                                                   context,
                                                 ).showSnackBar(
                                                   SnackBar(
-                                                    content: Text(errorMessage),
-                                                    backgroundColor:
-                                                        Colors.redAccent,
-                                                    behavior: SnackBarBehavior
-                                                        .floating,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
+                                                    content: Text(
+                                                      "License document has invalid file type.",
                                                     ),
+                                                    backgroundColor:
+                                                        Colors.orange.shade800,
                                                   ),
                                                 );
+                                                return;
+                                              }
+
+                                              if (!allowedExtensions.contains(
+                                                extShop,
+                                              )) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      "Shop image has invalid file type.",
+                                                    ),
+                                                    backgroundColor:
+                                                        Colors.orange.shade800,
+                                                  ),
+                                                );
+                                                return;
+                                              }
+
+                                              setState(() {
+                                                _isLoading = true;
+                                                _uploadProgress = 0;
+                                                _loadingMessage =
+                                                    "Optimizing document...";
+                                              });
+                                              HapticUtil.medium();
+
+                                              try {
+                                                String finalLicensePath =
+                                                    _licenseImage!.path;
+                                                String finalShopPath =
+                                                    _shopImage!.path;
+
+                                                // Compress license if it's an image
+                                                if ([
+                                                  '.jpg',
+                                                  '.jpeg',
+                                                  '.png',
+                                                ].contains(extLic)) {
+                                                  final tempDir =
+                                                      await getTemporaryDirectory();
+                                                  final targetPath = path.join(
+                                                    tempDir.path,
+                                                    "compressed_license_${DateTime.now().millisecondsSinceEpoch}$extLic",
+                                                  );
+
+                                                  final compressedFile =
+                                                      await FlutterImageCompress.compressAndGetFile(
+                                                        finalLicensePath,
+                                                        targetPath,
+                                                        quality: 60,
+                                                      );
+
+                                                  if (compressedFile != null) {
+                                                    finalLicensePath =
+                                                        compressedFile.path;
+                                                  }
+                                                }
+
+                                                // Compress shop image if it's an image
+                                                if ([
+                                                  '.jpg',
+                                                  '.jpeg',
+                                                  '.png',
+                                                ].contains(extShop)) {
+                                                  final tempDir =
+                                                      await getTemporaryDirectory();
+                                                  final targetPath = path.join(
+                                                    tempDir.path,
+                                                    "compressed_shop_${DateTime.now().millisecondsSinceEpoch}$extShop",
+                                                  );
+
+                                                  final compressedFile =
+                                                      await FlutterImageCompress.compressAndGetFile(
+                                                        finalShopPath,
+                                                        targetPath,
+                                                        quality: 60,
+                                                      );
+
+                                                  if (compressedFile != null) {
+                                                    finalShopPath =
+                                                        compressedFile.path;
+                                                  }
+                                                }
+
+                                                setState(() {
+                                                  _loadingMessage =
+                                                      "Uploading to secure server...";
+                                                });
+
+                                                final response =
+                                                    await HttpService.uploadFiles(
+                                                      ApiConstants.kyc,
+                                                      fields: {
+                                                        'shopName':
+                                                            _shopNameController
+                                                                .text
+                                                                .trim(),
+                                                        'gstNumber':
+                                                            _gstNumberController
+                                                                .text
+                                                                .trim()
+                                                                .toUpperCase(),
+                                                        'userType':
+                                                            'Retailer and Distributor',
+                                                      },
+                                                      files: {
+                                                        'licenceImage':
+                                                            finalLicensePath,
+                                                        'shopImage':
+                                                            finalShopPath,
+                                                      },
+                                                      onProgress:
+                                                          (sent, total) {
+                                                            setState(() {
+                                                              _uploadProgress =
+                                                                  sent / total;
+                                                            });
+                                                          },
+                                                    );
+
+                                                if (response.statusCode ==
+                                                        200 ||
+                                                    response.statusCode ==
+                                                        201) {
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isLoading = false;
+                                                      _uploadProgress = 1.0;
+                                                    });
+                                                    await AuthService.saveUserStatus(
+                                                      isProfileComplete: true,
+                                                      isKycComplete: false,
+                                                    );
+                                                    HapticUtil.success();
+                                                    Navigator.pushNamedAndRemoveUntil(
+                                                      context,
+                                                      '/dashboard',
+                                                      (route) => false,
+                                                    );
+                                                  }
+                                                } else {
+                                                  throw Exception(
+                                                    'Failed to upload KYC documents',
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                if (mounted) {
+                                                  setState(
+                                                    () => _isLoading = false,
+                                                  );
+
+                                                  String errorMessage = e
+                                                      .toString();
+                                                  if (errorMessage.contains(
+                                                    'DioException',
+                                                  )) {
+                                                    errorMessage =
+                                                        "Network error. Please check your connection.";
+                                                  }
+
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        errorMessage,
+                                                      ),
+                                                      backgroundColor:
+                                                          Colors.redAccent,
+                                                      behavior: SnackBarBehavior
+                                                          .floating,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              10,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
                                               }
                                             }
-                                          }
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                  ),
-                                  child: _isLoading
-                                      ? Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              child: LinearProgressIndicator(
-                                                value: _uploadProgress > 0
-                                                    ? _uploadProgress
-                                                    : null,
-                                                backgroundColor: Colors.white24,
-                                                valueColor:
-                                                    const AlwaysStoppedAnimation<
-                                                      Color
-                                                    >(Colors.white),
-                                                minHeight: 4,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              _loadingMessage,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              l10n.completeVerification,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelLarge
-                                                  ?.copyWith(
-                                                    fontSize: 18,
-                                                    color: Colors.white,
-                                                  ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            const Icon(
-                                              Icons.verified_user,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Center(
-                                child: Text(
-                                  l10n.dataSecureNotice,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade500,
-                                        fontWeight: FontWeight.w500,
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(18),
                                       ),
+                                    ),
+                                    child: _isLoading
+                                        ? Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                child: LinearProgressIndicator(
+                                                  value: _uploadProgress > 0
+                                                      ? _uploadProgress
+                                                      : null,
+                                                  backgroundColor:
+                                                      Colors.white24,
+                                                  valueColor:
+                                                      const AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.white),
+                                                  minHeight: 4,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _loadingMessage,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                l10n.completeVerification,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelLarge
+                                                    ?.copyWith(
+                                                      fontSize: 18,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Icon(
+                                                Icons.verified_user,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                            ],
+                                          ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: Text(
+                                    l10n.dataSecureNotice,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade500,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -712,24 +960,32 @@ class _EkycPageState extends State<EkycPage> {
     TextEditingController controller, {
     IconData? prefixIcon,
     bool isGst = false,
+    bool isOptional = false,
+    bool enabled = true,
   }) {
     final l10n = AppLocalizations.of(context)!;
     return TextFormField(
       controller: controller,
+      enabled: enabled,
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
         fontSize: 15,
         fontWeight: FontWeight.w500,
+        color: enabled ? null : Colors.grey.shade700,
       ),
       decoration: InputDecoration(
-        labelText: hint,
+        labelText: isOptional ? "$hint (Optional)" : hint,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFF1B5E20),
+          color: enabled ? const Color(0xFF1B5E20) : Colors.grey.shade600,
           fontWeight: FontWeight.w600,
         ),
-        hintText: "Enter $hint",
+        hintText: isOptional ? "Enter $hint (Optional)" : "Enter $hint",
         prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: const Color(0xFF1B5E20), size: 20)
+            ? Icon(
+                prefixIcon,
+                color: enabled ? const Color(0xFF1B5E20) : Colors.grey.shade500,
+                size: 20,
+              )
             : null,
         hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: Colors.grey.shade500,
@@ -740,7 +996,7 @@ class _EkycPageState extends State<EkycPage> {
           vertical: 14,
         ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: enabled ? Colors.white : Colors.grey.shade100,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200),
@@ -748,6 +1004,10 @@ class _EkycPageState extends State<EkycPage> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade100),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -763,7 +1023,10 @@ class _EkycPageState extends State<EkycPage> {
       inputFormatters: isGst ? [UpperCaseTextFormatter()] : null,
       maxLength: isGst ? 15 : null,
       validator: (value) {
-        if (value == null || value.isEmpty) return l10n.fieldRequired;
+        if (value == null || value.isEmpty) {
+          if (isOptional) return null;
+          return l10n.fieldRequired;
+        }
         if (hint == l10n.gstNumber) {
           // Standard Indian GST Regex
           final gstRegex = RegExp(
@@ -778,23 +1041,39 @@ class _EkycPageState extends State<EkycPage> {
     );
   }
 
-  Widget _buildUploadArea(String label, File? image, VoidCallback onTap) {
+  Widget _buildUploadArea(
+    String label,
+    File? image,
+    String? remoteUrl,
+    bool isReadOnly,
+    VoidCallback onTap,
+    VoidCallback onRemove,
+  ) {
     final l10n = AppLocalizations.of(context)!;
+    final bool hasImage =
+        image != null || (remoteUrl != null && remoteUrl.isNotEmpty);
+
     return GestureDetector(
-      onTap: image != null ? _showFullImage : onTap,
+      onTap: hasImage
+          ? () {
+              if (image != null) {
+                _showFullImage(image);
+              } else if (remoteUrl != null) {
+                _showFullRemoteImage(remoteUrl);
+              }
+            }
+          : (isReadOnly ? null : onTap),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: image != null ? Colors.white : Colors.grey.shade50,
+          color: hasImage ? Colors.white : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: image != null
-                ? const Color(0xFF1B5E20)
-                : Colors.grey.shade200,
-            width: image != null ? 1.5 : 1,
+            color: hasImage ? const Color(0xFF1B5E20) : Colors.grey.shade200,
+            width: hasImage ? 1.5 : 1,
           ),
-          boxShadow: image != null
+          boxShadow: hasImage
               ? [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.08),
@@ -806,81 +1085,123 @@ class _EkycPageState extends State<EkycPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: image != null
+          child: hasImage
               ? Stack(
                   children: [
                     Positioned.fill(
-                      child:
-                          !_isPdf(image.path) &&
-                              !['.jpg', '.jpeg', '.png'].contains(
-                                path.extension(image.path).toLowerCase(),
-                              )
-                          ? Container(
-                              color: Colors.grey.shade100,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.article_rounded,
-                                    color: Colors.blueAccent,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    child: Text(
-                                      path.basename(image.path),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey.shade700,
+                      child: image != null
+                          ? (!_isPdf(image.path) &&
+                                    !['.jpg', '.jpeg', '.png'].contains(
+                                      path.extension(image.path).toLowerCase(),
+                                    )
+                                ? Container(
+                                    color: Colors.grey.shade100,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.article_rounded,
+                                          color: Colors.blueAccent,
+                                          size: 48,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
                                           ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : _isPdf(image.path)
-                          ? Container(
-                              color: Colors.grey.shade100,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.picture_as_pdf_rounded,
-                                    color: Colors.redAccent,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    child: Text(
-                                      path.basename(image.path),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey.shade700,
+                                          child: Text(
+                                            path.basename(image.path),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.grey.shade700,
+                                                ),
                                           ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Image.file(image, fit: BoxFit.cover),
+                                  )
+                                : _isPdf(image.path)
+                                ? Container(
+                                    color: Colors.grey.shade100,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.picture_as_pdf_rounded,
+                                          color: Colors.redAccent,
+                                          size: 48,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          child: Text(
+                                            path.basename(image.path),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.grey.shade700,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : Image.file(image, fit: BoxFit.cover))
+                          : (remoteUrl!.toLowerCase().endsWith('.pdf')
+                                ? Container(
+                                    color: Colors.grey.shade100,
+                                    child: const Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.picture_as_pdf_rounded,
+                                          color: Colors.redAccent,
+                                          size: 48,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          "Business Licence PDF",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF616161),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : Image.network(
+                                    remoteUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              color: Colors.grey.shade100,
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.broken_image_rounded,
+                                                  color: Colors.grey,
+                                                  size: 40,
+                                                ),
+                                              ),
+                                            ),
+                                  )),
                     ),
                     Positioned.fill(
                       child: Container(
@@ -917,27 +1238,28 @@ class _EkycPageState extends State<EkycPage> {
                         ),
                       ),
                     ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Row(
-                        children: [
-                          _buildCircleButton(
-                            icon: Icons.edit_rounded,
-                            color: Colors.blue.shade600,
-                            onTap: onTap,
-                            label: "Edit image",
-                          ),
-                          const SizedBox(width: 8),
-                          _buildCircleButton(
-                            icon: Icons.delete_outline_rounded,
-                            color: Colors.red.shade600,
-                            onTap: _removeImage,
-                            label: "Remove image",
-                          ),
-                        ],
+                    if (!isReadOnly)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Row(
+                          children: [
+                            _buildCircleButton(
+                              icon: Icons.edit_rounded,
+                              color: Colors.blue.shade600,
+                              onTap: onTap,
+                              label: "Edit image",
+                            ),
+                            const SizedBox(width: 8),
+                            _buildCircleButton(
+                              icon: Icons.delete_outline_rounded,
+                              color: Colors.red.shade600,
+                              onTap: onRemove,
+                              label: "Remove image",
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                     Positioned(
                       bottom: 12,
                       left: 12,
@@ -957,17 +1279,17 @@ class _EkycPageState extends State<EkycPage> {
                             ),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.check_circle,
                               color: Colors.white,
                               size: 14,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              "Selected",
-                              style: TextStyle(
+                              isReadOnly ? "Uploaded" : "Selected",
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -996,35 +1318,39 @@ class _EkycPageState extends State<EkycPage> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE8F5E9),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.add_a_photo_rounded,
-                            color: Color(0xFF2E7D32),
+                            color: isReadOnly
+                                ? Colors.grey.shade400
+                                : const Color(0xFF2E7D32),
                             size: 32,
                           ),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           label,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF2E7D32),
-                              ),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isReadOnly
+                                ? Colors.grey.shade400
+                                : const Color(0xFF2E7D32),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          l10n.uploadLimitNotice,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          isReadOnly
+                              ? "Upload disabled"
+                              : l10n.tapToUploadNotice,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),

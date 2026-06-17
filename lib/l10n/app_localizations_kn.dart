@@ -246,6 +246,9 @@ class AppLocalizationsKn extends AppLocalizations {
       'ಚಿತ್ರಗಳು, ಪಿಡಿಎಫ್ ಮತ್ತು ವರ್ಡ್ ದಾಖಲೆಗಳಿಗೆ ಮಾತ್ರ ಅನುಮತಿ ಇದೆ!';
 
   @override
+  String get tapToUploadNotice => 'ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ';
+
+  @override
   String get notifications => 'ಅಧಿಸೂಚನೆಗಳು';
 
   @override
@@ -1311,4 +1314,24 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get stepPayment => 'ಪಾವತಿ';
+
+  @override
+  String get updateRequired => 'ಅಪ್ಡೇಟ್ ಅಗತ್ಯವಿದೆ';
+
+  @override
+  String get updateAvailable => 'ಅಪ್ಡೇಟ್ ಲಭ್ಯವಿದೆ';
+
+  @override
+  String get forceUpdateMsg =>
+      'ಒಂದು ಪ್ರಮುಖ ಅಪ್ಡೇಟ್ ಲಭ್ಯವಿದೆ. ದಯವಿಟ್ಟು ನಮ್ಮ ಸೇವೆಗಳನ್ನು ಬಳಸುವುದನ್ನು ಮುಂದುವರಿಸಲು ಅಪ್ಡೇಟ್ ಮಾಡಿ.';
+
+  @override
+  String get optionalUpdateMsg =>
+      'ಹೊಸ ವೈಶಿಷ್ಟ್ಯಗಳು ಮತ್ತು ಸುಧಾರಣೆಗಳೊಂದಿಗೆ ಅಪ್ಡೇಟ್ ಲಭ್ಯವಿದೆ.';
+
+  @override
+  String get later => 'ನಂತರ';
+
+  @override
+  String get updateNow => 'ಈಗ ಅಪ್ಡೇಟ್ ಮಾಡಿ';
 }

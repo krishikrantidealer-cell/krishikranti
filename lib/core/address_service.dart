@@ -7,6 +7,7 @@ class AddressModel {
   final String id;
   final String name;
   final String villageArea;
+  final String? addressLine2;
   final String cityTehsil;
   final String? state;
   final String pincode;
@@ -17,6 +18,7 @@ class AddressModel {
     required this.id,
     required this.name,
     required this.villageArea,
+    this.addressLine2,
     required this.cityTehsil,
     this.state,
     required this.pincode,
@@ -24,12 +26,21 @@ class AddressModel {
     this.isDefault = false,
   });
 
-  String get fullAddress => "$villageArea, $cityTehsil${state != null ? ", $state" : ""} - $pincode";
+  String get fullAddress {
+    List<String> parts = [];
+    if (villageArea.isNotEmpty) parts.add(villageArea);
+    if (addressLine2 != null && addressLine2!.isNotEmpty) parts.add(addressLine2!);
+    if (cityTehsil.isNotEmpty) parts.add(cityTehsil);
+    if (state != null && state!.isNotEmpty) parts.add(state!);
+    if (pincode.isNotEmpty) parts.add(pincode);
+    return parts.join(', ');
+  }
 
   AddressModel copyWith({
     String? id,
     String? name,
     String? villageArea,
+    String? addressLine2,
     String? cityTehsil,
     String? state,
     String? pincode,
@@ -40,6 +51,7 @@ class AddressModel {
       id: id ?? this.id,
       name: name ?? this.name,
       villageArea: villageArea ?? this.villageArea,
+      addressLine2: addressLine2 ?? this.addressLine2,
       cityTehsil: cityTehsil ?? this.cityTehsil,
       state: state ?? this.state,
       pincode: pincode ?? this.pincode,
@@ -57,6 +69,7 @@ class AddressModel {
       id: json['_id'] ?? '',
       name: addrName,
       villageArea: json['villageArea'] ?? '',
+      addressLine2: json['addressLine2'] ?? json['address2'] ?? '',
       cityTehsil: json['cityTehsil'] ?? '',
       state: json['state'],
       pincode: json['pincode'] ?? '',
@@ -68,6 +81,8 @@ class AddressModel {
   Map<String, dynamic> toJson() => {
     'name': name,
     'villageArea': villageArea,
+    'addressLine2': addressLine2,
+    'address2': addressLine2,
     'cityTehsil': cityTehsil,
     'state': state,
     'pincode': pincode,

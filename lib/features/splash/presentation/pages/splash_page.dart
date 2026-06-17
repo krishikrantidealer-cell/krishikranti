@@ -9,8 +9,7 @@ import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/dynamic_translation_service.dart';
-import 'package:krishikranti/core/remote_config_service.dart';
-import 'package:krishikranti/widgets/force_update_dialog.dart';
+import 'package:krishikranti/core/update_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -30,18 +29,10 @@ class _SplashPageState extends State<SplashPage> {
     // Navigate to the next screen based on auth status and language selection
     Timer(const Duration(seconds: 3), () async {
       if (mounted) {
-        // Perform Firebase Remote Config Force Update check
-        final bool updateRequired = await RemoteConfigService().isUpdateRequired();
-        if (updateRequired && mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => ForceUpdateDialog(
-              title: RemoteConfigService().updateTitle,
-              message: RemoteConfigService().updateMessage,
-              storeUrl: RemoteConfigService().storeUrl,
-            ),
-          );
+        // Perform Firebase Remote Config Force/Optional Update check
+        final updateType = await UpdateService.checkUpdateStatus();
+        if (updateType == UpdateType.force && mounted) {
+          UpdateService.showUpdateDialog(context, UpdateType.force);
           return; // Block entry to the app
         }
 
@@ -49,21 +40,32 @@ class _SplashPageState extends State<SplashPage> {
 
         if (loggedIn) {
           final profileDone = await AuthService.isProfileComplete();
-          final kycDone = await AuthService.isKycComplete();
 
           if (mounted) {
             if (!profileDone) {
-              Navigator.of(context).pushReplacementNamed('/register');
+              Navigator.of(context).pushReplacementNamed('/register').then((_) {
+                if (updateType == UpdateType.optional && mounted) {
+                  UpdateService.showUpdateDialog(context, UpdateType.optional);
+                }
+              });
             } else {
               // We go directly to dashboard. KYC is no longer mandatory at startup
               // as it can be completed via the Profile section.
-              Navigator.of(context).pushReplacementNamed('/dashboard');
+              Navigator.of(context).pushReplacementNamed('/dashboard').then((_) {
+                if (updateType == UpdateType.optional && mounted) {
+                  UpdateService.showUpdateDialog(context, UpdateType.optional);
+                }
+              });
             }
           }
         } else {
           if (mounted) {
             // Always go to Login flow first. Language selection is bypassed at startup.
-            Navigator.of(context).pushReplacementNamed('/phone-verify');
+            Navigator.of(context).pushReplacementNamed('/phone-verify').then((_) {
+              if (updateType == UpdateType.optional && mounted) {
+                UpdateService.showUpdateDialog(context, UpdateType.optional);
+              }
+            });
           }
         }
       }

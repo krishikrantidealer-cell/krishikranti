@@ -6,6 +6,8 @@ import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
 import 'package:krishikranti/widgets/animated_heart.dart';
+import 'package:provider/provider.dart';
+import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class ProductCard extends StatefulWidget {
@@ -136,8 +138,10 @@ class _ProductCardState extends State<ProductCard>
   }
 
   Widget _buildGridCard(BuildContext context, ThemeData theme) {
+    final profileService = Provider.of<ProfileService>(context);
+    final isKycComplete = profileService.user?.isKycComplete ?? false;
     double discountPercent = 0.0;
-    if (widget.product.compareAtPrice > widget.product.price &&
+    if (isKycComplete && widget.product.compareAtPrice > widget.product.price &&
         widget.product.compareAtPrice > 0) {
       discountPercent =
           ((widget.product.compareAtPrice - widget.product.price) /
@@ -302,64 +306,93 @@ class _ProductCardState extends State<ProductCard>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      "₹${widget.product.price.toStringAsFixed(0)}",
-                                      style: TextStyle(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 15.5,
-                                        letterSpacing: -0.2,
-                                      ),
+                                if (!isKycComplete)
+                                  Text(
+                                    "KYC Required",
+                                    style: TextStyle(
+                                      color: Colors.red.shade700,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12,
                                     ),
-                                    if (discountPercent > 0) ...[
-                                      const SizedBox(width: 4),
+                                  )
+                                else
+                                  Row(
+                                    children: [
                                       Text(
-                                        "₹${widget.product.compareAtPrice.toStringAsFixed(0)}",
+                                        "₹${widget.product.price.toStringAsFixed(0)}",
                                         style: TextStyle(
-                                          color: Colors.grey.shade400,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          decoration:
-                                              TextDecoration.lineThrough,
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 15.5,
+                                          letterSpacing: -0.2,
                                         ),
                                       ),
+                                      if (discountPercent > 0) ...[
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          "₹${widget.product.compareAtPrice.toStringAsFixed(0)}",
+                                          style: TextStyle(
+                                            color: Colors.grey.shade400,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                      ],
                                     ],
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            height: 30,
-                            width: 30,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  theme.colorScheme.primary,
-                                  theme.colorScheme.primary.withOpacity(0.85),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.24,
                                   ),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
                               ],
                             ),
-                            child: const Icon(
-                              CupertinoIcons.right_chevron,
-                              color: Colors.white,
-                              size: 13,
-                            ),
                           ),
+                          if (isKycComplete)
+                            Container(
+                              height: 30,
+                              width: 30,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    theme.colorScheme.primary,
+                                    theme.colorScheme.primary.withOpacity(0.85),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withOpacity(
+                                      0.24,
+                                    ),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.right_chevron,
+                                color: Colors.white,
+                                size: 13,
+                              ),
+                            )
+                          else
+                            Container(
+                              height: 30,
+                              width: 30,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.grey.shade200,
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.lock_fill,
+                                color: Colors.grey,
+                                size: 11,
+                              ),
+                            ),
                         ],
                       ),
                     ],
@@ -437,9 +470,11 @@ class _ProductCardState extends State<ProductCard>
   }
 
   Widget _buildListCard(BuildContext context, ThemeData theme) {
+    final profileService = Provider.of<ProfileService>(context);
+    final isKycComplete = profileService.user?.isKycComplete ?? false;
     double discountPercent = 0.0;
     double savingsAmount = 0.0;
-    if (widget.product.compareAtPrice > widget.product.price &&
+    if (isKycComplete && widget.product.compareAtPrice > widget.product.price &&
         widget.product.compareAtPrice > 0) {
       discountPercent =
           ((widget.product.compareAtPrice - widget.product.price) /
@@ -665,85 +700,131 @@ class _ProductCardState extends State<ProductCard>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Wrap(
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    spacing: 6,
-                                    runSpacing: 2,
-                                    children: [
-                                      Text(
-                                        "₹${widget.product.price.toStringAsFixed(0)}",
-                                        style: TextStyle(
-                                          color: theme.colorScheme.primary,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 17,
-                                          letterSpacing: -0.3,
-                                        ),
+                                  if (!isKycComplete)
+                                    Text(
+                                      "KYC Required",
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
                                       ),
-                                      if (discountPercent > 0)
+                                    )
+                                  else ...[
+                                    Wrap(
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      spacing: 6,
+                                      runSpacing: 2,
+                                      children: [
                                         Text(
-                                          "₹${widget.product.compareAtPrice.toStringAsFixed(0)}",
+                                          "₹${widget.product.price.toStringAsFixed(0)}",
                                           style: TextStyle(
-                                            color: Colors.grey.shade400,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            decoration:
-                                                TextDecoration.lineThrough,
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 17,
+                                            letterSpacing: -0.3,
                                           ),
                                         ),
-                                    ],
-                                  ),
-                                  if (savingsAmount > 0) ...[
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      "Dealer saves ₹${savingsAmount.toStringAsFixed(0)} (${discountPercent.toStringAsFixed(0)}% off)",
-                                      style: const TextStyle(
-                                        color: Color(0xFFE67E22),
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                                        if (discountPercent > 0)
+                                          Text(
+                                            "₹${widget.product.compareAtPrice.toStringAsFixed(0)}",
+                                            style: TextStyle(
+                                              color: Colors.grey.shade400,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                            ),
+                                          ),
+                                      ],
                                     ),
+                                    if (savingsAmount > 0) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        "Dealer saves ₹${savingsAmount.toStringAsFixed(0)} (${discountPercent.toStringAsFixed(0)}% off)",
+                                        style: const TextStyle(
+                                          color: Color(0xFFE67E22),
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.2),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    "Add",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
+                            if (isKycComplete)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: theme.colorScheme.primary
+                                          .withOpacity(0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
                                     ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "Add",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Icon(
+                                      CupertinoIcons.chevron_right,
+                                      color: Colors.white,
+                                      size: 10,
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                    width: 1,
                                   ),
-                                  SizedBox(width: 4),
-                                  Icon(
-                                    CupertinoIcons.chevron_right,
-                                    color: Colors.white,
-                                    size: 10,
-                                  ),
-                                ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      CupertinoIcons.lock_fill,
+                                      color: Colors.grey,
+                                      size: 10,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      "Locked",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ],

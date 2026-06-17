@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
@@ -452,61 +453,61 @@ class _SearchScreenState extends State<SearchScreen>
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildModernSearchBar(theme, l10n),
-                  SizedBox(height: 12),
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 350),
-                      layoutBuilder:
-                          (
-                            Widget? currentChild,
-                            List<Widget> previousChildren,
-                          ) {
-                            return Stack(
-                              alignment: Alignment.topLeft,
-                              children: <Widget>[
-                                ...previousChildren,
-                                if (currentChild != null) currentChild,
-                              ],
-                            );
-                          },
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder:
-                          (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0.0, 0.02),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildModernSearchBar(theme, l10n),
+                    SizedBox(height: 12),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        layoutBuilder:
+                            (
+                              Widget? currentChild,
+                              List<Widget> previousChildren,
+                            ) {
+                              return Stack(
+                                alignment: Alignment.topLeft,
+                                children: <Widget>[
+                                  ...previousChildren,
+                                  if (currentChild != null) currentChild,
+                                ],
+                              );
+                            },
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder:
+                            (Widget child, Animation<double> animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0.0, 0.02),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              );
+                            },
+                        child: _searchQuery.isEmpty
+                            ? KeyedSubtree(
+                                key: const ValueKey('default_view'),
+                                child: _buildDefaultView(theme, l10n),
+                              )
+                            : KeyedSubtree(
+                                key: ValueKey(
+                                  'search_results_${_isLoading ? "loading" : "loaded"}',
+                                ),
+                                child: _buildSearchResults(theme, l10n),
                               ),
-                            );
-                          },
-                      child: _searchQuery.isEmpty
-                          ? KeyedSubtree(
-                              key: const ValueKey('default_view'),
-                              child: _buildDefaultView(theme, l10n),
-                            )
-                          : KeyedSubtree(
-                              key: ValueKey(
-                                'search_results_${_isLoading ? "loading" : "loaded"}',
-                              ),
-                              child: _buildSearchResults(theme, l10n),
-                            ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
       ),
     );
   }

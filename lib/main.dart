@@ -15,7 +15,7 @@ import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/notification_provider.dart';
-import 'package:krishikranti/core/remote_config_service.dart';
+import 'package:krishikranti/core/update_service.dart';
 import 'package:krishikranti/features/splash/presentation/pages/splash_page.dart';
 import 'package:krishikranti/features/language/presentation/pages/choose_language_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/phone_verify_page.dart';
@@ -55,8 +55,8 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize Remote Config Service
-  await RemoteConfigService().initialize();
+  // Initialize Update Service (remote config)
+  await UpdateService.init();
 
   // Initialize FlutterDownloader (WorkManager-backed background downloads)
   await FlutterDownloader.initialize(debug: kDebugMode);

@@ -1,4 +1,4 @@
-﻿{
+{
   "home": "होम",
   "search": "खोजें",
   "categories": "श्रेणियाँ",
@@ -88,6 +88,7 @@
   "completeVerification": "सत्यापन पूरा करें",
   "dataSecureNotice": "आपका डेटा एन्क्रिप्टेड और सुरक्षित है।",
   "uploadLimitNotice": "JPG/PNG/PDF 3MB तक",
+  "tapToUploadNotice": "अपलोड करने के लिए टैप करें",
   "notifications": "सूचनाएं",
   "shippingAddress": "शिपिंग पता",
   "addAddress": "पत्ता जोड़ें",
@@ -632,5 +633,11 @@
 ,
   "stepCart": "कार्ट",
   "stepCheckout": "चेकआउट",
-  "stepPayment": "भुगतान"
+  "stepPayment": "भुगतान",
+  "updateRequired": "अपडेट आवश्यक है",
+  "updateAvailable": "अपडेट उपलब्ध है",
+  "forceUpdateMsg": "एक महत्वपूर्ण अपडेट उपलब्ध है। कृपया हमारी सेवाओं का उपयोग जारी रखने के लिए ऐप को अपडेट करें।",
+  "optionalUpdateMsg": "नई सुविधाओं और सुधारों के साथ ऐप का नया वर्शन उपलब्ध है।",
+  "later": "बाद में",
+  "updateNow": "अभी अपडेट करें"
 }

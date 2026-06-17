@@ -3,12 +3,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/widgets/product_card.dart';
 import 'package:krishikranti/features/products/data/repositories/product_repository.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
-
+import 'package:provider/provider.dart';
+import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 
 class ProductListScreen extends StatefulWidget {
@@ -194,6 +196,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   List<Product> get _filteredProducts {
     List<Product> items = List.from(_products);
+    final isKycComplete =
+        Provider.of<ProfileService>(
+          context,
+          listen: false,
+        ).user?.isKycComplete ??
+        false;
 
     // Apply Search Query locally
     if (_searchQuery.isNotEmpty) {
@@ -217,14 +225,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
       }).toList();
     }
 
-    if (_showWithDeals) {
+    if (isKycComplete && _showWithDeals) {
       items = items.where((item) => item.compareAtPrice > item.price).toList();
     }
 
     // Apply Local Sorting
-    if (_selectedSort == "Price: Low to High") {
+    if (isKycComplete && _selectedSort == "Price: Low to High") {
       items.sort((a, b) => a.price.compareTo(b.price));
-    } else if (_selectedSort == "Price: High to Low") {
+    } else if (isKycComplete && _selectedSort == "Price: High to Low") {
       items.sort((a, b) => b.price.compareTo(a.price));
     } else if (_selectedSort == "Top Rated") {
       items.sort((a, b) => b.averageRating.compareTo(a.averageRating));
@@ -297,6 +305,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void _showSortFilterBottomSheet() {
     HapticFeedback.mediumImpact();
     final l10n = AppLocalizations.of(context)!;
+    final isKycComplete =
+        Provider.of<ProfileService>(
+          context,
+          listen: false,
+        ).user?.isKycComplete ??
+        false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -393,8 +407,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   const SizedBox(height: 12),
                   ...[
                     "Popularity",
-                    "Price: Low to High",
-                    "Price: High to Low",
+                    if (isKycComplete) "Price: Low to High",
+                    if (isKycComplete) "Price: High to Low",
                     "Top Rated",
                   ].map((sortOption) {
                     final isSelected = _selectedSort == sortOption;
@@ -484,19 +498,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       setState(() {});
                     },
                   ),
-                  const SizedBox(height: 10),
-
-                  // Switch for Offers/Deals
-                  _buildFilterToggleRow(
-                    title: l10n.exclusiveOffersDeals,
-                    subtitle: l10n.exclusiveOffersDealsDesc,
-                    value: _showWithDeals,
-                    onChanged: (val) {
-                      setSheetState(() => _showWithDeals = val);
-                      setState(() {});
-                    },
-                  ),
-
+                  if (isKycComplete) ...[
+                    const SizedBox(height: 10),
+                    // Switch for Offers/Deals
+                    _buildFilterToggleRow(
+                      title: l10n.exclusiveOffersDeals,
+                      subtitle: l10n.exclusiveOffersDealsDesc,
+                      value: _showWithDeals,
+                      onChanged: (val) {
+                        setSheetState(() => _showWithDeals = val);
+                        setState(() {});
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // Apply Button

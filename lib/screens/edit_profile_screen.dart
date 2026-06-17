@@ -248,14 +248,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 16),
 
                         _buildField(
-                          "Pincode",
-                          _pincodeController,
-                          "411001",
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 12),
-
-                        _buildField(
                           "Address Line 1",
                           _addressLine1Controller,
                           "House no., Street, Area",
@@ -281,12 +273,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildField(
-                                "State",
-                                _stateController,
-                                "Maharashtra",
+                                "Pincode",
+                                _pincodeController,
+                                "411001",
+                                keyboardType: TextInputType.number,
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        _buildField(
+                          "State",
+                          _stateController,
+                          "Maharashtra",
                         ),
 
                         const SizedBox(height: 24),

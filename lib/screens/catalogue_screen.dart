@@ -12,6 +12,7 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
+import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/models/collection_model.dart';

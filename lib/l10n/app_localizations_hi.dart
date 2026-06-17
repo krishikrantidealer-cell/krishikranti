@@ -243,6 +243,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get uploadLimitNotice => 'JPG/PNG/PDF 3MB तक';
 
   @override
+  String get tapToUploadNotice => 'अपलोड करने के लिए टैप करें';
+
+  @override
   String get notifications => 'सूचनाएं';
 
   @override
@@ -1275,4 +1278,24 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get stepPayment => 'भुगतान';
+
+  @override
+  String get updateRequired => 'अपडेट आवश्यक है';
+
+  @override
+  String get updateAvailable => 'अपडेट उपलब्ध है';
+
+  @override
+  String get forceUpdateMsg =>
+      'एक महत्वपूर्ण अपडेट उपलब्ध है। कृपया हमारी सेवाओं का उपयोग जारी रखने के लिए ऐप को अपडेट करें।';
+
+  @override
+  String get optionalUpdateMsg =>
+      'नई सुविधाओं और सुधारों के साथ ऐप का नया वर्शन उपलब्ध है।';
+
+  @override
+  String get later => 'बाद में';
+
+  @override
+  String get updateNow => 'अभी अपडेट करें';
 }

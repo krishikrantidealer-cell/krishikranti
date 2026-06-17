@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/models/user_model.dart';
+import 'package:krishikranti/core/network/auth_service.dart';
 
 class ProfileService extends ChangeNotifier {
   UserModel? _user;
@@ -62,6 +63,9 @@ class ProfileService extends ChangeNotifier {
         final Map<String, dynamic> data = jsonDecode(response.body);
         final newUser = UserModel.fromJson(data);
 
+        final userMap = data['user'] ?? data;
+        final bool isProfileComplete = userMap['isProfileComplete'] ?? true;
+
         // Update if data is different
         if (userJson(newUser) != userJson(_user)) {
           _user = newUser;
@@ -69,6 +73,11 @@ class ProfileService extends ChangeNotifier {
           await prefs.setString('user_profile_cache', newUser.toJson());
           notifyListeners();
         }
+
+        await AuthService.saveUserStatus(
+          isProfileComplete: isProfileComplete,
+          isKycComplete: newUser.isKycComplete,
+        );
       }
     } catch (e) {
       debugPrint("Error fetching profile: $e");
@@ -129,6 +138,8 @@ class ProfileService extends ChangeNotifier {
           "phoneNumber": phone,
           "address": {
             "villageArea": address1,
+            "addressLine2": address2,
+            "address2": address2,
             "cityTehsil": city,
             "state": state,
             "pincode": pincode,

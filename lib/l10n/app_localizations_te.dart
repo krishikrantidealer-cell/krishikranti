@@ -246,6 +246,9 @@ class AppLocalizationsTe extends AppLocalizations {
       'చిత్రాలు, పిడిఎఫ్ మరియు వర్డ్ పత్రాలు మాత్రమే అనుమతించబడతాయి!';
 
   @override
+  String get tapToUploadNotice => 'అప్‌లోడ్ చేయడానికి నొక్కండి';
+
+  @override
   String get notifications => 'నోటిఫికేషన్లు';
 
   @override
@@ -1311,4 +1314,24 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get stepPayment => 'చెల్లింపు';
+
+  @override
+  String get updateRequired => 'అప్‌డేట్ అవసరం';
+
+  @override
+  String get updateAvailable => 'అప్‌డేట్ అందుబాటులో ఉంది';
+
+  @override
+  String get forceUpdateMsg =>
+      'ఒక ముఖ్యమైన అప్‌డేట్ అందుబాటులో ఉంది. దయచేసి కొనసాగించడానికి యాప్‌ను అప్‌డేట్ చేయండి.';
+
+  @override
+  String get optionalUpdateMsg =>
+      'కొత్త ఫీచర్లు మరియు మెరుగుదలలతో యాప్ కొత్త వెర్షన్ అందుబాటులో ఉంది.';
+
+  @override
+  String get later => 'తర్వాత';
+
+  @override
+  String get updateNow => 'ఇప్పుడే అప్‌డేట్ చేయండి';
 }

@@ -40,8 +40,9 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
     _addressLine1Controller = TextEditingController(
       text: widget.address?.villageArea ?? "",
     );
-    _addressLine2Controller =
-        TextEditingController(); // addressLine2 isn't in model yet
+    _addressLine2Controller = TextEditingController(
+      text: widget.address?.addressLine2 ?? "",
+    );
     _cityController = TextEditingController(
       text: widget.address?.cityTehsil ?? "",
     );
@@ -207,14 +208,6 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                       const SizedBox(height: 16),
 
                       _buildField(
-                        l10n.pincode,
-                        _pincodeController,
-                        "411001",
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-
-                      _buildField(
                         l10n.addressLine1,
                         _addressLine1Controller,
                         "House no., Street, Area",
@@ -240,12 +233,20 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _buildField(
-                              l10n.state,
-                              _stateController,
-                              "Maharashtra",
+                              l10n.pincode,
+                              _pincodeController,
+                              "411001",
+                              keyboardType: TextInputType.number,
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      _buildField(
+                        l10n.state,
+                        _stateController,
+                        "Maharashtra",
                       ),
 
                       const SizedBox(height: 24),
@@ -283,6 +284,7 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                                     id: widget.address?.id ?? "",
                                     name: _nameController.text,
                                     villageArea: _addressLine1Controller.text,
+                                    addressLine2: _addressLine2Controller.text,
                                     cityTehsil: _cityController.text,
                                     state: _stateController.text,
                                     pincode: _pincodeController.text,

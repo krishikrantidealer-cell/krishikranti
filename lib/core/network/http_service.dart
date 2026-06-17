@@ -218,6 +218,79 @@ class HttpService {
     }
   }
 
+  /// Upload multiple files using Dio for progress tracking and better performance
+  static Future<dio.Response> uploadFiles(
+    String url, {
+    required Map<String, dynamic> fields,
+    required Map<String, String> files, // Map of fileKey: filePath
+    Function(int, int)? onProgress,
+  }) async {
+    try {
+      final token = await AuthService.getToken();
+
+      final Map<String, dynamic> dataMap = {...fields};
+      for (var entry in files.entries) {
+        if (entry.value.isNotEmpty) {
+          dataMap[entry.key] = await dio.MultipartFile.fromFile(
+            entry.value,
+            contentType: MediaType.parse(
+              lookupMimeType(entry.value) ?? 'application/octet-stream',
+            ),
+          );
+        }
+      }
+
+      final formData = dio.FormData.fromMap(dataMap);
+
+      final options = dio.Options(
+        headers: {if (token != null) 'Authorization': 'Bearer $token'},
+      );
+
+      var response = await _dio.post(
+        url,
+        data: formData,
+        options: options,
+        onSendProgress: onProgress,
+      );
+
+      return response;
+    } on dio.DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        final refreshed = await AuthService.refreshAccessToken();
+        if (refreshed) {
+          // Retry with new token
+          final newToken = await AuthService.getToken();
+          final Map<String, dynamic> dataMap = {...fields};
+          for (var entry in files.entries) {
+            if (entry.value.isNotEmpty) {
+              dataMap[entry.key] = await dio.MultipartFile.fromFile(
+                entry.value,
+                contentType: MediaType.parse(
+                  lookupMimeType(entry.value) ?? 'application/octet-stream',
+                ),
+              );
+            }
+          }
+          final formData = dio.FormData.fromMap(dataMap);
+          final options = dio.Options(
+            headers: {
+              if (newToken != null) 'Authorization': 'Bearer $newToken',
+            },
+          );
+          return await _dio.post(
+            url,
+            data: formData,
+            options: options,
+            onSendProgress: onProgress,
+          );
+        } else if (!(await AuthService.isLoggedIn())) {
+          _forceLogout();
+        }
+      }
+      rethrow;
+    }
+  }
+
   static Future<http.StreamedResponse> postMultipart(
     String url, {
     required Map<String, String> fields,

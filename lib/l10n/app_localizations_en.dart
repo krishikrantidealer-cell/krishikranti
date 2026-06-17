@@ -241,6 +241,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only images, PDFs, and Word documents are allowed!';
 
   @override
+  String get tapToUploadNotice => 'Tap to upload';
+
+  @override
   String get notifications => 'Notifications';
 
   @override
@@ -1292,4 +1295,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stepPayment => 'Payment';
+
+  @override
+  String get updateRequired => 'Update Required';
+
+  @override
+  String get updateAvailable => 'Update Available';
+
+  @override
+  String get forceUpdateMsg =>
+      'A critical update is available. Please update the app to continue using our services.';
+
+  @override
+  String get optionalUpdateMsg =>
+      'A new version of the app is available with new features and improvements.';
+
+  @override
+  String get later => 'LATER';
+
+  @override
+  String get updateNow => 'UPDATE NOW';
 }

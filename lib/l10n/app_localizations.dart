@@ -556,6 +556,12 @@ abstract class AppLocalizations {
   /// **'Only images, PDFs, and Word documents are allowed!'**
   String get uploadLimitNotice;
 
+  /// No description provided for @tapToUploadNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to upload'**
+  String get tapToUploadNotice;
+
   /// No description provided for @notifications.
   ///
   /// In en, this message translates to:
@@ -2409,6 +2415,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Payment'**
   String get stepPayment;
+
+  /// No description provided for @updateRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Required'**
+  String get updateRequired;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Available'**
+  String get updateAvailable;
+
+  /// No description provided for @forceUpdateMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'A critical update is available. Please update the app to continue using our services.'**
+  String get forceUpdateMsg;
+
+  /// No description provided for @optionalUpdateMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of the app is available with new features and improvements.'**
+  String get optionalUpdateMsg;
+
+  /// No description provided for @later.
+  ///
+  /// In en, this message translates to:
+  /// **'LATER'**
+  String get later;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In en, this message translates to:
+  /// **'UPDATE NOW'**
+  String get updateNow;
 }
 
 class _AppLocalizationsDelegate

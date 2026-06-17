@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -183,226 +184,245 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
-                    child: Text(_isMultiSelectMode ? l10n.done : l10n.editLabel),
+                    child: Text(
+                      _isMultiSelectMode ? l10n.done : l10n.editLabel,
+                    ),
                   ),
                 ],
               ],
             ),
-            body: Stack(
-              children: [
-                // Animated Modern Background Blobs
-                _buildAnimatedBlobs(theme),
+            body: KycBarrierWidget(
+              child: Stack(
+                children: [
+                  // Animated Modern Background Blobs
+                  _buildAnimatedBlobs(theme),
 
-                isEmpty
-                    ? _buildEmptyState(l10n, isFirstRun)
-                    : AnimationLimiter(
-                        key: const ValueKey('cart_anim_limiter'),
-                        child: CustomScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          slivers: [
-                            const SliverToBoxAdapter(
-                              child: CheckoutStepper(activeStep: 0),
-                            ),
-                            // Header & Swipe Instruction
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-                              sliver: SliverToBoxAdapter(
-                                child: AnimationConfiguration.staggeredList(
-                                  position: 0,
-                                  duration: isFirstRun
-                                      ? const Duration(milliseconds: 375)
-                                      : Duration.zero,
-                                  child: SlideAnimation(
-                                    verticalOffset: isFirstRun ? 30.0 : 0.0,
-                                    child: FadeInAnimation(
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            l10n.itemCountLabel(items.length),
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 10,
-                                              color: Colors.grey.shade500,
-                                              letterSpacing: 1.0,
-                                            ),
-                                          ),
-                                          const _AnimatedSecureBadge(),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                  isEmpty
+                      ? _buildEmptyState(l10n, isFirstRun)
+                      : AnimationLimiter(
+                          key: const ValueKey('cart_anim_limiter'),
+                          child: CustomScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            slivers: [
+                              const SliverToBoxAdapter(
+                                child: CheckoutStepper(activeStep: 0),
                               ),
-                            ),
-                            // 1. Active Cart Items
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  return AnimationConfiguration.staggeredList(
-                                    position: index + 1,
+                              // Header & Swipe Instruction
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  16,
+                                  20,
+                                  4,
+                                ),
+                                sliver: SliverToBoxAdapter(
+                                  child: AnimationConfiguration.staggeredList(
+                                    position: 0,
                                     duration: isFirstRun
                                         ? const Duration(milliseconds: 375)
                                         : Duration.zero,
                                     child: SlideAnimation(
                                       verticalOffset: isFirstRun ? 30.0 : 0.0,
                                       child: FadeInAnimation(
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 8,
-                                          ),
-                                          child: _buildCartItem(
-                                            index,
-                                            items[index],
-                                            cartService,
-                                          ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              l10n.itemCountLabel(items.length),
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 10,
+                                                color: Colors.grey.shade500,
+                                                letterSpacing: 1.0,
+                                              ),
+                                            ),
+                                            const _AnimatedSecureBadge(),
+                                          ],
                                         ),
                                       ),
                                     ),
-                                  );
-                                }, childCount: items.length),
+                                  ),
+                                ),
                               ),
-                            ),
+                              // 1. Active Cart Items
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  8,
+                                  16,
+                                  0,
+                                ),
+                                sliver: SliverList(
+                                  delegate: SliverChildBuilderDelegate((
+                                    context,
+                                    index,
+                                  ) {
+                                    return AnimationConfiguration.staggeredList(
+                                      position: index + 1,
+                                      duration: isFirstRun
+                                          ? const Duration(milliseconds: 375)
+                                          : Duration.zero,
+                                      child: SlideAnimation(
+                                        verticalOffset: isFirstRun ? 30.0 : 0.0,
+                                        child: FadeInAnimation(
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 8,
+                                            ),
+                                            child: _buildCartItem(
+                                              index,
+                                              items[index],
+                                              cartService,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }, childCount: items.length),
+                                ),
+                              ),
 
-                            // 4. Main Offers Tile
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                              sliver: SliverToBoxAdapter(
-                                child: AnimationConfiguration.staggeredList(
-                                  position: items.length + 1,
-                                  duration: isFirstRun
-                                      ? const Duration(milliseconds: 375)
-                                      : Duration.zero,
-                                  child: SlideAnimation(
-                                    verticalOffset: isFirstRun ? 30.0 : 0.0,
-                                    child: FadeInAnimation(
-                                      child: _CouponTile(
-                                        cartService: cartService,
+                              // 4. Main Offers Tile
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  0,
+                                ),
+                                sliver: SliverToBoxAdapter(
+                                  child: AnimationConfiguration.staggeredList(
+                                    position: items.length + 1,
+                                    duration: isFirstRun
+                                        ? const Duration(milliseconds: 375)
+                                        : Duration.zero,
+                                    child: SlideAnimation(
+                                      verticalOffset: isFirstRun ? 30.0 : 0.0,
+                                      child: FadeInAnimation(
+                                        child: _CouponTile(
+                                          cartService: cartService,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
 
-                            // 5. Detailed Professional Bill Breakdown Card
-                            SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                16,
-                                16,
-                                160,
-                              ),
-                              sliver: SliverToBoxAdapter(
-                                child: AnimationConfiguration.staggeredList(
-                                  position: items.length + 2,
-                                  duration: isFirstRun
-                                      ? const Duration(milliseconds: 375)
-                                      : Duration.zero,
-                                  child: SlideAnimation(
-                                    verticalOffset: isFirstRun ? 30.0 : 0.0,
-                                    child: FadeInAnimation(
-                                      child: _BillDetailsCard(
-                                        cartService: cartService,
+                              // 5. Detailed Professional Bill Breakdown Card
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  160,
+                                ),
+                                sliver: SliverToBoxAdapter(
+                                  child: AnimationConfiguration.staggeredList(
+                                    position: items.length + 2,
+                                    duration: isFirstRun
+                                        ? const Duration(milliseconds: 375)
+                                        : Duration.zero,
+                                    child: SlideAnimation(
+                                      verticalOffset: isFirstRun ? 30.0 : 0.0,
+                                      child: FadeInAnimation(
+                                        child: _BillDetailsCard(
+                                          cartService: cartService,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                if (!isEmpty)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: _buildAdvancedBottomPanel(
-                      context,
-                      l10n,
-                      cartService,
-                      theme,
-                    ),
-                  ),
-
-                // Premium Immersive Fullscreen Celebration Overlay for Coupons Applied
-                if (_showCelebration && appliedCoupon != null)
-                  Positioned.fill(
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                        child: Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Lottie.asset(
-                                'assets/animations/CongratulationsLottie.json',
-                                repeat: false,
-                                fit: BoxFit.contain,
-                              ),
-                              Container(
-                                margin: const EdgeInsets.only(top: 80),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 16,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      CupertinoIcons.checkmark_seal_fill,
-                                      color: Color(0xFF298E4D),
-                                      size: 40,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      l10n.couponApplied,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 14,
-                                        color: Colors.black,
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      l10n.couponActiveMessage(appliedCoupon),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
+                  if (!isEmpty)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _buildAdvancedBottomPanel(
+                        context,
+                        l10n,
+                        cartService,
+                        theme,
                       ),
                     ),
-                  ),
-              ],
+
+                  // Premium Immersive Fullscreen Celebration Overlay for Coupons Applied
+                  if (_showCelebration && appliedCoupon != null)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                          child: Center(
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Lottie.asset(
+                                  'assets/animations/CongratulationsLottie.json',
+                                  repeat: false,
+                                  fit: BoxFit.contain,
+                                ),
+                                Container(
+                                  margin: const EdgeInsets.only(top: 80),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        CupertinoIcons.checkmark_seal_fill,
+                                        color: Color(0xFF298E4D),
+                                        size: 40,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        l10n.couponApplied,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        l10n.couponActiveMessage(appliedCoupon),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -717,9 +737,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: Text(l10n.removeItemsTitle(_selectedVariantIds.length)),
-        content: Text(
-          l10n.removeItemsConfirm,
-        ),
+        content: Text(l10n.removeItemsConfirm),
         actions: [
           CupertinoDialogAction(
             child: Text(l10n.cancel),
@@ -751,9 +769,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: Text(l10n.clearCartTitle),
-        content: Text(
-          l10n.clearCartConfirm,
-        ),
+        content: Text(l10n.clearCartConfirm),
         actions: [
           CupertinoDialogAction(
             child: Text(l10n.cancel),
@@ -1053,7 +1069,9 @@ class _CouponTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isApplied ? l10n.couponAppliedTitle : l10n.offersAndBenefits,
+                    isApplied
+                        ? l10n.couponAppliedTitle
+                        : l10n.offersAndBenefits,
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
@@ -1064,7 +1082,10 @@ class _CouponTile extends StatelessWidget {
                     isApplied
                         ? (cartService.appliedCoupon == "DEALERDHAMAKA"
                               ? l10n.freeGiftMessage
-                              : l10n.couponSavedMessage(cartService.discountAmount.toStringAsFixed(0), cartService.appliedCoupon ?? ""))
+                              : l10n.couponSavedMessage(
+                                  cartService.discountAmount.toStringAsFixed(0),
+                                  cartService.appliedCoupon ?? "",
+                                ))
                         : l10n.viewCouponsAndOffers,
                     style: TextStyle(
                       color: isApplied
@@ -1969,7 +1990,9 @@ class _BillDetailsCard extends StatelessWidget {
                     child: Text(
                       cartService.appliedCoupon == "DEALERDHAMAKA"
                           ? l10n.freeGiftMessage
-                          : l10n.couponSavingsSuccess(discount.toStringAsFixed(0)),
+                          : l10n.couponSavingsSuccess(
+                              discount.toStringAsFixed(0),
+                            ),
                       style: const TextStyle(
                         color: Color(0xFF298E4D),
                         fontSize: 11,
