@@ -108,6 +108,7 @@
   "delete": "हटवा",
   "defaultLabel": "डीफॉल्ट",
   "readAll": "सर्व वाचा",
+  "swipeToDeleteTip": "टीप: हटवण्यासाठी नोटिफिकेशन डावीकडे स्वाइप करा.",
   "tabAll": "सर्व",
   "tabOrders": "ऑर्डर",
   "tabOffers": "ऑफर",
@@ -155,17 +156,17 @@
   "categoryPgrs": "पीक वाढ नियंत्रक",
   "categoryFertilizers": "खते",
   "categoryDefault": "कृषि उत्पादने",
-  "wishlistEmpty": "Your Wishlist is Empty",
-  "saveFavoritesInstruction": "Save your favorite farming essentials and access them instantly anytime.",
-  "exploreShop": "Explore Shop",
-  "clearWishlistTitle": "Clear Favorites",
-  "clearWishlistConfirm": "Are you sure you want to remove all items from your wishlist?",
-  "clearAll": "Clear All",
-  "added": "Added",
-  "deselectAll": "Deselect All",
-  "selectAll": "Select All",
-  "done": "DONE",
-  "editLabel": "EDIT",
+  "wishlistEmpty": "तुमची विशलिस्ट रिकामी आहे",
+  "saveFavoritesInstruction": "तुमच्या आवडत्या शेतीच्या आवश्यक गोष्टी जतन करा आणि त्यामध्ये कधीही प्रवेश करा.",
+  "exploreShop": "दुकान एक्सप्लोर करा",
+  "clearWishlistTitle": "पसंती साफ करा",
+  "clearWishlistConfirm": "तुमची खात्री आहे की तुम्ही तुमच्या विशलिस्टमधून सर्व आयटम काढू इच्छिता?",
+  "clearAll": "सर्व साफ करा",
+  "added": "जोडले",
+  "deselectAll": "सर्वांची निवड रद्द करा",
+  "selectAll": "सर्व निवडा",
+  "done": "झाले",
+  "editLabel": "संपादित करा",
   "itemCountLabel": "{count} {count, plural, =1{ITEM} other{ITEMS}}",
   "@itemCountLabel": {
     "placeholders": {
@@ -174,9 +175,9 @@
       }
     }
   },
-  "secureCheckoutBadge": "SECURE CHECKOUT",
-  "couponApplied": "COUPON APPLIED!",
-  "couponActiveMessage": "Code '{coupon}' is active",
+  "secureCheckoutBadge": "सुरक्षित चेकआउट",
+  "couponApplied": "कूपन लागू केले!",
+  "couponActiveMessage": "कोड '{coupon}' सक्रिय आहे",
   "@couponActiveMessage": {
     "placeholders": {
       "coupon": {
@@ -184,11 +185,11 @@
       }
     }
   },
-  "cartFeelsLight": "Your cart feels light",
-  "discoverAgriProducts": "Discover premium agricultural products and start your growing journey today.",
-  "beginExploring": "Begin Exploring",
-  "selectItemsToDelete": "SELECT ITEMS TO DELETE",
-  "deleteSelected": "DELETE SELECTED ({count})",
+  "cartFeelsLight": "तुमचे कार्ट हलके वाटते",
+  "discoverAgriProducts": "प्रीमियम कृषी उत्पादने शोधा आणि आजच तुमचा वाढता प्रवास सुरू करा.",
+  "beginExploring": "एक्सप्लोर करणे सुरू करा",
+  "selectItemsToDelete": "हटवण्यासाठी आयटम निवडा",
+  "deleteSelected": "निवडलेले हटवा ({count})",
   "@deleteSelected": {
     "placeholders": {
       "count": {
@@ -196,8 +197,8 @@
       }
     }
   },
-  "continueToCheckout": "CONTINUE TO CHECKOUT",
-  "removeItemsTitle": "Remove {count} items?",
+  "continueToCheckout": "चेकआउट करणे सुरू ठेवा",
+  "removeItemsTitle": "{count} आयटम काढायचे?",
   "@removeItemsTitle": {
     "placeholders": {
       "count": {
@@ -205,13 +206,13 @@
       }
     }
   },
-  "removeItemsConfirm": "Are you sure you want to delete the selected items from your cart?",
-  "clearCartTitle": "Clear Cart?",
-  "clearCartConfirm": "Are you sure you want to remove all items from your cart?",
-  "couponAppliedTitle": "Coupon Applied!",
-  "offersAndBenefits": "Offers & Benefits",
-  "freeGiftMessage": "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁",
-  "couponSavedMessage": "You saved ₹{amount} with {coupon}",
+  "removeItemsConfirm": "तुमची खात्री आहे की तुम्ही तुमच्या कार्टमधून निवडलेले आयटम हटवू इच्छिता?",
+  "clearCartTitle": "कार्ट साफ करायचे?",
+  "clearCartConfirm": "तुमची खात्री आहे की तुम्ही तुमच्या कार्टमधून सर्व आयटम काढू इच्छिता?",
+  "couponAppliedTitle": "कूपन लागू केले!",
+  "offersAndBenefits": "ऑफर आणि फायदे",
+  "freeGiftMessage": "'DEALERDHAMAKA' कूपन लागू केले: मोफत उत्पादन जोडले! 🎁",
+  "couponSavedMessage": "तुम्ही {coupon} सह ₹{amount} वाचवले",
   "@couponSavedMessage": {
     "placeholders": {
       "amount": {
@@ -222,19 +223,19 @@
       }
     }
   },
-  "viewCouponsAndOffers": "View available coupons and offers",
-  "giftLabel": "GIFT",
-  "freeLabel": "FREE",
-  "enterQuantity": "Enter Quantity",
-  "specifyQuantityHint": "Specify the number of items you'd like to order.",
-  "egQuantity": "e.g. 5",
-  "updateLabel": "UPDATE",
-  "billDetails": "BILL DETAILS",
-  "itemTotalSubtotal": "Item Total (Subtotal)",
-  "couponDiscount": "Coupon Discount",
-  "deliveryCharges": "Delivery Charges",
-  "totalAmountPayable": "Total Amount Payable",
-  "couponSavingsSuccess": "Yay! You saved ₹{amount} on this purchase!",
+  "viewCouponsAndOffers": "उपलब्ध कूपन आणि ऑफर पहा",
+  "giftLabel": "भेट",
+  "freeLabel": "मोफत",
+  "enterQuantity": "प्रमाण प्रविष्ट करा",
+  "specifyQuantityHint": "तुम्ही ऑर्डर करू इच्छित असलेल्या आयटमची संख्या निर्दिष्ट करा.",
+  "egQuantity": "उदा. ५",
+  "updateLabel": "अपडेट करा",
+  "billDetails": "बिल तपशील",
+  "itemTotalSubtotal": "एकूण आयटम (उपएकूण)",
+  "couponDiscount": "कूपन सवलत",
+  "deliveryCharges": "वितरण शुल्क",
+  "totalAmountPayable": "एकूण देय रक्कम",
+  "couponSavingsSuccess": "याय! तुम्ही या खरेदीवर ₹{amount} वाचवले!",
   "@couponSavingsSuccess": {
     "placeholders": {
       "amount": {
@@ -242,12 +243,12 @@
       }
     }
   },
-  "tabActive": "Active",
-  "tabDelivered": "Delivered",
-  "tabCancelled": "Cancelled",
-  "tabRto": "RTO",
-  "overview": "Overview",
-  "activeOrdersLabel": "{count} Active {count, plural, =1{Order} other{Orders}}",
+  "tabActive": "सक्रिय",
+  "tabDelivered": "वितरित केले",
+  "tabCancelled": "रद्द केले",
+  "tabRto": "आरटीओ",
+  "overview": "विहंगावलोकन",
+  "activeOrdersLabel": "{count} सक्रिय {count, plural, =1{Order} other{Orders}}",
   "@activeOrdersLabel": {
     "placeholders": {
       "count": {
@@ -255,8 +256,8 @@
       }
     }
   },
-  "allOrdersHistory": "All Orders History",
-  "totalOrdersCount": "{count} Total",
+  "allOrdersHistory": "सर्व ऑर्डर इतिहास",
+  "totalOrdersCount": "{count} एकूण",
   "@totalOrdersCount": {
     "placeholders": {
       "count": {
@@ -264,10 +265,10 @@
       }
     }
   },
-  "noOrdersYet": "No Orders Yet",
-  "noMatchingOrders": "No Matching Orders",
-  "orderJourneyBegins": "Your agricultural journey begins here. Explore our catalog and place your first order today!",
-  "noOrdersMatchingStatus": "We couldn't find any orders under the '{status}' status.",
+  "noOrdersYet": "अद्याप ऑर्डर नाहीत",
+  "noMatchingOrders": "कोणतेही जुळणारे ऑर्डर नाहीत",
+  "orderJourneyBegins": "तुमचा कृषी प्रवास इथून सुरू होतो. आमचा कॅटलॉग एक्सप्लोर करा आणि आजच तुमची पहिली ऑर्डर द्या!",
+  "noOrdersMatchingStatus": "आम्हाला '{status}' स्थिती अंतर्गत कोणतेही ऑर्डर सापडले नाहीत.",
   "@noOrdersMatchingStatus": {
     "placeholders": {
       "status": {
@@ -275,27 +276,27 @@
       }
     }
   },
-  "startExploring": "Start Exploring",
-  "viewAllOrders": "View All Orders",
-  "understandingOrderStatus": "Understanding Order Status",
-  "whatEachStatusMeans": "Here is what each status means for your shipment:",
-  "processing": "Processing",
-  "processingDesc": "Your items are being inspected, packed, and prepared for dispatch.",
-  "shipped": "Shipped",
-  "shippedDesc": "Your package has left our facility and is in transit.",
-  "outForDelivery": "Out for Delivery",
-  "outForDeliveryDesc": "Your package is out for final delivery to your doorstep.",
-  "delivered": "Delivered",
-  "deliveredDesc": "The shipment has been successfully handed over.",
-  "cancelled": "Cancelled",
-  "cancelledDesc": "The order was cancelled. Payments will be refunded.",
-  "needImmediateHelp": "Need immediate help?",
-  "supportStaffReady": "Our 24/7 support staff is ready to assist you.",
-  "cancel": "Cancel",
-  "removeLabel": "REMOVE",
-  "orderIdLabel": "ORDER #",
-  "paid": "Paid",
-  "advancePaid": "Adv: ₹{amount}",
+  "startExploring": "एक्सप्लोर करणे सुरू करा",
+  "viewAllOrders": "सर्व ऑर्डर पहा",
+  "understandingOrderStatus": "ऑर्डरची स्थिती समजून घेणे",
+  "whatEachStatusMeans": "तुमच्या शिपमेंटसाठी प्रत्येक स्थितीचा अर्थ येथे आहे:",
+  "processing": "प्रक्रिया करत आहे",
+  "processingDesc": "तुमच्या वस्तू तपासल्या जात आहेत, पॅक केल्या जात आहेत आणि पाठवण्यासाठी तयार आहेत.",
+  "shipped": "पाठवले",
+  "shippedDesc": "तुमच्या पॅकेजने आमची सुविधा सोडली आहे आणि ते संक्रमणामध्ये आहे.",
+  "outForDelivery": "डिलिव्हरी साठी बाहेर",
+  "outForDeliveryDesc": "तुमचे पॅकेज तुमच्या दारापर्यंत अंतिम वितरणासाठी आहे.",
+  "delivered": "वितरित केले",
+  "deliveredDesc": "शिपमेंट यशस्वीरित्या सुपूर्द करण्यात आली आहे.",
+  "cancelled": "रद्द केले",
+  "cancelledDesc": "ऑर्डर रद्द करण्यात आली. देयके परत केली जातील.",
+  "needImmediateHelp": "त्वरित मदत हवी आहे?",
+  "supportStaffReady": "आमचा २४/७ सपोर्ट स्टाफ तुम्हाला मदत करण्यासाठी तयार आहे.",
+  "cancel": "रद्द करा",
+  "removeLabel": "काढून टाका",
+  "orderIdLabel": "ऑर्डर #",
+  "paid": "पैसे दिले",
+  "advancePaid": "ॲड: ₹{amount}",
   "@advancePaid": {
     "placeholders": {
       "amount": {
@@ -303,7 +304,7 @@
       }
     }
   },
-  "remainingDue": "Due: ₹{amount}",
+  "remainingDue": "देय: ₹{amount}",
   "@remainingDue": {
     "placeholders": {
       "amount": {
@@ -319,7 +320,7 @@
       }
     }
   },
-  "cancelledOn": "Cancelled on {date}",
+  "cancelledOn": "{date} रोजी रद्द केले",
   "@cancelledOn": {
     "placeholders": {
       "date": {
@@ -327,10 +328,10 @@
       }
     }
   },
-  "crops": "Crops",
-  "cropsCollection": "Crop Collection",
-  "shopByCrop": "Shop by Crop",
-  "browseCategories": "Browse Categories",
+  "crops": "पिके",
+  "cropsCollection": "पीक संकलन",
+  "shopByCrop": "पिकानुसार खरेदी करा",
+  "browseCategories": "श्रेण्या ब्राउझ करा",
   "cropsCount": "{count} {count, plural, =1{Crop} other{Crops}}",
   "@cropsCount": {
     "placeholders": {
@@ -347,47 +348,47 @@
       }
     }
   },
-  "searchHintCrops": "Search for crops...",
-  "searchHintSeeds": "Search for seeds...",
-  "searchHintMachinery": "Search for machinery...",
-  "searchHintOrganic": "Search for organic...",
-  "badgeGenuine": "Genuine",
-  "badgeTested": "Tested",
-  "badgeExpress": "Express",
-  "recentSearches": "Recent Searches",
-  "whatAreYouLookingFor": "What are you looking for?",
-  "tryAdjustingSearch": "Try adjusting your search terms",
-  "quickDiscovery": "Quick Discovery",
-  "tryAgain": "Try Again",
-  "somethingWentWrong": "Oops! Something went wrong.",
-  "letsConnect": "Let's Connect",
-  "supportSubtitle": "We're here to help support your agro-business.",
-  "onlineSupportActive": "Online • Support Active",
-  "offlineResponseDelayed": "Offline • Response Delayed",
-  "supportHours": "Mon-Sat (9:00 AM - 7:00 PM)",
-  "fastResponse": "Fast response",
-  "quickChat": "Quick Chat",
-  "directLine": "Direct Line",
-  "officialMail": "Official Mail",
-  "sendQuickInquiry": "Send a Quick Inquiry",
-  "selectTopic": "SELECT TOPIC",
-  "messageDetails": "MESSAGE DETAILS",
-  "sendWhatsApp": "Send WhatsApp",
-  "whyTrustKrishiKranti": "Why Trust Krishi Kranti",
-  "dataPrivate": "Data Private",
-  "cibrcRegd": "CIB&RC Regd.",
-  "gstInvoice": "GST Invoice",
-  "panIndiaDelivery": "PAN-India Delivery",
-  "topicOrderIssue": "Order Issue",
-  "topicRefundPayment": "Refund / Payment",
-  "topicBecomeDealer": "Become a Dealer",
-  "topicProductQuery": "Product Query",
-  "topicKycHelp": "KYC Help",
-  "callUs": "Call Us",
-  "whatsapp": "WhatsApp",
-  "emailLabel": "Email",
-  "seedsLabel": "Seeds",
-  "toolsLabel": "Tools",
+  "searchHintCrops": "पिके शोधा...",
+  "searchHintSeeds": "बिया शोधा...",
+  "searchHintMachinery": "मशिनरी शोधा...",
+  "searchHintOrganic": "सेंद्रिय शोधा...",
+  "badgeGenuine": "अस्सल",
+  "badgeTested": "चाचणी केली",
+  "badgeExpress": "एक्सप्रेस",
+  "recentSearches": "अलीकडील शोध",
+  "whatAreYouLookingFor": "आपण काय शोधत आहात?",
+  "tryAdjustingSearch": "तुमच्या शोध संज्ञा समायोजित करण्याचा प्रयत्न करा",
+  "quickDiscovery": "द्रुत शोध",
+  "tryAgain": "पुन्हा प्रयत्न करा",
+  "somethingWentWrong": "अरेरे! काहीतरी चूक झाली.",
+  "letsConnect": "चला कनेक्ट करूया",
+  "supportSubtitle": "तुमच्या कृषी-व्यवसायाला मदत करण्यासाठी आम्ही येथे आहोत.",
+  "onlineSupportActive": "ऑनलाइन • सपोर्ट सक्रिय",
+  "offlineResponseDelayed": "ऑफलाइन • प्रतिसाद विलंबित",
+  "supportHours": "सोम-शनि (9:00 AM - 7:00 PM)",
+  "fastResponse": "जलद प्रतिसाद",
+  "quickChat": "द्रुत गप्पा",
+  "directLine": "डायरेक्ट लाइन",
+  "officialMail": "अधिकृत मेल",
+  "sendQuickInquiry": "त्वरित चौकशी पाठवा",
+  "selectTopic": "विषय निवडा",
+  "messageDetails": "संदेश तपशील",
+  "sendWhatsApp": "WhatsApp पाठवा",
+  "whyTrustKrishiKranti": "कृषी क्रांतीवर विश्वास का ठेवावा",
+  "dataPrivate": "डेटा खाजगी",
+  "cibrcRegd": "सीआयबी आणि आरसी रेजि.",
+  "gstInvoice": "GST बीजक",
+  "panIndiaDelivery": "पॅन-इंडिया डिलिव्हरी",
+  "topicOrderIssue": "ऑर्डर देणे",
+  "topicRefundPayment": "परतावा / भरणा",
+  "topicBecomeDealer": "डीलर व्हा",
+  "topicProductQuery": "उत्पादन क्वेरी",
+  "topicKycHelp": "केवायसी मदत",
+  "callUs": "आम्हाला कॉल करा",
+  "whatsapp": "व्हॉट्सॲप",
+  "emailLabel": "ईमेल",
+  "seedsLabel": "बिया",
+  "toolsLabel": "साधने",
   "availableCoupons": "उपलब्ध कूपन",
   "couponAppliedSuccessfully": "कूपन यशस्वीरित्या लागू केला!",
   "noCouponsAvailable": "सध्या कोणतेही कूपन उपलब्ध नाहीत",
@@ -410,9 +411,7 @@
   "enterStoreName": "तुमच्या दुकानाचे नाव टाका",
   "useCurrentLocation": "सध्याचे स्थान वापरा",
   "addressHint": "घर क्र., रस्ता, क्षेत्र",
-  "address2Hint": "खूण, वसाहत, इ."
-,
-
+  "address2Hint": "खूण, वसाहत, इ.",
   "sortAndFilter": "क्रम आणि फिल्टर",
   "resetAll": "सर्व रीसेट करा",
   "sortBy": "यानुसार क्रम लावा",
@@ -430,7 +429,9 @@
   "itemsAvailable": "{count} आयटम उपलब्ध",
   "@itemsAvailable": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "selectPackagingQuantity": "पॅकेजिंग आणि प्रमाण निवडा",
@@ -441,13 +442,17 @@
   "totalItems": "एकूण आयटम: {count}",
   "@totalItems": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "grandTotalLabel": "एकूण रक्कम: ₹{amount}",
   "@grandTotalLabel": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "cancelLabel": "रद्द करा",
@@ -462,7 +467,9 @@
   "currentVolume": "सध्याचे प्रमाण: {volume}",
   "@currentVolume": {
     "placeholders": {
-      "volume": { "type": "String" }
+      "volume": {
+        "type": "String"
+      }
     }
   },
   "goToCart": "कार्टवर जा",
@@ -472,13 +479,17 @@
   "failedToUpdateCart": "कार्ट अपडेट करण्यात अयशस्वी: {error}",
   "@failedToUpdateCart": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "unlockTierPricing": "{tier} किंमत अनलॉक करा!",
   "@unlockTierPricing": {
     "placeholders": {
-      "tier": { "type": "String" }
+      "tier": {
+        "type": "String"
+      }
     }
   },
   "getWholesaleRates": "मोठ्या प्रमाणावर घाऊक दर मिळवा",
@@ -487,37 +498,55 @@
   "totalBulkSavings": "एकूण घाऊक बचत: ₹{savings}!",
   "@totalBulkSavings": {
     "placeholders": {
-      "savings": { "type": "String" }
+      "savings": {
+        "type": "String"
+      }
     }
   },
   "requiredVolumeProgression": "आवश्यक प्रमाण प्रगती",
   "currentProgress": "सध्याचे: {vol} ({packs} पॅक)",
   "@currentProgress": {
     "placeholders": {
-      "vol": { "type": "String" },
-      "packs": { "type": "int" }
+      "vol": {
+        "type": "String"
+      },
+      "packs": {
+        "type": "int"
+      }
     }
   },
   "targetProgress": "लक्ष्य: {vol} ({packs} पॅक)",
   "@targetProgress": {
     "placeholders": {
-      "vol": { "type": "String" },
-      "packs": { "type": "int" }
+      "vol": {
+        "type": "String"
+      },
+      "packs": {
+        "type": "int"
+      }
     }
   },
   "addingMorePacksUnlocks": "या आकाराचे {diff} अधिक पॅक जोडल्यास सर्व युनिटवर प्रति {unit} ₹{discount} सवलत मिळते!",
   "@addingMorePacksUnlocks": {
     "placeholders": {
-      "diff": { "type": "int" },
-      "discount": { "type": "String" },
-      "unit": { "type": "String" }
+      "diff": {
+        "type": "int"
+      },
+      "discount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
     }
   },
   "keepCurrent": "सध्याचे ठेवा",
   "addDiffAndSave": "{diff} जोडा आणि बचत करा",
   "@addDiffAndSave": {
     "placeholders": {
-      "diff": { "type": "int" }
+      "diff": {
+        "type": "int"
+      }
     }
   },
   "adjustQuantity": "प्रमाण समायोजित करा",
@@ -525,15 +554,23 @@
   "saveAmount": "₹{amount} वाचवा",
   "@saveAmount": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "tierUnlockedMessage": "तुम्ही {tier} अनलॉक केले! आता ₹{price}/{unit} किमतीचा आनंद घेत आहात. 🎉",
   "@tierUnlockedMessage": {
     "placeholders": {
-      "tier": { "type": "String" },
-      "price": { "type": "String" },
-      "unit": { "type": "String" }
+      "tier": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
     }
   },
   "zeroReviews": " (0 समीक्षा)",
@@ -546,7 +583,9 @@
   "advanceBookingDeposit": "अग्रिम बुकिंग जमा ({percent}%)",
   "@advanceBookingDeposit": {
     "placeholders": {
-      "percent": { "type": "int" }
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "remainingBalanceAtDelivery": "वितरणच्या वेळी उर्वरित रक्कम",
@@ -554,7 +593,9 @@
   "couponSavingsBannerCheckout": "तुम्ही या कूपनद्वारे ₹{amount} वाचवले 🎉",
   "@couponSavingsBannerCheckout": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "hundredPercentSecure": "100% सुरक्षित",
@@ -581,25 +622,33 @@
   "paymentFailed": "पेमेंट अयशस्वी: {message}",
   "@paymentFailed": {
     "placeholders": {
-      "message": { "type": "String" }
+      "message": {
+        "type": "String"
+      }
     }
   },
   "errorLaunchingRazorpay": "Razorpay सुरू करताना त्रुटी: {error}",
   "@errorLaunchingRazorpay": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "paymentSetupFailed": "पेमेंट सेटअप अयशस्वी: {error}",
   "@paymentSetupFailed": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "failedToPlaceOrder": "ऑर्डर देण्यास अपयशी: {error}",
   "@failedToPlaceOrder": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "orderSyncRequired": "ऑर्डर सिंक आवश्यक",
@@ -619,18 +668,21 @@
   "qtyLabel": "प्रमाण: {qty}",
   "@qtyLabel": {
     "placeholders": {
-      "qty": { "type": "int" }
+      "qty": {
+        "type": "int"
+      }
     }
   },
   "goToMyOrders": "माझ्या ऑर्डर्सवर जा ({seconds}s)",
   "@goToMyOrders": {
     "placeholders": {
-      "seconds": { "type": "int" }
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "orderSuccessMessage": "तुमच्या खरेदीबद्दल धन्यवाद. आम्ही तुमची ऑर्डर पाठवण्यासाठी तयार करत आहोत. चला एकत्र वाढूया!",
-  "orderSecuredMessage": "तुमची बुकिंग अनामत रक्कम प्राप्त झाली आहे आणि तुमची ऑर्डर आता सुरक्षित आहे. चला एकत्र वाढूया!"
-,
+  "orderSecuredMessage": "तुमची बुकिंग अनामत रक्कम प्राप्त झाली आहे आणि तुमची ऑर्डर आता सुरक्षित आहे. चला एकत्र वाढूया!",
   "stepCart": "कार्ट",
   "stepCheckout": "चेकआउट",
   "stepPayment": "पेमेंट",
@@ -639,5 +691,7 @@
   "forceUpdateMsg": "एक महत्त्वाचा अपडेट उपलब्ध आहे. कृपया आमची सेवा सुरू ठेवण्यासाठी अॅप अपडेट करा.",
   "optionalUpdateMsg": "नवीन वैशिष्ट्ये आणि सुधारणांसह अॅपची नवीन आवृत्ती उपलब्ध आहे.",
   "later": "नंतर",
-  "updateNow": "आता अपडेट करा"
+  "updateNow": "आता अपडेट करा",
+  "kycUnderReview": "दस्तऐवज पुनरावलोकनाधीन आहेत",
+  "kycUnderReviewSubtitle": "तुमच्या कागदपत्रांवर सध्या प्रक्रिया सुरू आहे."
 }

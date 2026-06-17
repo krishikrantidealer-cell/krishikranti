@@ -676,6 +676,12 @@ abstract class AppLocalizations {
   /// **'Read all'**
   String get readAll;
 
+  /// No description provided for @swipeToDeleteTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip: Swipe left on a notification to delete it.'**
+  String get swipeToDeleteTip;
+
   /// No description provided for @tabAll.
   ///
   /// In en, this message translates to:
@@ -2451,6 +2457,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UPDATE NOW'**
   String get updateNow;
+
+  /// No description provided for @kycUnderReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents Under Review'**
+  String get kycUnderReview;
+
+  /// No description provided for @kycUnderReviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your documents are currently being processed.'**
+  String get kycUnderReviewSubtitle;
 }
 
 class _AppLocalizationsDelegate

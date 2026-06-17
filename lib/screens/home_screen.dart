@@ -429,7 +429,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             SafeArea(
               top: false,
               child: RefreshIndicator(
-                onRefresh: () => _fetchDiscoveryData(forceRefresh: true),
+                onRefresh: () async {
+                  await Future.wait([
+                    _fetchDiscoveryData(forceRefresh: true),
+                    if (mounted)
+                      Provider.of<ProfileService>(context, listen: false)
+                          .fetchProfileFromServer()
+                          .catchError((_) => null),
+                  ]);
+                },
                 color: theme.colorScheme.primary,
                 child: ListenableBuilder(
                   listenable: _favoriteService,

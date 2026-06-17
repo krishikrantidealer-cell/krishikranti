@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,6 +23,17 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProfileService>(
+        context,
+        listen: false,
+      ).fetchProfileFromServer();
+    });
+  }
+
   void _showLogoutDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     HapticFeedback.heavyImpact();
@@ -227,21 +239,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               ),
                                             ),
                                           ),
-                                          FutureBuilder<bool>(
-                                            future: AuthService.isKycComplete(),
-                                            builder: (context, snapshot) {
-                                              if (snapshot.data == true) {
-                                                return Positioned(
-                                                  bottom: 0,
-                                                  right: 0,
-                                                  child: _VerifiedBadge(
-                                                    primaryGreen: primaryGreen,
-                                                  ),
-                                                );
-                                              }
-                                              return const SizedBox.shrink();
-                                            },
-                                          ),
+                                          if (profile.user?.isKycComplete ==
+                                              true)
+                                            Positioned(
+                                              bottom: 0,
+                                              right: 0,
+                                              child: _VerifiedBadge(
+                                                primaryGreen: primaryGreen,
+                                              ),
+                                            ),
                                         ],
                                       ),
                                       const SizedBox(width: 14),
@@ -252,7 +258,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
-                                            Text(
+                                            TranslatableText(
                                               profile.name,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -287,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 ),
                                                 const SizedBox(width: 6),
                                                 Expanded(
-                                                  child: Text(
+                                                  child: TranslatableText(
                                                     profile.storeName,
                                                     maxLines: 1,
                                                     overflow:
@@ -315,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                   ),
                                                   const SizedBox(width: 5),
                                                   Expanded(
-                                                    child: Text(
+                                                    child: TranslatableText(
                                                       "${profile.city}${profile.state.isNotEmpty ? ', ${profile.state}' : ''}",
                                                       maxLines: 1,
                                                       overflow:
@@ -365,15 +371,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        FutureBuilder<bool>(
-                          future: AuthService.isKycComplete(),
-                          builder: (context, snapshot) {
-                            if (snapshot.data == true) {
-                              return const SizedBox.shrink();
-                            }
-                            return _ModernKycAlert(l10n: l10n);
-                          },
-                        ),
+                        if (profile.user?.isKycComplete != true)
+                          _ModernKycAlert(l10n: l10n),
 
                         // --- UNIFIED GENERAL ACTIONS ---
                         _ModernSectionHeader(title: l10n.generalOptions),
@@ -830,6 +829,36 @@ class _ModernKycAlert extends StatelessWidget {
   const _ModernKycAlert({required this.l10n});
   @override
   Widget build(BuildContext context) {
+    final profile = Provider.of<ProfileService>(context);
+    final user = profile.user;
+    final bool hasSubmitted =
+        user != null &&
+        user.licenceImage != null &&
+        user.licenceImage!.isNotEmpty;
+    final bool isUnderReview =
+        user?.isKycComplete == false &&
+        hasSubmitted &&
+        user?.kycStatus != 'rejected';
+
+    final Color cardBg1 = isUnderReview
+        ? const Color(0xFFE3F2FD)
+        : const Color(0xFFFFF3E0);
+    final Color cardBg2 = isUnderReview
+        ? const Color(0xFFBBDEFB).withValues(alpha: 0.7)
+        : const Color(0xFFFFE0B2).withValues(alpha: 0.7);
+    final Color borderColor = isUnderReview
+        ? Colors.blue.withValues(alpha: 0.25)
+        : Colors.orange.withValues(alpha: 0.25);
+    final Color shadowColor = isUnderReview
+        ? Colors.blue.withValues(alpha: 0.08)
+        : Colors.orange.withValues(alpha: 0.08);
+    final Color iconBgShadowColor = isUnderReview
+        ? Colors.blue.withValues(alpha: 0.15)
+        : Colors.orange.withValues(alpha: 0.15);
+    final Color themeColor = isUnderReview
+        ? Colors.blue.shade700
+        : Colors.orange;
+
     return _ScaleBtn(
       onTap: () => Navigator.pushNamed(context, '/kyc'),
       child: Container(
@@ -839,16 +868,13 @@ class _ModernKycAlert extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFFFF3E0),
-              const Color(0xFFFFE0B2).withValues(alpha: 0.7),
-            ],
+            colors: [cardBg1, cardBg2],
           ),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
+          border: Border.all(color: borderColor),
           boxShadow: [
             BoxShadow(
-              color: Colors.orange.withValues(alpha: 0.08),
+              color: shadowColor,
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -863,15 +889,17 @@ class _ModernKycAlert extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.orange.withValues(alpha: 0.15),
+                    color: iconBgShadowColor,
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Icon(
-                CupertinoIcons.shield_lefthalf_fill,
-                color: Colors.orange,
+              child: Icon(
+                isUnderReview
+                    ? CupertinoIcons.timer
+                    : CupertinoIcons.shield_lefthalf_fill,
+                color: themeColor,
                 size: 22,
               ),
             ),
@@ -881,19 +909,27 @@ class _ModernKycAlert extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    l10n.identityVerification,
-                    style: const TextStyle(
+                    isUnderReview
+                        ? l10n.kycUnderReview
+                        : l10n.identityVerification,
+                    style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
-                      color: Color(0xFFE65100),
+                      color: isUnderReview
+                          ? Colors.blue.shade900
+                          : const Color(0xFFE65100),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    l10n.kycSubtitle,
-                    style: const TextStyle(
+                    isUnderReview
+                        ? l10n.kycUnderReviewSubtitle
+                        : l10n.kycSubtitle,
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFEF6C00),
+                      color: isUnderReview
+                          ? Colors.blue.shade800
+                          : const Color(0xFFEF6C00),
                       fontWeight: FontWeight.w600,
                       height: 1.1,
                     ),
@@ -903,8 +939,8 @@ class _ModernKycAlert extends StatelessWidget {
             ),
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Colors.orange,
+              decoration: BoxDecoration(
+                color: themeColor,
                 shape: BoxShape.circle,
               ),
               child: const Icon(

@@ -108,6 +108,7 @@
   "delete": "తొలగించు",
   "defaultLabel": "డిఫాల్ట్",
   "readAll": "అన్నీ చదవండి",
+  "swipeToDeleteTip": "చిట్కా: తొలగించడానికి నోటిఫికేషన్‌పై ఎడమవైపుకు స్వైప్ చేయండి.",
   "tabAll": "అన్నీ",
   "tabOrders": "ఆర్డర్లు",
   "tabOffers": "ఆఫర్లు",
@@ -155,17 +156,17 @@
   "categoryPgrs": "మొక్కల పెరుగుదల నియంత్రకాలు",
   "categoryFertilizers": "ఎరువులు",
   "categoryDefault": "వ్యవసాయ ఉత్పత్తులు",
-  "wishlistEmpty": "Your Wishlist is Empty",
-  "saveFavoritesInstruction": "Save your favorite farming essentials and access them instantly anytime.",
-  "exploreShop": "Explore Shop",
-  "clearWishlistTitle": "Clear Favorites",
-  "clearWishlistConfirm": "Are you sure you want to remove all items from your wishlist?",
-  "clearAll": "Clear All",
-  "added": "Added",
-  "deselectAll": "Deselect All",
-  "selectAll": "Select All",
-  "done": "DONE",
-  "editLabel": "EDIT",
+  "wishlistEmpty": "మీ కోరికల జాబితా ఖాళీగా ఉంది",
+  "saveFavoritesInstruction": "మీకు ఇష్టమైన వ్యవసాయ అవసరాలను సేవ్ చేయండి మరియు వాటిని ఎప్పుడైనా తక్షణమే యాక్సెస్ చేయండి.",
+  "exploreShop": "దుకాణాన్ని అన్వేషించండి",
+  "clearWishlistTitle": "ఇష్టమైనవి క్లియర్ చేయండి",
+  "clearWishlistConfirm": "మీరు మీ కోరికల జాబితా నుండి అన్ని అంశాలను ఖచ్చితంగా తీసివేయాలనుకుంటున్నారా?",
+  "clearAll": "అన్నీ క్లియర్ చేయండి",
+  "added": "చేర్చబడింది",
+  "deselectAll": "అన్నీ ఎంపికను తీసివేయండి",
+  "selectAll": "అన్నీ ఎంచుకోండి",
+  "done": "పూర్తయింది",
+  "editLabel": "సవరించు",
   "itemCountLabel": "{count} {count, plural, =1{ITEM} other{ITEMS}}",
   "@itemCountLabel": {
     "placeholders": {
@@ -174,9 +175,9 @@
       }
     }
   },
-  "secureCheckoutBadge": "SECURE CHECKOUT",
-  "couponApplied": "COUPON APPLIED!",
-  "couponActiveMessage": "Code '{coupon}' is active",
+  "secureCheckoutBadge": "సురక్షిత చెక్అవుట్",
+  "couponApplied": "కూపన్ వర్తింపజేయబడింది!",
+  "couponActiveMessage": "కోడ్ '{coupon}' సక్రియంగా ఉంది",
   "@couponActiveMessage": {
     "placeholders": {
       "coupon": {
@@ -184,11 +185,11 @@
       }
     }
   },
-  "cartFeelsLight": "Your cart feels light",
-  "discoverAgriProducts": "Discover premium agricultural products and start your growing journey today.",
-  "beginExploring": "Begin Exploring",
-  "selectItemsToDelete": "SELECT ITEMS TO DELETE",
-  "deleteSelected": "DELETE SELECTED ({count})",
+  "cartFeelsLight": "మీ కార్ట్ తేలికగా అనిపిస్తుంది",
+  "discoverAgriProducts": "ప్రీమియం వ్యవసాయ ఉత్పత్తులను కనుగొనండి మరియు మీ పెరుగుతున్న ప్రయాణాన్ని ఈరోజే ప్రారంభించండి.",
+  "beginExploring": "అన్వేషించడం ప్రారంభించండి",
+  "selectItemsToDelete": "తొలగించడానికి అంశాలను ఎంచుకోండి",
+  "deleteSelected": "ఎంచుకున్న ({count}) తొలగించు",
   "@deleteSelected": {
     "placeholders": {
       "count": {
@@ -196,8 +197,8 @@
       }
     }
   },
-  "continueToCheckout": "CONTINUE TO CHECKOUT",
-  "removeItemsTitle": "Remove {count} items?",
+  "continueToCheckout": "చెక్అవుట్ చేయడానికి కొనసాగించండి",
+  "removeItemsTitle": "{count} అంశాలను తీసివేయాలా?",
   "@removeItemsTitle": {
     "placeholders": {
       "count": {
@@ -205,13 +206,13 @@
       }
     }
   },
-  "removeItemsConfirm": "Are you sure you want to delete the selected items from your cart?",
-  "clearCartTitle": "Clear Cart?",
-  "clearCartConfirm": "Are you sure you want to remove all items from your cart?",
-  "couponAppliedTitle": "Coupon Applied!",
-  "offersAndBenefits": "Offers & Benefits",
-  "freeGiftMessage": "Coupon 'DEALERDHAMAKA' applied: Free product added! 🎁",
-  "couponSavedMessage": "You saved ₹{amount} with {coupon}",
+  "removeItemsConfirm": "మీరు మీ కార్ట్ నుండి ఎంచుకున్న అంశాలను ఖచ్చితంగా తొలగించాలనుకుంటున్నారా?",
+  "clearCartTitle": "కార్ట్ క్లియర్ చేయాలా?",
+  "clearCartConfirm": "మీరు ఖచ్చితంగా మీ కార్ట్ నుండి అన్ని అంశాలను తీసివేయాలనుకుంటున్నారా?",
+  "couponAppliedTitle": "కూపన్ వర్తింపజేయబడింది!",
+  "offersAndBenefits": "ఆఫర్‌లు & ప్రయోజనాలు",
+  "freeGiftMessage": "కూపన్ 'DEALERDHAMAKA' వర్తింపజేయబడింది: ఉచిత ఉత్పత్తి జోడించబడింది! 🎁",
+  "couponSavedMessage": "మీరు {coupon}తో ₹{amount}ని ఆదా చేసారు",
   "@couponSavedMessage": {
     "placeholders": {
       "amount": {
@@ -222,19 +223,19 @@
       }
     }
   },
-  "viewCouponsAndOffers": "View available coupons and offers",
-  "giftLabel": "GIFT",
-  "freeLabel": "FREE",
-  "enterQuantity": "Enter Quantity",
-  "specifyQuantityHint": "Specify the number of items you'd like to order.",
-  "egQuantity": "e.g. 5",
-  "updateLabel": "UPDATE",
-  "billDetails": "BILL DETAILS",
-  "itemTotalSubtotal": "Item Total (Subtotal)",
-  "couponDiscount": "Coupon Discount",
-  "deliveryCharges": "Delivery Charges",
-  "totalAmountPayable": "Total Amount Payable",
-  "couponSavingsSuccess": "Yay! You saved ₹{amount} on this purchase!",
+  "viewCouponsAndOffers": "అందుబాటులో ఉన్న కూపన్‌లు మరియు ఆఫర్‌లను వీక్షించండి",
+  "giftLabel": "బహుమతి",
+  "freeLabel": "ఉచిత",
+  "enterQuantity": "పరిమాణాన్ని నమోదు చేయండి",
+  "specifyQuantityHint": "మీరు ఆర్డర్ చేయాలనుకుంటున్న వస్తువుల సంఖ్యను పేర్కొనండి.",
+  "egQuantity": "ఉదా 5",
+  "updateLabel": "నవీకరణ",
+  "billDetails": "బిల్ వివరాలు",
+  "itemTotalSubtotal": "అంశం మొత్తం (ఉపమొత్తం)",
+  "couponDiscount": "కూపన్ తగ్గింపు",
+  "deliveryCharges": "డెలివరీ ఛార్జీలు",
+  "totalAmountPayable": "చెల్లించవలసిన మొత్తం",
+  "couponSavingsSuccess": "అవును! మీరు ఈ కొనుగోలులో ₹{amount} ఆదా చేసారు!",
   "@couponSavingsSuccess": {
     "placeholders": {
       "amount": {
@@ -242,12 +243,12 @@
       }
     }
   },
-  "tabActive": "Active",
-  "tabDelivered": "Delivered",
-  "tabCancelled": "Cancelled",
+  "tabActive": "చురుకుగా",
+  "tabDelivered": "పంపిణీ చేయబడింది",
+  "tabCancelled": "రద్దు చేయబడింది",
   "tabRto": "RTO",
-  "overview": "Overview",
-  "activeOrdersLabel": "{count} Active {count, plural, =1{Order} other{Orders}}",
+  "overview": "అవలోకనం",
+  "activeOrdersLabel": "{count} యాక్టివ్ {count, plural, =1{Order} other{Orders}}",
   "@activeOrdersLabel": {
     "placeholders": {
       "count": {
@@ -255,8 +256,8 @@
       }
     }
   },
-  "allOrdersHistory": "All Orders History",
-  "totalOrdersCount": "{count} Total",
+  "allOrdersHistory": "అన్ని ఆర్డర్‌ల చరిత్ర",
+  "totalOrdersCount": "{count} మొత్తం",
   "@totalOrdersCount": {
     "placeholders": {
       "count": {
@@ -264,10 +265,10 @@
       }
     }
   },
-  "noOrdersYet": "No Orders Yet",
-  "noMatchingOrders": "No Matching Orders",
-  "orderJourneyBegins": "Your agricultural journey begins here. Explore our catalog and place your first order today!",
-  "noOrdersMatchingStatus": "We couldn't find any orders under the '{status}' status.",
+  "noOrdersYet": "ఇంకా ఆర్డర్‌లు లేవు",
+  "noMatchingOrders": "సరిపోలే ఆర్డర్‌లు లేవు",
+  "orderJourneyBegins": "మీ వ్యవసాయ ప్రయాణం ఇక్కడ ప్రారంభమవుతుంది. మా కేటలాగ్‌ని అన్వేషించండి మరియు ఈరోజే మీ మొదటి ఆర్డర్ చేయండి!",
+  "noOrdersMatchingStatus": "మేము '{status}' స్థితి క్రింద ఎటువంటి ఆర్డర్‌లను కనుగొనలేకపోయాము.",
   "@noOrdersMatchingStatus": {
     "placeholders": {
       "status": {
@@ -275,27 +276,27 @@
       }
     }
   },
-  "startExploring": "Start Exploring",
-  "viewAllOrders": "View All Orders",
-  "understandingOrderStatus": "Understanding Order Status",
-  "whatEachStatusMeans": "Here is what each status means for your shipment:",
-  "processing": "Processing",
-  "processingDesc": "Your items are being inspected, packed, and prepared for dispatch.",
-  "shipped": "Shipped",
-  "shippedDesc": "Your package has left our facility and is in transit.",
-  "outForDelivery": "Out for Delivery",
-  "outForDeliveryDesc": "Your package is out for final delivery to your doorstep.",
-  "delivered": "Delivered",
-  "deliveredDesc": "The shipment has been successfully handed over.",
-  "cancelled": "Cancelled",
-  "cancelledDesc": "The order was cancelled. Payments will be refunded.",
-  "needImmediateHelp": "Need immediate help?",
-  "supportStaffReady": "Our 24/7 support staff is ready to assist you.",
-  "cancel": "Cancel",
-  "removeLabel": "REMOVE",
-  "orderIdLabel": "ORDER #",
-  "paid": "Paid",
-  "advancePaid": "Adv: ₹{amount}",
+  "startExploring": "అన్వేషించడం ప్రారంభించండి",
+  "viewAllOrders": "అన్ని ఆర్డర్‌లను వీక్షించండి",
+  "understandingOrderStatus": "ఆర్డర్ స్థితిని అర్థం చేసుకోవడం",
+  "whatEachStatusMeans": "మీ షిప్‌మెంట్ కోసం ప్రతి స్థితి అంటే ఇక్కడ ఉంది:",
+  "processing": "ప్రాసెసింగ్",
+  "processingDesc": "మీ ఐటెమ్‌లు తనిఖీ చేయబడుతున్నాయి, ప్యాక్ చేయబడ్డాయి మరియు పంపడానికి సిద్ధం చేయబడుతున్నాయి.",
+  "shipped": "రవాణా చేయబడింది",
+  "shippedDesc": "మీ ప్యాకేజీ మా సౌకర్యం నుండి నిష్క్రమించింది మరియు రవాణాలో ఉంది.",
+  "outForDelivery": "డెలివరీ కోసం బయలుదేరింది",
+  "outForDeliveryDesc": "మీ డోర్‌స్టెప్‌కి చివరి డెలివరీ కోసం మీ ప్యాకేజీ ముగిసింది.",
+  "delivered": "పంపిణీ చేయబడింది",
+  "deliveredDesc": "రవాణా విజయవంతంగా అప్పగించబడింది.",
+  "cancelled": "రద్దు చేయబడింది",
+  "cancelledDesc": "ఆర్డర్ రద్దు చేయబడింది. చెల్లింపులు తిరిగి చెల్లించబడతాయి.",
+  "needImmediateHelp": "తక్షణ సహాయం కావాలా?",
+  "supportStaffReady": "మా 24/7 సహాయక సిబ్బంది మీకు సహాయం చేయడానికి సిద్ధంగా ఉన్నారు.",
+  "cancel": "రద్దు చేయి",
+  "removeLabel": "తొలగించు",
+  "orderIdLabel": "ఆర్డర్ #",
+  "paid": "చెల్లించారు",
+  "advancePaid": "న్యాయవాది: ₹{amount}",
   "@advancePaid": {
     "placeholders": {
       "amount": {
@@ -303,7 +304,7 @@
       }
     }
   },
-  "remainingDue": "Due: ₹{amount}",
+  "remainingDue": "గడువు: ₹{amount}",
   "@remainingDue": {
     "placeholders": {
       "amount": {
@@ -319,7 +320,7 @@
       }
     }
   },
-  "cancelledOn": "Cancelled on {date}",
+  "cancelledOn": "{date}న రద్దు చేయబడింది",
   "@cancelledOn": {
     "placeholders": {
       "date": {
@@ -327,10 +328,10 @@
       }
     }
   },
-  "crops": "Crops",
-  "cropsCollection": "Crop Collection",
-  "shopByCrop": "Shop by Crop",
-  "browseCategories": "Browse Categories",
+  "crops": "పంటలు",
+  "cropsCollection": "పంట సేకరణ",
+  "shopByCrop": "పంట ద్వారా షాపింగ్ చేయండి",
+  "browseCategories": "వర్గాలను బ్రౌజ్ చేయండి",
   "cropsCount": "{count} {count, plural, =1{Crop} other{Crops}}",
   "@cropsCount": {
     "placeholders": {
@@ -347,47 +348,47 @@
       }
     }
   },
-  "searchHintCrops": "Search for crops...",
-  "searchHintSeeds": "Search for seeds...",
-  "searchHintMachinery": "Search for machinery...",
-  "searchHintOrganic": "Search for organic...",
-  "badgeGenuine": "Genuine",
-  "badgeTested": "Tested",
-  "badgeExpress": "Express",
-  "recentSearches": "Recent Searches",
-  "whatAreYouLookingFor": "What are you looking for?",
-  "tryAdjustingSearch": "Try adjusting your search terms",
-  "quickDiscovery": "Quick Discovery",
-  "tryAgain": "Try Again",
-  "somethingWentWrong": "Oops! Something went wrong.",
-  "letsConnect": "Let's Connect",
-  "supportSubtitle": "We're here to help support your agro-business.",
-  "onlineSupportActive": "Online • Support Active",
-  "offlineResponseDelayed": "Offline • Response Delayed",
-  "supportHours": "Mon-Sat (9:00 AM - 7:00 PM)",
-  "fastResponse": "Fast response",
-  "quickChat": "Quick Chat",
-  "directLine": "Direct Line",
-  "officialMail": "Official Mail",
-  "sendQuickInquiry": "Send a Quick Inquiry",
-  "selectTopic": "SELECT TOPIC",
-  "messageDetails": "MESSAGE DETAILS",
-  "sendWhatsApp": "Send WhatsApp",
-  "whyTrustKrishiKranti": "Why Trust Krishi Kranti",
-  "dataPrivate": "Data Private",
+  "searchHintCrops": "పంటల కోసం వెతకండి...",
+  "searchHintSeeds": "విత్తనాల కోసం వెతకండి...",
+  "searchHintMachinery": "యంత్రాల కోసం శోధించండి...",
+  "searchHintOrganic": "ఆర్గానిక్ కోసం శోధించండి...",
+  "badgeGenuine": "అసలైన",
+  "badgeTested": "పరీక్షించారు",
+  "badgeExpress": "ఎక్స్ప్రెస్",
+  "recentSearches": "ఇటీవలి శోధనలు",
+  "whatAreYouLookingFor": "మీరు దేని కోసం చూస్తున్నారు?",
+  "tryAdjustingSearch": "మీ శోధన పదాలను సర్దుబాటు చేయడానికి ప్రయత్నించండి",
+  "quickDiscovery": "త్వరిత ఆవిష్కరణ",
+  "tryAgain": "మళ్లీ ప్రయత్నించండి",
+  "somethingWentWrong": "అయ్యో! ఏదో తప్పు జరిగింది.",
+  "letsConnect": "కనెక్ట్ చేద్దాం",
+  "supportSubtitle": "మీ వ్యవసాయ-వ్యాపారానికి మద్దతు ఇవ్వడానికి మేము ఇక్కడ ఉన్నాము.",
+  "onlineSupportActive": "ఆన్‌లైన్ • మద్దతు యాక్టివ్",
+  "offlineResponseDelayed": "ఆఫ్‌లైన్ • ప్రతిస్పందన ఆలస్యం",
+  "supportHours": "సోమ-శని (9:00 AM - 7:00 PM)",
+  "fastResponse": "వేగవంతమైన ప్రతిస్పందన",
+  "quickChat": "త్వరిత చాట్",
+  "directLine": "డైరెక్ట్ లైన్",
+  "officialMail": "అధికారిక మెయిల్",
+  "sendQuickInquiry": "త్వరిత విచారణను పంపండి",
+  "selectTopic": "అంశాన్ని ఎంచుకోండి",
+  "messageDetails": "సందేశం వివరాలు",
+  "sendWhatsApp": "WhatsApp పంపండి",
+  "whyTrustKrishiKranti": "కృషి క్రాంతిని ఎందుకు నమ్మాలి",
+  "dataPrivate": "డేటా ప్రైవేట్",
   "cibrcRegd": "CIB&RC Regd.",
-  "gstInvoice": "GST Invoice",
-  "panIndiaDelivery": "PAN-India Delivery",
-  "topicOrderIssue": "Order Issue",
-  "topicRefundPayment": "Refund / Payment",
-  "topicBecomeDealer": "Become a Dealer",
-  "topicProductQuery": "Product Query",
-  "topicKycHelp": "KYC Help",
-  "callUs": "Call Us",
+  "gstInvoice": "GST ఇన్వాయిస్",
+  "panIndiaDelivery": "పాన్-ఇండియా డెలివరీ",
+  "topicOrderIssue": "ఆర్డర్ ఇష్యూ",
+  "topicRefundPayment": "వాపసు / చెల్లింపు",
+  "topicBecomeDealer": "డీలర్ అవ్వండి",
+  "topicProductQuery": "ఉత్పత్తి ప్రశ్న",
+  "topicKycHelp": "KYC సహాయం",
+  "callUs": "మాకు కాల్ చేయండి",
   "whatsapp": "WhatsApp",
-  "emailLabel": "Email",
-  "seedsLabel": "Seeds",
-  "toolsLabel": "Tools",
+  "emailLabel": "ఇమెయిల్",
+  "seedsLabel": "విత్తనాలు",
+  "toolsLabel": "ఉపకరణాలు",
   "availableCoupons": "అందుబాటులో ఉన్న కూపన్లు",
   "couponAppliedSuccessfully": "కూపన్ విజయవంతంగా వర్తించబడింది!",
   "noCouponsAvailable": "ప్రస్తుతం కూపన్లు ఏవీ అందుబాటులో లేవు",
@@ -410,9 +411,7 @@
   "enterStoreName": "మీ దుకాణం పేరు నమోదు చేయండి",
   "useCurrentLocation": "ప్రస్తుత స్థానాన్ని ఉపయోగించండి",
   "addressHint": "ఇల్లు నం., వీధి, ప్రాంతం",
-  "address2Hint": "ల్యాండ్‌మార్క్, కాలనీ, మొదలైనవి"
-,
-
+  "address2Hint": "ల్యాండ్‌మార్క్, కాలనీ, మొదలైనవి",
   "sortAndFilter": "క్రమం మరియు ఫిల్టర్",
   "resetAll": "అన్నీ రీసెట్ చేయి",
   "sortBy": "దీని ద్వారా క్రమపరచు",
@@ -430,7 +429,9 @@
   "itemsAvailable": "{count} వస్తువులు అందుబాటులో ఉన్నాయి",
   "@itemsAvailable": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "selectPackagingQuantity": "ప్యాకేజింగ్ మరియు పరిమాణాన్ని ఎంచుకోండి",
@@ -441,13 +442,17 @@
   "totalItems": "మొత్తం వస్తువులు: {count}",
   "@totalItems": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "grandTotalLabel": "మొత్తం మొత్తం: ₹{amount}",
   "@grandTotalLabel": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "cancelLabel": "రద్దు చేయి",
@@ -462,7 +467,9 @@
   "currentVolume": "ప్రస్తుత పరిమాణం: {volume}",
   "@currentVolume": {
     "placeholders": {
-      "volume": { "type": "String" }
+      "volume": {
+        "type": "String"
+      }
     }
   },
   "goToCart": "కార్ట్‌కు వెళ్ళు",
@@ -472,13 +479,17 @@
   "failedToUpdateCart": "కార్ట్‌ను నవీకరించడం విఫలమైంది: {error}",
   "@failedToUpdateCart": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "unlockTierPricing": "{tier} ధరను అన్‌లాక్ చేయండి!",
   "@unlockTierPricing": {
     "placeholders": {
-      "tier": { "type": "String" }
+      "tier": {
+        "type": "String"
+      }
     }
   },
   "getWholesaleRates": "బల్క్ టోకు రేట్లు పొందండి",
@@ -487,37 +498,55 @@
   "totalBulkSavings": "మొత్తం బల్క్ ఆదా: ₹{savings}!",
   "@totalBulkSavings": {
     "placeholders": {
-      "savings": { "type": "String" }
+      "savings": {
+        "type": "String"
+      }
     }
   },
   "requiredVolumeProgression": "అవసరమైన వాల్యూమ్ పురోగతి",
   "currentProgress": "ప్రస్తుతం: {vol} ({packs} ప్యాక్‌లు)",
   "@currentProgress": {
     "placeholders": {
-      "vol": { "type": "String" },
-      "packs": { "type": "int" }
+      "vol": {
+        "type": "String"
+      },
+      "packs": {
+        "type": "int"
+      }
     }
   },
   "targetProgress": "లక్ష్యం: {vol} ({packs} ప్యాక్‌లు)",
   "@targetProgress": {
     "placeholders": {
-      "vol": { "type": "String" },
-      "packs": { "type": "int" }
+      "vol": {
+        "type": "String"
+      },
+      "packs": {
+        "type": "int"
+      }
     }
   },
   "addingMorePacksUnlocks": "ఈ సైజులో {diff} ప్యాక్‌లు జోడించడం వల్ల అన్ని యూనిట్లపై {unit}కి ₹{discount} తగ్గింపు లభిస్తుంది!",
   "@addingMorePacksUnlocks": {
     "placeholders": {
-      "diff": { "type": "int" },
-      "discount": { "type": "String" },
-      "unit": { "type": "String" }
+      "diff": {
+        "type": "int"
+      },
+      "discount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
     }
   },
   "keepCurrent": "ప్రస్తుతం ఉంచు",
   "addDiffAndSave": "{diff} జోడించి ఆదా చేయండి",
   "@addDiffAndSave": {
     "placeholders": {
-      "diff": { "type": "int" }
+      "diff": {
+        "type": "int"
+      }
     }
   },
   "adjustQuantity": "పరిమాణాన్ని సర్దుబాటు చేయండి",
@@ -525,15 +554,23 @@
   "saveAmount": "₹{amount} ఆదా చేయండి",
   "@saveAmount": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "tierUnlockedMessage": "{tier} అన్‌లాక్ చేసారు! ఇప్పుడు ₹{price}/{unit} ధరను ఆనందించండి. 🎉",
   "@tierUnlockedMessage": {
     "placeholders": {
-      "tier": { "type": "String" },
-      "price": { "type": "String" },
-      "unit": { "type": "String" }
+      "tier": {
+        "type": "String"
+      },
+      "price": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
     }
   },
   "zeroReviews": " (0 సమీక్షలు)",
@@ -546,7 +583,9 @@
   "advanceBookingDeposit": "ముందస్తు బుకింగ్ డిపాజిట్ ({percent}%)",
   "@advanceBookingDeposit": {
     "placeholders": {
-      "percent": { "type": "int" }
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "remainingBalanceAtDelivery": "డెలివరీ సమయంలో మిగిలిన బ్యాలెన్స్",
@@ -554,7 +593,9 @@
   "couponSavingsBannerCheckout": "మీరు ఈ కూపన్‌తో ₹{amount} ఆదా చేసారు 🎉",
   "@couponSavingsBannerCheckout": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "hundredPercentSecure": "100% సురక్షితం",
@@ -581,25 +622,33 @@
   "paymentFailed": "చెల్లింపు విఫలమైంది: {message}",
   "@paymentFailed": {
     "placeholders": {
-      "message": { "type": "String" }
+      "message": {
+        "type": "String"
+      }
     }
   },
   "errorLaunchingRazorpay": "Razorpay ని ప్రారంభించడంలో లోపం: {error}",
   "@errorLaunchingRazorpay": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "paymentSetupFailed": "చెల్లింపు సెటప్ విఫలమైంది: {error}",
   "@paymentSetupFailed": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "failedToPlaceOrder": "ఆర్డర్ చేయడంలో విఫలమైంది: {error}",
   "@failedToPlaceOrder": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "orderSyncRequired": "ఆర్డర్ సమకాలీకరణ అవసరం",
@@ -619,18 +668,21 @@
   "qtyLabel": "పరిమాణము: {qty}",
   "@qtyLabel": {
     "placeholders": {
-      "qty": { "type": "int" }
+      "qty": {
+        "type": "int"
+      }
     }
   },
   "goToMyOrders": "నా ఆర్డర్‌లకు వెళ్లండి ({seconds}s)",
   "@goToMyOrders": {
     "placeholders": {
-      "seconds": { "type": "int" }
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "orderSuccessMessage": "కొనుగోలు చేసినందుకు ధన్యవాదలు. మేము షిప్‌మెంట్ కోసం మీ ఆర్డర్‌ను సిద్ధం చేస్తున్నాము. ఎదుగుదాం!",
-  "orderSecuredMessage": "మీ బుకింగ్ డిపాజిట్ అందింది మరియు మీ ఆర్డర్ ఇప్పుడు సురక్షితం చేయబడింది. ఎదుగుదాం!"
-,
+  "orderSecuredMessage": "మీ బుకింగ్ డిపాజిట్ అందింది మరియు మీ ఆర్డర్ ఇప్పుడు సురక్షితం చేయబడింది. ఎదుగుదాం!",
   "stepCart": "కార్ట్",
   "stepCheckout": "చెక్‌అవుట్",
   "stepPayment": "చెల్లింపు",
@@ -639,5 +691,7 @@
   "forceUpdateMsg": "ఒక ముఖ్యమైన అప్‌డేట్ అందుబాటులో ఉంది. దయచేసి కొనసాగించడానికి యాప్‌ను అప్‌డేట్ చేయండి.",
   "optionalUpdateMsg": "కొత్త ఫీచర్లు మరియు మెరుగుదలలతో యాప్ కొత్త వెర్షన్ అందుబాటులో ఉంది.",
   "later": "తర్వాత",
-  "updateNow": "ఇప్పుడే అప్‌డేట్ చేయండి"
+  "updateNow": "ఇప్పుడే అప్‌డేట్ చేయండి",
+  "kycUnderReview": "పత్రాలు పరిశీలనలో ఉన్నాయి",
+  "kycUnderReviewSubtitle": "మీ పత్రాలు ప్రస్తుతం ప్రాసెస్ చేయబడుతున్నాయి."
 }

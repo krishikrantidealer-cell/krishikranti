@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/main.dart';
+import 'package:krishikranti/l10n/app_localizations.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -116,6 +117,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -141,11 +144,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       onTap: () => Navigator.pop(context),
                       child: const Icon(CupertinoIcons.back, size: 28),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Center(
                         child: Text(
-                          "Edit Profile",
-                          style: TextStyle(
+                          l10n.editProfile,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF2E7D32),
@@ -172,17 +175,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           children: [
                             Expanded(
                               child: _buildField(
-                                "First Name",
+                                l10n.firstName,
                                 _firstNameController,
-                                "First",
+                                l10n.firstName,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildField(
-                                "Last Name",
+                                l10n.lastName,
                                 _lastNameController,
-                                "Last",
+                                l10n.lastName,
                               ),
                             ),
                           ],
@@ -190,14 +193,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 12),
 
                         _buildField(
-                          "Store Name",
+                          l10n.shopName,
                           _storeController,
-                          "Enter your store name",
+                          l10n.enterStoreName,
                         ),
                         const SizedBox(height: 12),
 
                         _buildField(
-                          "Phone Number",
+                          l10n.phoneNumberHint,
                           _phoneController,
                           "9876543210",
                           keyboardType: TextInputType.phone,
@@ -225,9 +228,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     size: 18,
                                     color: Color(0xFF2E7D32),
                                   ),
-                            label: const Text(
-                              "Use Current Location",
-                              style: TextStyle(
+                            label: Text(
+                              l10n.useCurrentLocation,
+                              style: const TextStyle(
                                 color: Color(0xFF2E7D32),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -248,16 +251,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 16),
 
                         _buildField(
-                          "Address Line 1",
+                          l10n.addressLine1,
                           _addressLine1Controller,
                           "House no., Street, Area",
                         ),
                         const SizedBox(height: 12),
 
                         _buildField(
-                          "Address Line 2 (Optional)",
+                          l10n.addressLine2Optional,
                           _addressLine2Controller,
                           "Landmark, Colony, etc.",
+                          isOptional: true,
                         ),
                         const SizedBox(height: 12),
 
@@ -265,7 +269,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           children: [
                             Expanded(
                               child: _buildField(
-                                "City / District",
+                                l10n.cityDistrict,
                                 _cityController,
                                 "Pune",
                               ),
@@ -273,7 +277,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _buildField(
-                                "Pincode",
+                                l10n.pincode,
                                 _pincodeController,
                                 "411001",
                                 keyboardType: TextInputType.number,
@@ -284,7 +288,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         const SizedBox(height: 12),
 
                         _buildField(
-                          "State",
+                          l10n.state,
                           _stateController,
                           "Maharashtra",
                         ),
@@ -333,11 +337,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                                         if (success) {
                                           messengerKey.currentState?.showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               content: Text(
-                                                "Profile updated successfully!",
+                                                l10n.profileUpdatedSuccessfully,
                                               ),
-                                              backgroundColor: Color(
+                                              backgroundColor: const Color(
                                                 0xFF2E7D32,
                                               ),
                                               behavior:
@@ -369,9 +373,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       strokeWidth: 2.5,
                                     ),
                                   )
-                                : const Text(
-                                    "Save Changes",
-                                    style: TextStyle(
+                                : Text(
+                                    l10n.saveChanges,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w800,
@@ -399,7 +403,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String hint, {
     TextInputType? keyboardType,
     bool readOnly = false,
+    bool isOptional = false,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -423,8 +429,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           validator: (value) {
             if (readOnly) return null; // Skip validation for read-only fields
-            if (label.contains("Optional")) return null;
-            if (value == null || value.isEmpty) return "Required";
+            if (isOptional) return null;
+            if (value == null || value.isEmpty) return l10n.fieldRequired;
             return null;
           },
           decoration: InputDecoration(

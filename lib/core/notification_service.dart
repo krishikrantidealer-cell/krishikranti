@@ -134,6 +134,24 @@ class NotificationService {
               ? NotificationCategory.marketing
               : NotificationCategory.utility,
         );
+
+        final title = (message.notification!.title ?? "").toLowerCase();
+        final body = (message.notification!.body ?? "").toLowerCase();
+        if (title.contains('kyc') ||
+            title.contains('verification') ||
+            body.contains('kyc') ||
+            body.contains('verification')) {
+          if (navigatorKey.currentContext != null) {
+            try {
+              Provider.of<ProfileService>(
+                navigatorKey.currentContext!,
+                listen: false,
+              ).fetchProfileFromServer().catchError((_) => null);
+            } catch (e) {
+              debugPrint("Error auto-refreshing profile on KYC message: $e");
+            }
+          }
+        }
       }
     });
 
@@ -353,6 +371,21 @@ class NotificationService {
           }
         }
         return;
+      }
+
+      // If notification contains kyc/profile info, refresh profile
+      final payloadString = payload.toLowerCase();
+      if (payloadString.contains('kyc') || payloadString.contains('verification')) {
+        if (navigatorKey.currentContext != null) {
+          try {
+            Provider.of<ProfileService>(
+              navigatorKey.currentContext!,
+              listen: false,
+            ).fetchProfileFromServer().catchError((_) => null);
+          } catch (e) {
+            debugPrint("Error fetching profile on notification tap: $e");
+          }
+        }
       }
 
       // 2. Handle Action Route Redirects

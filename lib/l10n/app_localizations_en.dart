@@ -301,6 +301,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readAll => 'Read all';
 
   @override
+  String get swipeToDeleteTip =>
+      'Tip: Swipe left on a notification to delete it.';
+
+  @override
   String get tabAll => 'All';
 
   @override
@@ -1315,4 +1319,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateNow => 'UPDATE NOW';
+
+  @override
+  String get kycUnderReview => 'Documents Under Review';
+
+  @override
+  String get kycUnderReviewSubtitle =>
+      'Your documents are currently being processed.';
 }

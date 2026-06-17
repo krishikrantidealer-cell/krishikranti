@@ -108,6 +108,7 @@
   "delete": "Delete",
   "defaultLabel": "Default",
   "readAll": "Read all",
+  "swipeToDeleteTip": "Tip: Swipe left on a notification to delete it.",
   "tabAll": "All",
   "tabOrders": "Orders",
   "tabOffers": "Offers",
@@ -648,5 +649,7 @@
   "forceUpdateMsg": "A critical update is available. Please update the app to continue using our services.",
   "optionalUpdateMsg": "A new version of the app is available with new features and improvements.",
   "later": "LATER",
-  "updateNow": "UPDATE NOW"
+  "updateNow": "UPDATE NOW",
+  "kycUnderReview": "Documents Under Review",
+  "kycUnderReviewSubtitle": "Your documents are currently being processed."
 }

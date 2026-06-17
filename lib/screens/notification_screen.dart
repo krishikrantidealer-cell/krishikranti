@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:krishikranti/core/notification_service.dart';
@@ -21,11 +21,41 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _showSwipeTip = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _checkTipStatus();
+  }
+
+  Future<void> _checkTipStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hideTip = prefs.getBool('hide_notification_swipe_tip') ?? false;
+      if (!hideTip && mounted) {
+        setState(() {
+          _showSwipeTip = true;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error checking notification swipe tip status: $e");
+    }
+  }
+
+  Future<void> _dismissTip() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('hide_notification_swipe_tip', true);
+      if (mounted) {
+        setState(() {
+          _showSwipeTip = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error dismissing notification swipe tip: $e");
+    }
   }
 
   @override
@@ -46,9 +76,18 @@ class _NotificationScreenState extends State<NotificationScreen>
             titleLower.contains('catalogue') || descLower.contains('catalogue');
         final isDownload =
             titleLower.contains('download') || descLower.contains('download');
+        final isKyc =
+            titleLower.contains('kyc') ||
+            titleLower.contains('verification') ||
+            descLower.contains('kyc') ||
+            descLower.contains('verification') ||
+            (n.payload != null &&
+                (n.payload!.toLowerCase().contains('profile') ||
+                    n.payload!.toLowerCase().contains('kyc')));
         return n.category == NotificationCategory.utility &&
             !isCatalogue &&
-            !isDownload;
+            !isDownload &&
+            !isKyc;
       }).toList();
     } else if (tabIndex == 2) {
       return allNotifications
@@ -213,12 +252,17 @@ class _NotificationScreenState extends State<NotificationScreen>
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
               physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: filteredList.length,
+              itemCount: filteredList.length + (_showSwipeTip ? 1 : 0),
               itemBuilder: (context, index) {
-                final current = filteredList[index];
+                if (_showSwipeTip && index == 0) {
+                  return _buildTipCard(theme);
+                }
+
+                final adjustedIndex = _showSwipeTip ? index - 1 : index;
+                final current = filteredList[adjustedIndex];
                 final showSection =
-                    index == 0 ||
-                    current.group != filteredList[index - 1].group;
+                    adjustedIndex == 0 ||
+                    current.group != filteredList[adjustedIndex - 1].group;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,6 +273,59 @@ class _NotificationScreenState extends State<NotificationScreen>
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildTipCard(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary.withValues(alpha: 0.08),
+            theme.colorScheme.primary.withValues(alpha: 0.03),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.15),
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            CupertinoIcons.lightbulb,
+            color: theme.colorScheme.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.swipeToDeleteTip,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary.withValues(alpha: 0.9),
+                height: 1.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _dismissTip,
+            child: Icon(
+              CupertinoIcons.xmark,
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
+              size: 16,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

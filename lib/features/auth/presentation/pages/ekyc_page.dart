@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -32,10 +31,20 @@ class _EkycPageState extends State<EkycPage> {
 
   File? _licenseImage;
   File? _shopImage;
+  bool _isLicenseDeleted = false;
+  bool _isShopImageDeleted = false;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   double _uploadProgress = 0;
   String _loadingMessage = "";
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProfileService>(context, listen: false).fetchProfileFromServer();
+    });
+  }
 
   Future<void> _pickImage(ImageSource source, bool isLicense) async {
     try {
@@ -50,8 +59,10 @@ class _EkycPageState extends State<EkycPage> {
         setState(() {
           if (isLicense) {
             _licenseImage = File(image.path);
+            _isLicenseDeleted = false;
           } else {
             _shopImage = File(image.path);
+            _isShopImageDeleted = false;
           }
         });
       }
@@ -72,8 +83,10 @@ class _EkycPageState extends State<EkycPage> {
         setState(() {
           if (isLicense) {
             _licenseImage = File(result.files.single.path!);
+            _isLicenseDeleted = false;
           } else {
             _shopImage = File(result.files.single.path!);
+            _isShopImageDeleted = false;
           }
         });
       }
@@ -92,8 +105,10 @@ class _EkycPageState extends State<EkycPage> {
     setState(() {
       if (isLicense) {
         _licenseImage = null;
+        _isLicenseDeleted = true;
       } else {
         _shopImage = null;
+        _isShopImageDeleted = true;
       }
     });
   }
@@ -515,7 +530,7 @@ class _EkycPageState extends State<EkycPage> {
                               _buildUploadArea(
                                 l10n.uploadLicense,
                                 _licenseImage,
-                                user?.licenceImage,
+                                _isLicenseDeleted ? null : user?.licenceImage,
                                 isReadOnly,
                                 () => _showImagePickerOptions(true),
                                 () => _removeImage(true),
@@ -524,7 +539,7 @@ class _EkycPageState extends State<EkycPage> {
                               _buildUploadArea(
                                 uploadShopImageText,
                                 _shopImage,
-                                user?.shopImage,
+                                _isShopImageDeleted ? null : user?.shopImage,
                                 isReadOnly,
                                 () => _showImagePickerOptions(false),
                                 () => _removeImage(false),
@@ -559,7 +574,16 @@ class _EkycPageState extends State<EkycPage> {
                                         : () async {
                                             if (_formKey.currentState!
                                                 .validate()) {
-                                              if (_licenseImage == null) {
+                                              final bool hasLicense = _licenseImage != null ||
+                                                  (user?.licenceImage != null &&
+                                                      user!.licenceImage!.isNotEmpty &&
+                                                      !_isLicenseDeleted);
+                                              final bool hasShop = _shopImage != null ||
+                                                  (user?.shopImage != null &&
+                                                      user!.shopImage!.isNotEmpty &&
+                                                      !_isShopImageDeleted);
+
+                                              if (!hasLicense) {
                                                 ScaffoldMessenger.of(
                                                   context,
                                                 ).showSnackBar(
@@ -574,7 +598,7 @@ class _EkycPageState extends State<EkycPage> {
                                                 return;
                                               }
 
-                                              if (_shopImage == null) {
+                                              if (!hasShop) {
                                                 ScaffoldMessenger.of(
                                                   context,
                                                 ).showSnackBar(
@@ -598,47 +622,53 @@ class _EkycPageState extends State<EkycPage> {
                                                 '.doc',
                                                 '.docx',
                                               ];
-                                              final extLic = path
-                                                  .extension(
-                                                    _licenseImage!.path,
-                                                  )
-                                                  .toLowerCase();
-                                              final extShop = path
-                                                  .extension(_shopImage!.path)
-                                                  .toLowerCase();
 
-                                              if (!allowedExtensions.contains(
-                                                extLic,
-                                              )) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      "License document has invalid file type.",
+                                              String? extLic;
+                                              if (_licenseImage != null) {
+                                                extLic = path
+                                                    .extension(
+                                                      _licenseImage!.path,
+                                                    )
+                                                    .toLowerCase();
+                                                if (!allowedExtensions.contains(
+                                                  extLic,
+                                                )) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: const Text(
+                                                        "License document has invalid file type.",
+                                                      ),
+                                                      backgroundColor:
+                                                          Colors.orange.shade800,
                                                     ),
-                                                    backgroundColor:
-                                                        Colors.orange.shade800,
-                                                  ),
-                                                );
-                                                return;
+                                                  );
+                                                  return;
+                                                }
                                               }
 
-                                              if (!allowedExtensions.contains(
-                                                extShop,
-                                              )) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      "Shop image has invalid file type.",
+                                              String? extShop;
+                                              if (_shopImage != null) {
+                                                extShop = path
+                                                    .extension(_shopImage!.path)
+                                                    .toLowerCase();
+                                                if (!allowedExtensions.contains(
+                                                  extShop,
+                                                )) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: const Text(
+                                                        "Shop image has invalid file type.",
+                                                      ),
+                                                      backgroundColor:
+                                                          Colors.orange.shade800,
                                                     ),
-                                                    backgroundColor:
-                                                        Colors.orange.shade800,
-                                                  ),
-                                                );
-                                                return;
+                                                  );
+                                                  return;
+                                                }
                                               }
 
                                               setState(() {
@@ -650,13 +680,13 @@ class _EkycPageState extends State<EkycPage> {
                                               HapticUtil.medium();
 
                                               try {
-                                                String finalLicensePath =
-                                                    _licenseImage!.path;
-                                                String finalShopPath =
-                                                    _shopImage!.path;
+                                                String? finalLicensePath =
+                                                    _licenseImage?.path;
+                                                String? finalShopPath =
+                                                    _shopImage?.path;
 
                                                 // Compress license if it's an image
-                                                if ([
+                                                if (finalLicensePath != null && extLic != null && [
                                                   '.jpg',
                                                   '.jpeg',
                                                   '.png',
@@ -682,7 +712,7 @@ class _EkycPageState extends State<EkycPage> {
                                                 }
 
                                                 // Compress shop image if it's an image
-                                                if ([
+                                                if (finalShopPath != null && extShop != null && [
                                                   '.jpg',
                                                   '.jpeg',
                                                   '.png',
@@ -729,10 +759,12 @@ class _EkycPageState extends State<EkycPage> {
                                                             'Retailer and Distributor',
                                                       },
                                                       files: {
-                                                        'licenceImage':
-                                                            finalLicensePath,
-                                                        'shopImage':
-                                                            finalShopPath,
+                                                        if (finalLicensePath != null)
+                                                          'licenceImage':
+                                                              finalLicensePath,
+                                                        if (finalShopPath != null)
+                                                          'shopImage':
+                                                              finalShopPath,
                                                       },
                                                       onProgress:
                                                           (sent, total) {

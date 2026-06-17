@@ -307,6 +307,10 @@ class AppLocalizationsTa extends AppLocalizations {
   String get readAll => 'அனைத்தையும் படிக்கவும்';
 
   @override
+  String get swipeToDeleteTip =>
+      'குறிப்பு: அறிவிப்பை நீக்க அதை இடதுபுறமாக ஸ்வைப் செய்யவும்.';
+
+  @override
   String get tabAll => 'அனைத்தும்';
 
   @override
@@ -431,39 +435,39 @@ class AppLocalizationsTa extends AppLocalizations {
   String get categoryDefault => 'விவசாய பொருட்கள்';
 
   @override
-  String get wishlistEmpty => 'Your Wishlist is Empty';
+  String get wishlistEmpty => 'உங்கள் விருப்பப்பட்டியல் காலியாக உள்ளது';
 
   @override
   String get saveFavoritesInstruction =>
-      'Save your favorite farming essentials and access them instantly anytime.';
+      'உங்களுக்குப் பிடித்தமான விவசாயத் தேவைகளைச் சேமித்து, எந்த நேரத்திலும் அவற்றை உடனடியாக அணுகவும்.';
 
   @override
-  String get exploreShop => 'Explore Shop';
+  String get exploreShop => 'கடையை ஆராயுங்கள்';
 
   @override
-  String get clearWishlistTitle => 'Clear Favorites';
+  String get clearWishlistTitle => 'பிடித்தவைகளை அழிக்கவும்';
 
   @override
   String get clearWishlistConfirm =>
-      'Are you sure you want to remove all items from your wishlist?';
+      'உங்கள் விருப்பப்பட்டியலில் இருந்து அனைத்து பொருட்களையும் நிச்சயமாக அகற்ற விரும்புகிறீர்களா?';
 
   @override
-  String get clearAll => 'Clear All';
+  String get clearAll => 'அனைத்தையும் அழி';
 
   @override
-  String get added => 'Added';
+  String get added => 'சேர்க்கப்பட்டது';
 
   @override
-  String get deselectAll => 'Deselect All';
+  String get deselectAll => 'அனைத்தையும் தேர்வுநீக்கவும்';
 
   @override
-  String get selectAll => 'Select All';
+  String get selectAll => 'அனைத்தையும் தேர்ந்தெடுக்கவும்';
 
   @override
-  String get done => 'DONE';
+  String get done => 'முடிந்தது';
 
   @override
-  String get editLabel => 'EDIT';
+  String get editLabel => 'திருத்தவும்';
 
   @override
   String itemCountLabel(int count) {
@@ -477,124 +481,125 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get secureCheckoutBadge => 'SECURE CHECKOUT';
+  String get secureCheckoutBadge => 'பாதுகாப்பான செக்அவுட்';
 
   @override
-  String get couponApplied => 'COUPON APPLIED!';
+  String get couponApplied => 'கூப்பன் பயன்படுத்தப்பட்டது!';
 
   @override
   String couponActiveMessage(String coupon) {
-    return 'Code \'$coupon\' is active';
+    return 'குறியீடு \'$coupon\' செயலில் உள்ளது';
   }
 
   @override
-  String get cartFeelsLight => 'Your cart feels light';
+  String get cartFeelsLight => 'உங்கள் வண்டி லேசாக உணர்கிறது';
 
   @override
   String get discoverAgriProducts =>
-      'Discover premium agricultural products and start your growing journey today.';
+      'பிரீமியம் விவசாயப் பொருட்களைக் கண்டுபிடித்து, உங்கள் வளர்ந்து வரும் பயணத்தை இன்றே தொடங்குங்கள்.';
 
   @override
-  String get beginExploring => 'Begin Exploring';
+  String get beginExploring => 'ஆராயத் தொடங்குங்கள்';
 
   @override
-  String get selectItemsToDelete => 'SELECT ITEMS TO DELETE';
+  String get selectItemsToDelete => 'நீக்க உருப்படிகளைத் தேர்ந்தெடுக்கவும்';
 
   @override
   String deleteSelected(int count) {
-    return 'DELETE SELECTED ($count)';
+    return 'தேர்ந்தெடுக்கப்பட்டதை நீக்கு ($count)';
   }
 
   @override
-  String get continueToCheckout => 'CONTINUE TO CHECKOUT';
+  String get continueToCheckout => 'செக்அவுட் செய்ய தொடரவும்';
 
   @override
   String removeItemsTitle(int count) {
-    return 'Remove $count items?';
+    return '$count உருப்படிகளை அகற்றவா?';
   }
 
   @override
   String get removeItemsConfirm =>
-      'Are you sure you want to delete the selected items from your cart?';
+      'தேர்ந்தெடுக்கப்பட்ட பொருட்களை உங்கள் கார்ட்டில் இருந்து நிச்சயமாக நீக்க விரும்புகிறீர்களா?';
 
   @override
-  String get clearCartTitle => 'Clear Cart?';
+  String get clearCartTitle => 'வண்டியை அழிக்கவா?';
 
   @override
   String get clearCartConfirm =>
-      'Are you sure you want to remove all items from your cart?';
+      'உங்கள் கார்ட்டில் இருந்து அனைத்து பொருட்களையும் நிச்சயமாக அகற்ற விரும்புகிறீர்களா?';
 
   @override
-  String get couponAppliedTitle => 'Coupon Applied!';
+  String get couponAppliedTitle => 'கூப்பன் பயன்படுத்தப்பட்டது!';
 
   @override
-  String get offersAndBenefits => 'Offers & Benefits';
+  String get offersAndBenefits => 'சலுகைகள் & நன்மைகள்';
 
   @override
   String get freeGiftMessage =>
-      'Coupon \'DEALERDHAMAKA\' applied: Free product added! 🎁';
+      'கூப்பன் \'டீலர்தாமக\' பயன்படுத்தப்பட்டது: இலவச தயாரிப்பு சேர்க்கப்பட்டது! 🎁';
 
   @override
   String couponSavedMessage(String amount, String coupon) {
-    return 'You saved ₹$amount with $coupon';
+    return '$coupon மூலம் ₹$amount சேமித்துள்ளீர்கள்';
   }
 
   @override
-  String get viewCouponsAndOffers => 'View available coupons and offers';
+  String get viewCouponsAndOffers =>
+      'கிடைக்கும் கூப்பன்கள் மற்றும் சலுகைகளைப் பார்க்கவும்';
 
   @override
-  String get giftLabel => 'GIFT';
+  String get giftLabel => 'பரிசு';
 
   @override
-  String get freeLabel => 'FREE';
+  String get freeLabel => 'இலவசம்';
 
   @override
-  String get enterQuantity => 'Enter Quantity';
+  String get enterQuantity => 'அளவை உள்ளிடவும்';
 
   @override
   String get specifyQuantityHint =>
-      'Specify the number of items you\'d like to order.';
+      'நீங்கள் ஆர்டர் செய்ய விரும்பும் பொருட்களின் எண்ணிக்கையைக் குறிப்பிடவும்.';
 
   @override
-  String get egQuantity => 'e.g. 5';
+  String get egQuantity => 'எ.கா. 5';
 
   @override
-  String get updateLabel => 'UPDATE';
+  String get updateLabel => 'புதுப்பிக்கவும்';
 
   @override
-  String get billDetails => 'BILL DETAILS';
+  String get billDetails => 'பில் விவரங்கள்';
 
   @override
-  String get itemTotalSubtotal => 'Item Total (Subtotal)';
+  String get itemTotalSubtotal => 'பொருள் மொத்தம் (துணைத் தொகை)';
 
   @override
-  String get couponDiscount => 'Coupon Discount';
+  String get couponDiscount => 'கூப்பன் தள்ளுபடி';
 
   @override
-  String get deliveryCharges => 'Delivery Charges';
+  String get deliveryCharges => 'டெலிவரி கட்டணம்';
 
   @override
-  String get totalAmountPayable => 'Total Amount Payable';
+  String get totalAmountPayable => 'செலுத்த வேண்டிய மொத்தத் தொகை';
 
   @override
   String couponSavingsSuccess(String amount) {
-    return 'Yay! You saved ₹$amount on this purchase!';
+    return 'ஆமாம்! இந்த வாங்குதலில் ₹$amount சேமித்துள்ளீர்கள்!';
   }
 
   @override
-  String get tabActive => 'Active';
+  String get tabActive => 'செயலில்';
 
   @override
-  String get tabDelivered => 'Delivered';
+  String get tabDelivered => 'வழங்கப்பட்டது';
 
   @override
-  String get tabCancelled => 'Cancelled';
+  String get tabCancelled => 'ரத்து செய்யப்பட்டது';
 
   @override
-  String get tabRto => 'RTO';
+  String get tabRto => 'ஆர்டிஓ';
 
   @override
-  String get overview => 'Overview';
+  String get overview => 'கண்ணோட்டம்';
 
   @override
   String activeOrdersLabel(int count) {
@@ -604,106 +609,106 @@ class AppLocalizationsTa extends AppLocalizations {
       other: 'Orders',
       one: 'Order',
     );
-    return '$count Active $_temp0';
+    return '$count செயலில் $_temp0';
   }
 
   @override
-  String get allOrdersHistory => 'All Orders History';
+  String get allOrdersHistory => 'அனைத்து ஆர்டர்களின் வரலாறு';
 
   @override
   String totalOrdersCount(int count) {
-    return '$count Total';
+    return '$count மொத்தம்';
   }
 
   @override
-  String get noOrdersYet => 'No Orders Yet';
+  String get noOrdersYet => 'இன்னும் ஆர்டர்கள் இல்லை';
 
   @override
-  String get noMatchingOrders => 'No Matching Orders';
+  String get noMatchingOrders => 'பொருந்தக்கூடிய ஆர்டர்கள் இல்லை';
 
   @override
   String get orderJourneyBegins =>
-      'Your agricultural journey begins here. Explore our catalog and place your first order today!';
+      'உங்களின் விவசாயப் பயணம் இங்கே தொடங்குகிறது. எங்கள் பட்டியலை ஆராய்ந்து இன்று உங்கள் முதல் ஆர்டரை வைக்கவும்!';
 
   @override
   String noOrdersMatchingStatus(String status) {
-    return 'We couldn\'t find any orders under the \'$status\' status.';
+    return '\'$status\' நிலையின் கீழ் எந்த ஆர்டர்களையும் எங்களால் கண்டறிய முடியவில்லை.';
   }
 
   @override
-  String get startExploring => 'Start Exploring';
+  String get startExploring => 'ஆராயத் தொடங்குங்கள்';
 
   @override
-  String get viewAllOrders => 'View All Orders';
+  String get viewAllOrders => 'அனைத்து ஆர்டர்களையும் பார்க்கவும்';
 
   @override
-  String get understandingOrderStatus => 'Understanding Order Status';
+  String get understandingOrderStatus => 'ஒழுங்கு நிலையைப் புரிந்துகொள்வது';
 
   @override
   String get whatEachStatusMeans =>
-      'Here is what each status means for your shipment:';
+      'ஒவ்வொரு நிலையும் உங்கள் ஏற்றுமதிக்கு என்ன அர்த்தம் என்பது இங்கே:';
 
   @override
-  String get processing => 'Processing';
+  String get processing => 'செயலாக்கம்';
 
   @override
   String get processingDesc =>
-      'Your items are being inspected, packed, and prepared for dispatch.';
+      'உங்கள் பொருட்கள் பரிசோதிக்கப்பட்டு, பேக் செய்யப்பட்டு, அனுப்புவதற்கு தயாராகி வருகின்றன.';
 
   @override
-  String get shipped => 'Shipped';
+  String get shipped => 'அனுப்பப்பட்டது';
 
   @override
   String get shippedDesc =>
-      'Your package has left our facility and is in transit.';
+      'உங்கள் தொகுப்பு எங்கள் வசதியை விட்டு வெளியேறி, போக்குவரத்தில் உள்ளது.';
 
   @override
-  String get outForDelivery => 'Out for Delivery';
+  String get outForDelivery => 'டெலிவரிக்கு வெளியே';
 
   @override
   String get outForDeliveryDesc =>
-      'Your package is out for final delivery to your doorstep.';
+      'உங்கள் பேக்கேஜ் உங்கள் வீட்டு வாசலில் இறுதி டெலிவரிக்கு தயாராக உள்ளது.';
 
   @override
-  String get delivered => 'Delivered';
+  String get delivered => 'வழங்கப்பட்டது';
 
   @override
-  String get deliveredDesc => 'The shipment has been successfully handed over.';
+  String get deliveredDesc => 'கப்பல் வெற்றிகரமாக ஒப்படைக்கப்பட்டது.';
 
   @override
-  String get cancelled => 'Cancelled';
+  String get cancelled => 'ரத்து செய்யப்பட்டது';
 
   @override
   String get cancelledDesc =>
-      'The order was cancelled. Payments will be refunded.';
+      'ஆர்டர் ரத்து செய்யப்பட்டது. பணம் திருப்பித் தரப்படும்.';
 
   @override
-  String get needImmediateHelp => 'Need immediate help?';
+  String get needImmediateHelp => 'உடனடி உதவி தேவையா?';
 
   @override
   String get supportStaffReady =>
-      'Our 24/7 support staff is ready to assist you.';
+      'எங்களின் 24/7 ஆதரவு ஊழியர்கள் உங்களுக்கு உதவ தயாராக உள்ளனர்.';
 
   @override
-  String get cancel => 'Cancel';
+  String get cancel => 'ரத்து செய்';
 
   @override
-  String get removeLabel => 'REMOVE';
+  String get removeLabel => 'அகற்று';
 
   @override
-  String get orderIdLabel => 'ORDER #';
+  String get orderIdLabel => 'ஆர்டர் #';
 
   @override
-  String get paid => 'Paid';
+  String get paid => 'செலுத்தப்பட்டது';
 
   @override
   String advancePaid(String amount) {
-    return 'Adv: ₹$amount';
+    return 'விளம்பரம்: ₹$amount';
   }
 
   @override
   String remainingDue(String amount) {
-    return 'Due: ₹$amount';
+    return 'நிலுவைத் தொகை: ₹$amount';
   }
 
   @override
@@ -719,20 +724,20 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String cancelledOn(String date) {
-    return 'Cancelled on $date';
+    return '$date அன்று ரத்து செய்யப்பட்டது';
   }
 
   @override
-  String get crops => 'Crops';
+  String get crops => 'பயிர்கள்';
 
   @override
-  String get cropsCollection => 'Crop Collection';
+  String get cropsCollection => 'பயிர் சேகரிப்பு';
 
   @override
-  String get shopByCrop => 'Shop by Crop';
+  String get shopByCrop => 'பயிர் மூலம் கடை';
 
   @override
-  String get browseCategories => 'Browse Categories';
+  String get browseCategories => 'வகைகளை உலாவவும்';
 
   @override
   String cropsCount(int count) {
@@ -757,128 +762,129 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get searchHintCrops => 'Search for crops...';
+  String get searchHintCrops => 'பயிர்களைத் தேடு...';
 
   @override
-  String get searchHintSeeds => 'Search for seeds...';
+  String get searchHintSeeds => 'விதைகளைத் தேடு...';
 
   @override
-  String get searchHintMachinery => 'Search for machinery...';
+  String get searchHintMachinery => 'இயந்திரங்களைத் தேடு...';
 
   @override
-  String get searchHintOrganic => 'Search for organic...';
+  String get searchHintOrganic => 'ஆர்கானிக் தேடு...';
 
   @override
-  String get badgeGenuine => 'Genuine';
+  String get badgeGenuine => 'உண்மையான';
 
   @override
-  String get badgeTested => 'Tested';
+  String get badgeTested => 'சோதிக்கப்பட்டது';
 
   @override
-  String get badgeExpress => 'Express';
+  String get badgeExpress => 'எக்ஸ்பிரஸ்';
 
   @override
-  String get recentSearches => 'Recent Searches';
+  String get recentSearches => 'சமீபத்திய தேடல்கள்';
 
   @override
-  String get whatAreYouLookingFor => 'What are you looking for?';
+  String get whatAreYouLookingFor => 'நீங்கள் என்ன தேடுகிறீர்கள்?';
 
   @override
-  String get tryAdjustingSearch => 'Try adjusting your search terms';
+  String get tryAdjustingSearch =>
+      'உங்கள் தேடல் சொற்களை சரிசெய்ய முயற்சிக்கவும்';
 
   @override
-  String get quickDiscovery => 'Quick Discovery';
+  String get quickDiscovery => 'விரைவான கண்டுபிடிப்பு';
 
   @override
-  String get tryAgain => 'Try Again';
+  String get tryAgain => 'மீண்டும் முயற்சிக்கவும்';
 
   @override
-  String get somethingWentWrong => 'Oops! Something went wrong.';
+  String get somethingWentWrong => 'அச்சச்சோ! ஏதோ தவறாகிவிட்டது.';
 
   @override
-  String get letsConnect => 'Let\'s Connect';
+  String get letsConnect => 'இணைப்போம்';
 
   @override
   String get supportSubtitle =>
-      'We\'re here to help support your agro-business.';
+      'உங்களின் விவசாயத் தொழிலுக்கு உதவ நாங்கள் இருக்கிறோம்.';
 
   @override
-  String get onlineSupportActive => 'Online • Support Active';
+  String get onlineSupportActive => 'ஆன்லைன் • ஆதரவு செயலில் உள்ளது';
 
   @override
-  String get offlineResponseDelayed => 'Offline • Response Delayed';
+  String get offlineResponseDelayed => 'ஆஃப்லைன் • பதில் தாமதமானது';
 
   @override
-  String get supportHours => 'Mon-Sat (9:00 AM - 7:00 PM)';
+  String get supportHours => 'திங்கள்-சனி (காலை 9:00 - மாலை 7:00)';
 
   @override
-  String get fastResponse => 'Fast response';
+  String get fastResponse => 'விரைவான பதில்';
 
   @override
-  String get quickChat => 'Quick Chat';
+  String get quickChat => 'விரைவு அரட்டை';
 
   @override
-  String get directLine => 'Direct Line';
+  String get directLine => 'நேரடி வரி';
 
   @override
-  String get officialMail => 'Official Mail';
+  String get officialMail => 'அதிகாரப்பூர்வ அஞ்சல்';
 
   @override
-  String get sendQuickInquiry => 'Send a Quick Inquiry';
+  String get sendQuickInquiry => 'விரைவான விசாரணையை அனுப்பவும்';
 
   @override
-  String get selectTopic => 'SELECT TOPIC';
+  String get selectTopic => 'தலைப்பைத் தேர்ந்தெடுக்கவும்';
 
   @override
-  String get messageDetails => 'MESSAGE DETAILS';
+  String get messageDetails => 'செய்தி விவரங்கள்';
 
   @override
-  String get sendWhatsApp => 'Send WhatsApp';
+  String get sendWhatsApp => 'வாட்ஸ்அப் அனுப்பவும்';
 
   @override
-  String get whyTrustKrishiKranti => 'Why Trust Krishi Kranti';
+  String get whyTrustKrishiKranti => 'கிருஷி கிராந்தியை ஏன் நம்ப வேண்டும்';
 
   @override
-  String get dataPrivate => 'Data Private';
+  String get dataPrivate => 'தரவு தனிப்பட்டது';
 
   @override
   String get cibrcRegd => 'CIB&RC Regd.';
 
   @override
-  String get gstInvoice => 'GST Invoice';
+  String get gstInvoice => 'ஜிஎஸ்டி விலைப்பட்டியல்';
 
   @override
-  String get panIndiaDelivery => 'PAN-India Delivery';
+  String get panIndiaDelivery => 'PAN-இந்தியா டெலிவரி';
 
   @override
-  String get topicOrderIssue => 'Order Issue';
+  String get topicOrderIssue => 'உத்தரவு வெளியீடு';
 
   @override
-  String get topicRefundPayment => 'Refund / Payment';
+  String get topicRefundPayment => 'திரும்பப்பெறுதல் / பணம் செலுத்துதல்';
 
   @override
-  String get topicBecomeDealer => 'Become a Dealer';
+  String get topicBecomeDealer => 'ஒரு வியாபாரி ஆக';
 
   @override
-  String get topicProductQuery => 'Product Query';
+  String get topicProductQuery => 'தயாரிப்பு வினவல்';
 
   @override
-  String get topicKycHelp => 'KYC Help';
+  String get topicKycHelp => 'KYC உதவி';
 
   @override
-  String get callUs => 'Call Us';
+  String get callUs => 'எங்களை அழைக்கவும்';
 
   @override
-  String get whatsapp => 'WhatsApp';
+  String get whatsapp => 'வாட்ஸ்அப்';
 
   @override
-  String get emailLabel => 'Email';
+  String get emailLabel => 'மின்னஞ்சல்';
 
   @override
-  String get seedsLabel => 'Seeds';
+  String get seedsLabel => 'விதைகள்';
 
   @override
-  String get toolsLabel => 'Tools';
+  String get toolsLabel => 'கருவிகள்';
 
   @override
   String get availableCoupons => 'கிடைக்கும் கூப்பன்கள்';
@@ -1344,4 +1350,11 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get updateNow => 'இப்போது புதுப்பி';
+
+  @override
+  String get kycUnderReview => 'ஆவணங்கள் மதிப்பாய்வில் உள்ளன';
+
+  @override
+  String get kycUnderReviewSubtitle =>
+      'உங்கள் ஆவணங்கள் தற்போது செயலாக்கப்பட்டு வருகின்றன.';
 }

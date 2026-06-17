@@ -21,13 +21,14 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   DateTime? _lastBackPressed;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // CENTRAL SYNC: Fetch the latest profile data as soon as we enter the main app
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -37,6 +38,19 @@ class _MainScreenState extends State<MainScreen> {
         homeRepo.getHomeDiscovery(); // Background fetch
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<ProfileService>().fetchProfileFromServer().catchError((_) => null);
+    }
   }
 
   final Map<int, Widget> _builtPages = {};

@@ -861,7 +861,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
           body: SafeArea(
             top: false,
             child: RefreshIndicator(
-              onRefresh: () => _fetchProducts(forceRefresh: true),
+              onRefresh: () async {
+                await Future.wait([
+                  _fetchProducts(forceRefresh: true),
+                  if (mounted)
+                    Provider.of<ProfileService>(context, listen: false)
+                        .fetchProfileFromServer()
+                        .catchError((_) => null),
+                ]);
+              },
               color: theme.colorScheme.primary,
               child: CustomScrollView(
                 controller: _scrollController,

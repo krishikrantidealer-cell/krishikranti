@@ -305,6 +305,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get readAll => 'सब पढ़ें';
 
   @override
+  String get swipeToDeleteTip =>
+      'सुझाव: हटाने के लिए नोटिफिकेशन पर बाईं ओर स्वाइप करें।';
+
+  @override
   String get tabAll => 'सभी';
 
   @override
@@ -1298,4 +1302,11 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get updateNow => 'अभी अपडेट करें';
+
+  @override
+  String get kycUnderReview => 'दस्तावेज़ समीक्षा के अधीन हैं';
+
+  @override
+  String get kycUnderReviewSubtitle =>
+      'आपके दस्तावेज़ वर्तमान में संसाधित किए जा रहे हैं।';
 }
