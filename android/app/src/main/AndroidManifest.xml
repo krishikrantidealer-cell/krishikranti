@@ -13,11 +13,23 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <!-- Remove media permissions injected by image_picker / file_picker.
+         Google Play rejects READ_MEDIA_IMAGES / READ_MEDIA_VIDEO unless the
+         app needs *persistent* access to media. Our app only does one-time
+         picking (which uses the Android Photo Picker and requires no extra
+         permissions on API 33+). -->
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VIDEO"
+        tools:node="remove" />
     <application
         android:label="Krishi Dealer-Retailer App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+        android:pageSizeCompat="enabled">
         <activity
             android:name=".MainActivity"
             android:exported="true"

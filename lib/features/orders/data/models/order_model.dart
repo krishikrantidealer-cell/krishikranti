@@ -5,6 +5,7 @@ class Order {
   final double totalAmount;
   final double discountAmount;
   final String? couponCode;
+  final List<FreeItem> freeItems;
   final ShippingAddress shippingAddress;
   final String paymentMethod;
   final String paymentStatus;
@@ -31,6 +32,7 @@ class Order {
     required this.totalAmount,
     required this.discountAmount,
     this.couponCode,
+    required this.freeItems,
     required this.shippingAddress,
     required this.paymentMethod,
     required this.paymentStatus,
@@ -63,6 +65,11 @@ class Order {
       totalAmount: (json['totalAmount'] ?? 0).toDouble(),
       discountAmount: (json['discountAmount'] ?? 0).toDouble(),
       couponCode: json['couponCode'],
+      freeItems:
+          (json['freeItems'] as List?)
+              ?.map((i) => FreeItem.fromJson(i))
+              .toList() ??
+          [],
       shippingAddress: ShippingAddress.fromJson(json['shippingAddress'] ?? {}),
       paymentMethod: json['paymentMethod'] ?? 'Online',
       paymentStatus: json['paymentStatus'] ?? 'Pending',
@@ -113,6 +120,7 @@ class OrderItem {
   final String? image;
   final int quantity;
   final double price;
+  final String variant;
 
   OrderItem({
     required this.id,
@@ -122,19 +130,42 @@ class OrderItem {
     this.image,
     required this.quantity,
     required this.price,
+    required this.variant,
   });
 
+  static String _parseId(dynamic id) {
+    if (id == null) return '';
+    if (id is String) return id;
+    if (id is Map && id.containsKey('\$oid')) return id['\$oid'].toString();
+    return id.toString();
+  }
+
   factory OrderItem.fromJson(Map<String, dynamic> json) {
+    final vId = _parseId(json['variantId']);
+    String variantName = json['variant'] ?? 'Standard';
+
+    if ((variantName == 'Standard' || variantName.isEmpty) && json['product'] is Map && json['product']['variants'] != null) {
+      final variants = json['product']['variants'] as List;
+      final v = variants.firstWhere(
+        (v) => v is Map && _parseId(v['_id']) == vId,
+        orElse: () => null,
+      );
+      if (v != null && v is Map) {
+        variantName = v['size'] ?? 'Standard';
+      }
+    }
+
     return OrderItem(
-      id: json['_id'] ?? '',
+      id: _parseId(json['_id']),
       productId: json['product'] is Map
-          ? (json['product']['_id'] ?? '')
-          : (json['product'] ?? ''),
-      variantId: json['variantId'] ?? '',
+          ? _parseId(json['product']['_id'])
+          : _parseId(json['product']),
+      variantId: vId,
       title: json['title'] ?? '',
       image: json['image'],
       quantity: json['quantity'] ?? 1,
       price: (json['price'] ?? 0).toDouble(),
+      variant: variantName,
     );
   }
 }
@@ -164,6 +195,29 @@ class ShippingAddress {
       cityTehsil: json['cityTehsil'],
       state: json['state'],
       pincode: json['pincode'],
+    );
+  }
+}
+
+class FreeItem {
+  final String name;
+  final String? imageUrl;
+  final int quantity;
+  final bool isFree;
+
+  FreeItem({
+    required this.name,
+    this.imageUrl,
+    required this.quantity,
+    this.isFree = true,
+  });
+
+  factory FreeItem.fromJson(Map<String, dynamic> json) {
+    return FreeItem(
+      name: json['name'] ?? '',
+      imageUrl: json['imageUrl'] ?? json['image'],
+      quantity: json['quantity'] ?? 1,
+      isFree: json['isFree'] ?? true,
     );
   }
 }

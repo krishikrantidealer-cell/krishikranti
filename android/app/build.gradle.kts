@@ -14,7 +14,15 @@ plugins {
 android {
     namespace = "com.krishi.dealer.retailer"
     compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
+
+    // Required for Google Play 16 KB page size compliance.
+    // Ensures .so files are not compressed and are loaded mmap'd at the correct alignment.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 
     val keystorePropertiesFile = rootProject.file("key.properties")
     val keystoreProperties = Properties()
@@ -50,6 +58,10 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Restrict to ABIs that require 16 KB page-size support.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
     }
 
     buildTypes {

@@ -49,7 +49,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      context.read<ProfileService>().fetchProfileFromServer().catchError((_) => null);
+      context.read<ProfileService>().fetchProfileFromServer().catchError(
+        (_) => null,
+      );
     }
   }
 
@@ -106,6 +108,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             );
             return;
           }
+
+          // Exit the app on double back press
+          await SystemNavigator.pop();
         },
         child: Scaffold(
           body: IndexedStack(
@@ -373,14 +378,14 @@ class _LordiconWrapperState extends State<_LordiconWrapper>
                 right: -6,
                 top: -6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.redAccent,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: Colors.white, width: 1.5),
                   ),
                   constraints: const BoxConstraints(
                     minWidth: 16,

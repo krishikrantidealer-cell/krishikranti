@@ -824,8 +824,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Items Ordered (${_currentOrder!.items.length})",
-            style: TextStyle(
+            _currentOrder!.freeItems.isNotEmpty
+                ? "Items Ordered (${_currentOrder!.items.length} + ${_currentOrder!.freeItems.length} Free)"
+                : "Items Ordered (${_currentOrder!.items.length})",
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: Colors.black87,
@@ -837,95 +839,182 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.zero,
-            itemCount: _currentOrder!.items.length,
+            itemCount: _currentOrder!.items.length + _currentOrder!.freeItems.length,
             separatorBuilder: (context, index) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1, color: Colors.grey.shade100),
             ),
             itemBuilder: (context, index) {
-              final item = _currentOrder!.items[index];
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey.shade50,
-                      border: Border.all(color: Colors.grey.shade100),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(11),
-                      child: CachedNetworkImage(
-                        imageUrl: item.image ?? '',
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey.shade50,
-                          child: const Center(
-                            child: CupertinoActivityIndicator(radius: 8),
+              if (index < _currentOrder!.items.length) {
+                final item = _currentOrder!.items[index];
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade100),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(11),
+                        child: CachedNetworkImage(
+                          imageUrl: item.image ?? '',
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey.shade50,
+                            child: const Center(
+                              child: CupertinoActivityIndicator(radius: 8),
+                            ),
                           ),
-                        ),
-                        errorWidget: (context, url, error) => const Icon(
-                          CupertinoIcons.photo,
-                          color: Colors.grey,
-                          size: 16,
+                          errorWidget: (context, url, error) => const Icon(
+                            CupertinoIcons.photo,
+                            color: Colors.grey,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TranslatableText(
-                          item.title,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "Variant: Standard",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Qty: ${item.quantity}",
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.grey.shade600,
-                              ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TranslatableText(
+                            item.title,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
                             ),
-                            Text(
-                              "₹${(item.price * item.quantity).toStringAsFixed(0)}",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w900,
-                                color: theme.primaryColor,
-                                letterSpacing: -0.5,
-                              ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "Variant: ${item.variant}",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade500,
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Qty: ${item.quantity}",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                "₹${(item.price * item.quantity).toStringAsFixed(0)}",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  color: theme.primaryColor,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              );
+                  ],
+                );
+              } else {
+                final freeItemIndex = index - _currentOrder!.items.length;
+                final freeItem = _currentOrder!.freeItems[freeItemIndex];
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade100),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(11),
+                        child: CachedNetworkImage(
+                          imageUrl: freeItem.imageUrl ?? '',
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey.shade50,
+                            child: const Center(
+                              child: CupertinoActivityIndicator(radius: 8),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => const Icon(
+                            CupertinoIcons.photo,
+                            color: Colors.grey,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TranslatableText(
+                            freeItem.name,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            "Variant: Free Gift",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Qty: ${freeItem.quantity}",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              const Text(
+                                "FREE",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.green,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
             },
           ),
         ],
@@ -1347,7 +1436,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                           productName: item.title,
                           productImage: item.image ?? '',
                           technicalName: "Generic",
-                          variant: "Standard",
+                          variant: item.variant,
                           price: item.price,
                           qty: item.quantity,
                         );

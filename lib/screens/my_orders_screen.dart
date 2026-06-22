@@ -924,8 +924,8 @@ class _OrderCardState extends State<_OrderCard>
                           Text(
                             widget.order.orderStatus.toLowerCase() ==
                                     'cancelled'
-                                ? "${l10n.itemsCount(widget.order.items.length)} • ${l10n.cancelledOn(DateFormat('dd MMM yyyy').format(widget.order.cancelledAt ?? widget.order.createdAt))}"
-                                : "${l10n.itemsCount(widget.order.items.length)} • ${DateFormat('dd MMM yyyy').format(widget.order.placedAt ?? widget.order.createdAt)}",
+                                ? "${l10n.itemsCount(widget.order.items.length + widget.order.freeItems.length)} • ${l10n.cancelledOn(DateFormat('dd MMM yyyy').format(widget.order.cancelledAt ?? widget.order.createdAt))}"
+                                : "${l10n.itemsCount(widget.order.items.length + widget.order.freeItems.length)} • ${DateFormat('dd MMM yyyy').format(widget.order.placedAt ?? widget.order.createdAt)}",
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 11,
@@ -1121,7 +1121,8 @@ class _OrderCardState extends State<_OrderCard>
   Widget _buildProductPreview(Order order) {
     final firstItem = order.items.first;
     final url = firstItem.image ?? '';
-    final hasMultiple = order.items.length > 1;
+    final totalCount = order.items.length + order.freeItems.length;
+    final hasMultiple = totalCount > 1;
 
     return Container(
       width: 48,
@@ -1167,7 +1168,7 @@ class _OrderCardState extends State<_OrderCard>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  "+${order.items.length - 1}",
+                  "+${totalCount - 1}",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 9,
