@@ -301,7 +301,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           : '+919876543210';
 
       final options = {
-        'key': 'rzp_test_SolDtbIHbVBlVA',
+        'key': 'rzp_live_T524k2jpfMGeXC',
         'amount': amountInPaise,
         if (razorpayOrderId != null && !razorpayOrderId.startsWith('mock_'))
           'order_id': razorpayOrderId,
