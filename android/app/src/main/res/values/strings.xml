@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="facebook_app_id">1312837137726729</string>
+    <string name="facebook_client_token">6a6babfacceacb630dab3fe9b5ed3b25</string>
+    <string name="fb_login_protocol_scheme">fb1312837137726729</string>
+    <string name="facebook_app_name">Krishi Kranti</string>
+</resources>
