@@ -13,6 +13,7 @@ import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:krishikranti/widgets/breathing_mic_icon.dart';
 import 'package:provider/provider.dart';
@@ -1308,6 +1309,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 flex: 4,
                 child: InkWell(
                   onTap: () async {
+                    MetaAnalyticsService.logContactSupport(contactMethod: 'WhatsApp Home Footer');
                     final url = Uri.parse("https://wa.me/919399022060");
                     if (!await launchUrl(
                       url,

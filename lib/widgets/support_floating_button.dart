@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class SupportFloatingButton extends StatelessWidget {
   const SupportFloatingButton({super.key});
@@ -12,6 +13,7 @@ class SupportFloatingButton extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         HapticFeedback.heavyImpact();
+        MetaAnalyticsService.logContactSupport(contactMethod: 'WhatsApp Floating Button');
         final url = Uri.parse("https://wa.me/919399022060");
         if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
           await launchUrl(url, mode: LaunchMode.platformDefault);

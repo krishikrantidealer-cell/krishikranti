@@ -15,6 +15,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class EkycPage extends StatefulWidget {
   const EkycPage({super.key});
@@ -787,6 +788,9 @@ class _EkycPageState extends State<EkycPage> {
                                                     await AuthService.saveUserStatus(
                                                       isProfileComplete: true,
                                                       isKycComplete: false,
+                                                    );
+                                                    MetaAnalyticsService.logKycSubmitted(
+                                                      kycType: 'Retailer and Distributor',
                                                     );
                                                     HapticUtil.success();
                                                     Navigator.pushNamedAndRemoveUntil(

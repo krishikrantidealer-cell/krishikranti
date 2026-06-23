@@ -12,6 +12,7 @@ import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class ProductListScreen extends StatefulWidget {
   final String category;
@@ -72,6 +73,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
 
     _fetchProducts();
+
+    // Log category/collection view to Meta SDK
+    if (widget.isCollection) {
+      MetaAnalyticsService.logViewCategory(
+        categoryName: widget.collection ?? widget.category,
+        isCollection: true,
+      );
+    } else {
+      MetaAnalyticsService.logViewCategory(
+        categoryName: widget.category,
+        categoryId: widget.categoryId,
+        isCollection: false,
+      );
+    }
   }
 
   @override

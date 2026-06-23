@@ -217,6 +217,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.1"
+  facebook_app_events:
+    dependency: "direct main"
+    description:
+      name: facebook_app_events
+      sha256: b1d485f9c4841a5b654fbc90076e3eacc335fc4544eeba544dab36d4feb2a0ba
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.30.1"
   fake_async:
     dependency: transitive
     description:
@@ -382,6 +390,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.0"
+  flutter_facebook_app_links:
+    dependency: "direct main"
+    description:
+      name: flutter_facebook_app_links
+      sha256: d0c4b8e952418804a9442a43d637f7fcd117928bd640c4653f7af5fa6e852a8e
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
   flutter_image_compress:
     dependency: "direct main"
     description:
@@ -681,18 +697,18 @@ packages:
     dependency: transitive
     description:
       name: google_mlkit_commons
-      sha256: "046586b381cdd139f7f6a05ad6998f7e339d061bd70158249907358394b5f496"
+      sha256: "3e69fea4211727732cc385104e675ad1e40b29f12edd492ee52fa108423a6124"
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.1"
+    version: "0.11.1"
   google_mlkit_translation:
     dependency: "direct main"
     description:
       name: google_mlkit_translation
-      sha256: b8f9c3de545f54ed5285e4a57b205d84a912c26003705a9f1eec2a40fc8a5471
+      sha256: "5cb1c156d926cb5f4795674835d9df480366e002a3a7e17729d2ee472aed11ae"
       url: "https://pub.dev"
     source: hosted
-    version: "0.9.0"
+    version: "0.13.1"
   gsettings:
     dependency: transitive
     description:

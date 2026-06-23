@@ -14,6 +14,7 @@ import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/screens/checkout_screen.dart';
 import 'package:krishikranti/screens/cart_screen.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -127,6 +128,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void initState() {
     super.initState();
     _product = widget.product;
+
+    // Log view product to Meta/Facebook SDK
+    MetaAnalyticsService.logViewProduct(
+      productId: _product.id,
+      productName: _product.title,
+      price: _product.price,
+    );
 
     // Synchronously check if full details are cached in memory to bypass loading screens entirely
     final cachedProduct = _productRepository.getProductDetailFromCache(
@@ -429,6 +437,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       actions: [
         _buildHeaderIcon(Icons.share_outlined, () {
           Share.share('Check out ${_product.title} on Krishi Kranti');
+          MetaAnalyticsService.logShare(
+            productId: _product.id,
+            productName: _product.title,
+          );
         }),
         const SizedBox(width: 8),
         ListenableBuilder(

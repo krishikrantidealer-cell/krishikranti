@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class ContactUsScreen extends StatefulWidget {
   const ContactUsScreen({super.key});
@@ -98,6 +99,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
 
   Future<void> _makePhoneCall(String phoneNumber) async {
     HapticFeedback.lightImpact();
+    MetaAnalyticsService.logContactSupport(contactMethod: 'Phone Call');
     final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     try {
       if (!await launchUrl(launchUri, mode: LaunchMode.externalApplication)) {
@@ -136,6 +138,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     String? body,
   }) async {
     HapticFeedback.lightImpact();
+    MetaAnalyticsService.logContactSupport(contactMethod: 'Email');
     final Map<String, String> queryParams = {};
     if (subject != null) queryParams['subject'] = subject;
     if (body != null) queryParams['body'] = body;
@@ -181,6 +184,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     required String message,
   }) async {
     HapticFeedback.lightImpact();
+    MetaAnalyticsService.logContactSupport(contactMethod: 'WhatsApp');
     final url =
         "https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}";
     final Uri launchUri = Uri.parse(url);

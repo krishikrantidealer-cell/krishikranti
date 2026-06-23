@@ -17,6 +17,7 @@ import 'package:krishikranti/core/notification_model.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 // Background message handler must be a top-level function
 @pragma('vm:entry-point')
@@ -353,6 +354,13 @@ class NotificationService {
     if (payload == null) return;
     try {
       final data = jsonDecode(payload) as Map<String, dynamic>;
+
+      // Log notification open to Meta SDK
+      MetaAnalyticsService.logNotificationOpen(
+        title: data['title'] ?? data['body'] ?? 'Notification Tap',
+        category: data['category'] ?? 'utility',
+        actionRoute: data['action_route'],
+      );
 
       // 1. Handle File Opening Callback
       if (data['type'] == 'open_file') {

@@ -18,6 +18,7 @@ import 'package:krishikranti/screens/order_success_screen.dart';
 import 'package:krishikranti/screens/order_secured_screen.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -36,6 +37,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   String? selectedAddressId;
   bool _isInitializingAddress = true;
+
+  // Meta SDK event tracking variables
+  bool _orderPlaced = false;
+  double _lastFinalTotal = 0;
+  int _lastItemCount = 0;
 
   @override
   void initState() {
@@ -59,6 +65,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Log Initiate Checkout to Meta/Facebook SDK
+      MetaAnalyticsService.logInitiateCheckout(
+        totalAmount: finalTotal,
+        itemCount: Provider.of<CartService>(context, listen: false).totalCount,
+      );
+
       // Handle local initialization first
       if (addressService.addresses.isEmpty && profileService.user != null) {
         final profile = profileService.user!;
@@ -124,6 +136,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void dispose() {
     _razorpay.clear();
+    if (!_orderPlaced) {
+      MetaAnalyticsService.logAbandonedCheckout(
+        totalAmount: _lastFinalTotal,
+        itemCount: _lastItemCount,
+      );
+    }
     super.dispose();
   }
 
@@ -137,6 +155,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _handlePaymentError(PaymentFailureResponse response) {
     setState(() => _isProcessing = false);
+    MetaAnalyticsService.logCheckoutFailure(
+      reason: response.message ?? 'Cancelled by user',
+      code: response.code?.toString() ?? 'unknown',
+    );
     final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -302,6 +324,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     } catch (e) {
       setState(() => _isProcessing = false);
+      MetaAnalyticsService.logCheckoutFailure(
+        reason: 'Payment Setup Failed: ${e.toString()}',
+      );
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -350,7 +375,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           : <String, String>{};
 
       // 1. Place Order securely with signature verification fields
-      await orderRepository.placeOrder(
+      final placedOrder = await orderRepository.placeOrder(
         paymentMethod: selectedPaymentMethod == 'online' ? 'Online' : 'Partial',
         shippingAddress: shippingAddress,
         razorpayPaymentId: paymentId,
@@ -362,6 +387,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         remainingAmount: selectedPaymentMethod == 'partial'
             ? remainingAmount
             : null,
+      );
+
+      _orderPlaced = true; // Mark order as successfully placed
+
+      // Log purchase to Meta/Facebook SDK
+      await MetaAnalyticsService.logPurchase(
+        amount: finalTotal,
+        orderId: placedOrder.orderId,
       );
 
       // 2. Clear Cart locally (it was already cleared on the server as part of order creation!)
@@ -572,6 +605,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cartService = Provider.of<CartService>(context, listen: false);
+    _lastFinalTotal = cartService.totalAmount;
+    _lastItemCount = cartService.totalCount;
+
     if (_isProcessing) {
       return const AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.dark,

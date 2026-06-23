@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class CartItem {
   String? itemId; // Backend ID
@@ -375,6 +376,14 @@ class CartService extends ChangeNotifier {
         );
         _optimisticTargetQty[vId] = item['quantity'] as int;
       }
+
+      // Log event to Meta/Facebook SDK
+      MetaAnalyticsService.logAddToCart(
+        productId: productId,
+        productName: item['productName'] ?? 'Product',
+        price: (item['price'] as num?)?.toDouble() ?? 0.0,
+        quantity: item['quantity'] as int? ?? 1,
+      );
     }
     notifyListeners();
 
@@ -418,6 +427,12 @@ class CartService extends ChangeNotifier {
         .toList();
 
     if (newQty <= 0) {
+      final item = _items[index];
+      MetaAnalyticsService.logRemoveFromCart(
+        productId: item.productId,
+        productName: item.productName,
+        price: item.price,
+      );
       _items.removeAt(index);
     } else {
       _items[index].qty = newQty;
@@ -453,6 +468,12 @@ class CartService extends ChangeNotifier {
         )
         .toList();
 
+    final item = _items[index];
+    MetaAnalyticsService.logRemoveFromCart(
+      productId: item.productId,
+      productName: item.productName,
+      price: item.price,
+    );
     _items.removeAt(index);
     notifyListeners();
 
@@ -744,6 +765,10 @@ class CartService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final cartMap = data['cart'];
         if (cartMap != null) _updateCartFromJson(cartMap);
+        MetaAnalyticsService.logApplyCoupon(
+          couponCode: code,
+          discountAmount: _discountAmount,
+        );
       } else {
         throw Exception(data['message'] ?? 'Failed to apply coupon');
       }

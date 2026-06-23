@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class FavoriteProduct {
   final String id;
@@ -126,6 +127,12 @@ class FavoriteService extends ChangeNotifier {
     // 1. Optimistic Update
     if (isAdding) {
       _favorites.add(product);
+      // Log add to wishlist to Meta/Facebook SDK
+      MetaAnalyticsService.logAddToWishlist(
+        productId: product.id,
+        productName: product.name,
+        price: double.tryParse(product.price) ?? 0.0,
+      );
     } else {
       _favorites.removeWhere((p) => p.id == product.id);
     }

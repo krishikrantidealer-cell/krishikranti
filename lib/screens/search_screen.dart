@@ -12,6 +12,7 @@ import 'package:krishikranti/screens/product_list_screen.dart'; // For ShimmerCa
 import 'package:krishikranti/widgets/product_card.dart'; // Standardized Premium ProductCard
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:lottie/lottie.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
@@ -281,6 +282,10 @@ class _SearchScreenState extends State<SearchScreen>
 
   Future<void> _performSearch(String query) async {
     if (!mounted) return;
+
+    // Log search event to Meta/Facebook SDK
+    MetaAnalyticsService.logSearch(query: query);
+
     try {
       final l10n = AppLocalizations.of(context)!;
       final matchedCategory = _findCategoryByQuery(query, l10n);

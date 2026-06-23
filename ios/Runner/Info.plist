@@ -57,6 +57,23 @@
 		<string>paytmmp</string>
 		<string>bhim</string>
 		<string>amazonpay</string>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+	</array>
+	<key>FacebookAppID</key>
+	<string>1312837137726729</string>
+	<key>FacebookClientToken</key>
+	<string>6a6babfacceacb630dab3fe9b5ed3b25</string>
+	<key>FacebookDisplayName</key>
+	<string>Krishi Kranti</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1312837137726729</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

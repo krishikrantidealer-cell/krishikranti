@@ -9,6 +9,7 @@ import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/utils/haptic_util.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
@@ -147,6 +148,11 @@ class _RegisterPageState extends State<RegisterPage> {
           await AuthService.saveUserStatus(
             isProfileComplete: true,
             isKycComplete: await AuthService.isKycComplete(),
+          );
+
+          // Log registration completion to Meta/Facebook SDK
+          MetaAnalyticsService.logCompletedRegistration(
+            registrationMethod: 'Phone SMS',
           );
 
           HapticUtil.success();

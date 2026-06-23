@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
@@ -153,14 +154,20 @@ class AboutUsScreen extends StatelessWidget {
                     Icons.email_outlined,
                     'Email Address',
                     'info@krishikrantiorganics.com',
-                    () => _launchUrl('mailto:info@krishikrantiorganics.com'),
+                    () {
+                      MetaAnalyticsService.logContactSupport(contactMethod: 'Email About Us');
+                      _launchUrl('mailto:info@krishikrantiorganics.com');
+                    },
                   ),
                   const SizedBox(height: 14),
                   _buildClickableContactRow(
                     Icons.phone_outlined,
                     'Phone Number',
                     '+91 7471121210',
-                    () => _launchUrl('tel:+917471121210'),
+                    () {
+                      MetaAnalyticsService.logContactSupport(contactMethod: 'Phone About Us');
+                      _launchUrl('tel:+917471121210');
+                    },
                   ),
                 ],
               ),

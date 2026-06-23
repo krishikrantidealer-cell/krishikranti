@@ -16,6 +16,7 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/notification_provider.dart';
 import 'package:krishikranti/core/update_service.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/features/splash/presentation/pages/splash_page.dart';
 import 'package:krishikranti/features/language/presentation/pages/choose_language_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/phone_verify_page.dart';
@@ -67,6 +68,9 @@ void main() async {
 
   // Initialize Notification Service
   await NotificationService.initialize();
+
+  // Initialize Meta/Facebook SDK for app event tracking and ad attribution
+  await MetaAnalyticsService.initialize();
 
   // Set global system UI style
   SystemChrome.setSystemUIOverlayStyle(
