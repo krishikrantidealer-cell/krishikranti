@@ -107,10 +107,14 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = true);
     final l10n = AppLocalizations.of(context)!;
 
+    final installSource = await MetaAnalyticsService.getInstallSource();
+    final deepLinkUrl = await MetaAnalyticsService.getDeepLinkUrl();
     final registrationData = {
       'firstName': _firstNameController.text.trim(),
       'lastName': _lastNameController.text.trim(),
       'addressType': _selectedAddressType,
+      'source': installSource,
+      'deepLinkUrl': deepLinkUrl,
       'address': {
         'villageArea': _villageController.text.trim(),
         'addressLine2': _addressLine2Controller.text.trim(),
