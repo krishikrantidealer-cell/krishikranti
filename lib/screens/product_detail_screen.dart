@@ -1485,6 +1485,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           'technicalName': _product.technicalName ?? "",
           'variant': v.size,
           'price': unitPrice * v.packVolume,
+          'packVolume': v.packVolume,
+          'basePackingUnit': v.basePackingUnit,
+          'basePacking': v.basePacking,
         },
       ];
 

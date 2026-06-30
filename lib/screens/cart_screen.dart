@@ -1316,8 +1316,21 @@ class _CartItemRow extends StatelessWidget {
                                     letterSpacing: -0.2,
                                   ),
                                 ),
-                                const SizedBox(height: 3),
-                                // Badges and Technical Name Row
+                                if (item.technicalName.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  TranslatableText(
+                                    item.technicalName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                // Badges Row
                                 Row(
                                   children: [
                                     if (isFree) ...[
@@ -1380,19 +1393,57 @@ class _CartItemRow extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 4),
                                     ],
-                                    if (item.technicalName.isNotEmpty)
-                                      Expanded(
-                                        child: TranslatableText(
-                                          item.technicalName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: Colors.black54,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
+                                    if (item.packVolume > 0) ...[
+                                      Builder(
+                                        builder: (context) {
+                                          final double totalVol =
+                                              item.packVolume * item.qty;
+                                          final bool isKg =
+                                              item.basePackingUnit == 'kg';
+                                          final bool isPcs =
+                                              item.basePackingUnit == 'pcs';
+                                          final String unitSuffix = isPcs
+                                              ? "Pcs"
+                                              : isKg
+                                              ? "Kg"
+                                              : "L";
+                                          final String formattedVol =
+                                              totalVol % 1 == 0
+                                              ? totalVol.toInt().toString()
+                                              : totalVol.toStringAsFixed(
+                                                  totalVol < 1
+                                                      ? (totalVol * 100 % 10 ==
+                                                                0
+                                                            ? 1
+                                                            : 2)
+                                                      : 1,
+                                                );
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 1.5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.shade50,
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              border: Border.all(
+                                                color: Colors.blue.shade100,
+                                                width: 0.5,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              "Vol: $formattedVol $unitSuffix",
+                                              style: TextStyle(
+                                                color: Colors.blue.shade700,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 8,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
+                                    ],
                                   ],
                                 ),
                               ],

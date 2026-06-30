@@ -19,6 +19,7 @@ import 'package:krishikranti/screens/order_secured_screen.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -605,9 +606,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartService = Provider.of<CartService>(context);
     _lastFinalTotal = cartService.totalAmount;
     _lastItemCount = cartService.totalCount;
+
+    if (cartService.items.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      });
+      return const SizedBox.shrink();
+    }
 
     if (_isProcessing) {
       return const AnnotatedRegion<SystemUiOverlayStyle>(
@@ -710,6 +720,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           _buildShippingAddressSection(),
                           const SizedBox(height: 16),
+                          _buildOrderItemsSection(),
+                          const SizedBox(height: 16),
                           _buildOrderSummary(),
                           if (discountAmount > 0 ||
                               selectedCoupon == "DEALERDHAMAKA") ...[
@@ -743,6 +755,260 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOrderItemsSection() {
+    final cartService = Provider.of<CartService>(context);
+    final items = cartService.items;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: primaryGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    CupertinoIcons.square_list_fill,
+                    size: 16,
+                    color: primaryGreen,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  "Order Items Review",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14.5,
+                    letterSpacing: -0.2,
+                    color: Colors.black87,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  "${items.length} ${items.length == 1 ? 'Item' : 'Items'}",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            itemCount: items.length,
+            separatorBuilder: (context, index) => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+            ),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Product Image
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade100, width: 1),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: CachedNetworkImage(
+                      imageUrl: item.productImage,
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => const Center(
+                        child: CupertinoActivityIndicator(radius: 5),
+                      ),
+                      errorWidget: (context, url, error) => const Icon(
+                        CupertinoIcons.photo,
+                        color: Colors.grey,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Details Column
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        TranslatableText(
+                          item.productName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        if (item.technicalName.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          TranslatableText(
+                            item.technicalName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        // Variant and Volume Row
+                        Row(
+                          children: [
+                            if (item.variant.isNotEmpty) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primaryGreen.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: TranslatableText(
+                                  item.variant,
+                                  style: TextStyle(
+                                    color: primaryGreen,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 8,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            if (item.packVolume > 0) ...[
+                              Builder(
+                                builder: (context) {
+                                  final double totalVol = item.packVolume * item.qty;
+                                  final bool isKg = item.basePackingUnit == 'kg';
+                                  final bool isPcs = item.basePackingUnit == 'pcs';
+                                  final String unitSuffix = isPcs
+                                      ? "Pcs"
+                                      : isKg
+                                      ? "Kg"
+                                      : "L";
+                                  final String formattedVol = totalVol % 1 == 0
+                                      ? totalVol.toInt().toString()
+                                      : totalVol.toStringAsFixed(
+                                          totalVol < 1
+                                              ? (totalVol * 100 % 10 == 0 ? 1 : 2)
+                                              : 1,
+                                        );
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: Colors.blue.shade100,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      "Vol: $formattedVol $unitSuffix",
+                                      style: TextStyle(
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 8,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Quantity and Total Price Column
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "₹${(item.price * item.qty).toStringAsFixed(0)}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13.5,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _CheckoutQtySelector(
+                        qty: item.qty,
+                        isFree: item.isFree,
+                        isSyncing: cartService.syncingVariantIds.contains(
+                          item.variantId,
+                        ),
+                        onMinus: () {
+                          if (item.qty > 1) {
+                            cartService.updateQty(item.variantId, item.qty - 1);
+                            HapticFeedback.lightImpact();
+                          } else {
+                            HapticFeedback.mediumImpact();
+                            cartService.removeItem(item.variantId);
+                          }
+                        },
+                        onPlus: () {
+                          cartService.updateQty(item.variantId, item.qty + 1);
+                          HapticFeedback.lightImpact();
+                        },
+                        onQtyChanged: (newQty) {
+                          if (newQty <= 0) {
+                            cartService.removeItem(item.variantId);
+                            HapticFeedback.mediumImpact();
+                          } else {
+                            cartService.updateQty(item.variantId, newQty);
+                            HapticFeedback.lightImpact();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -2114,6 +2380,257 @@ class _ProcessingOverlayState extends State<_ProcessingOverlay>
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CheckoutQtySelector extends StatelessWidget {
+  final int qty;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+  final bool isFree;
+  final bool isSyncing;
+  final ValueChanged<int>? onQtyChanged;
+
+  const _CheckoutQtySelector({
+    required this.qty,
+    required this.onMinus,
+    required this.onPlus,
+    this.isFree = false,
+    this.isSyncing = false,
+    this.onQtyChanged,
+  });
+
+  void _showQuantityEditDialog(BuildContext context, int currentQty) {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: currentQty.toString());
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          l10n.enterQuantity,
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            color: Colors.black,
+            letterSpacing: -0.5,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.specifyQuantityHint,
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: l10n.egQuantity,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: Color(0xFF2E7D32),
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              l10n.cancel.toUpperCase(),
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2E7D32), Color(0xFF388E3C)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextButton(
+              onPressed: () {
+                final int? val = int.tryParse(controller.text);
+                if (val != null && val >= 0) {
+                  onQtyChanged?.call(val);
+                }
+                Navigator.pop(context);
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+              ),
+              child: Text(
+                l10n.updateLabel,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isFree) {
+      return Container(
+        height: 26,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2E7D32).withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+            width: 0.5,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return Text(
+              l10n.qtyLabel(qty),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 10,
+                color: Color(0xFF2E7D32),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {},
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 28,
+        padding: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _qtyBtn(
+              qty == 1 ? CupertinoIcons.trash_fill : CupertinoIcons.minus,
+              onMinus,
+              size: qty == 1 ? 10 : 11,
+              color: qty == 1 ? const Color(0xFFED4337) : Colors.black87,
+              isFirst: true,
+            ),
+            Container(
+              constraints: const BoxConstraints(minWidth: 26),
+              alignment: Alignment.center,
+              child: GestureDetector(
+                onTap: onQtyChanged == null
+                    ? null
+                    : () => _showQuantityEditDialog(context, qty),
+                behavior: HitTestBehavior.opaque,
+                child: Text(
+                  "$qty",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ),
+            _qtyBtn(
+              CupertinoIcons.plus,
+              onPlus,
+              size: 11,
+              color: const Color(0xFF2E7D32),
+              isLast: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _qtyBtn(
+    IconData icon,
+    VoidCallback onTap, {
+    double size = 11,
+    required Color color,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 25,
+        height: 25,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.horizontal(
+            left: isFirst ? const Radius.circular(7) : Radius.zero,
+            right: isLast ? const Radius.circular(7) : Radius.zero,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, size: size, color: color),
       ),
     );
   }

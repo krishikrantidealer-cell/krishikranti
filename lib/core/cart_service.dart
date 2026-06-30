@@ -17,6 +17,9 @@ class CartItem {
   final double price;
   int qty;
   final bool isFree;
+  final double packVolume;
+  final String basePackingUnit;
+  final String? basePacking;
 
   CartItem({
     this.itemId,
@@ -29,6 +32,9 @@ class CartItem {
     required this.price,
     required this.qty,
     this.isFree = false,
+    this.packVolume = 1.0,
+    this.basePackingUnit = 'lit',
+    this.basePacking,
   });
 
   static String _parseId(dynamic id) {
@@ -74,13 +80,42 @@ class CartItem {
     final vId = _parseId(json['variantId']);
 
     String variantName = json['variant'] ?? "";
-    if (variantName.isEmpty && product != null && product['variants'] != null) {
+    double packVolumeVal = 0.0;
+    String basePackingUnitVal = 'lit';
+    String? basePackingVal;
+
+    if (json['packVolume'] != null || json['volume'] != null) {
+      packVolumeVal = _parseDouble(json['packVolume'] ?? json['volume']);
+    }
+    if (json['basePackingUnit'] != null) {
+      basePackingUnitVal = json['basePackingUnit'].toString();
+    }
+    if (json['basePacking'] != null) {
+      basePackingVal = json['basePacking'].toString();
+    }
+
+    if (product != null && product['variants'] != null) {
       final variants = product['variants'] as List;
       final v = variants.firstWhere(
         (v) => _parseId(v?['_id']) == vId,
         orElse: () => null,
       );
-      if (v != null) variantName = v['size'] ?? "";
+      if (v != null) {
+        if (variantName.isEmpty) variantName = v['size'] ?? "";
+        if (packVolumeVal == 0.0) {
+          packVolumeVal = _parseDouble(v['packVolume'] ?? v['volume']);
+        }
+        if (basePackingUnitVal == 'lit' && v['basePackingUnit'] != null) {
+          basePackingUnitVal = v['basePackingUnit'].toString();
+        }
+        if (basePackingVal == null && v['basePacking'] != null) {
+          basePackingVal = v['basePacking'].toString();
+        }
+      }
+    }
+
+    if (packVolumeVal == 0.0) {
+      packVolumeVal = 1.0;
     }
 
     final rawImage =
@@ -104,6 +139,9 @@ class CartItem {
       price: isFree ? 0.0 : _parseDouble(json['price']),
       qty: _parseInt(json['quantity']),
       isFree: isFree,
+      packVolume: packVolumeVal,
+      basePackingUnit: basePackingUnitVal,
+      basePacking: basePackingVal,
     );
   }
 }
@@ -269,6 +307,9 @@ class CartService extends ChangeNotifier {
     required double price,
     required int qty,
     bool sync = true,
+    double packVolume = 1.0,
+    String basePackingUnit = 'lit',
+    String? basePacking,
   }) async {
     return addItems(
       productId: productId,
@@ -281,6 +322,9 @@ class CartService extends ChangeNotifier {
           'technicalName': technicalName,
           'variant': variant,
           'price': price,
+          'packVolume': packVolume,
+          'basePackingUnit': basePackingUnit,
+          'basePacking': basePacking,
         },
       ],
       sync: sync,
@@ -318,6 +362,9 @@ class CartService extends ChangeNotifier {
               variant: item['variant'] ?? '',
               price: (item['price'] as num).toDouble(),
               qty: item['quantity'] as int,
+              packVolume: CartItem._parseDouble(item['packVolume']),
+              basePackingUnit: item['basePackingUnit']?.toString() ?? 'lit',
+              basePacking: item['basePacking']?.toString(),
             ),
           );
         }
@@ -343,6 +390,9 @@ class CartService extends ChangeNotifier {
             price: it.price,
             qty: it.qty,
             isFree: it.isFree,
+            packVolume: it.packVolume,
+            basePackingUnit: it.basePackingUnit,
+            basePacking: it.basePacking,
           ),
         )
         .toList();
@@ -372,6 +422,9 @@ class CartService extends ChangeNotifier {
             variant: item['variant'] ?? '',
             price: (item['price'] as num).toDouble(),
             qty: item['quantity'] as int,
+            packVolume: CartItem._parseDouble(item['packVolume']),
+            basePackingUnit: item['basePackingUnit']?.toString() ?? 'lit',
+            basePacking: item['basePacking']?.toString(),
           ),
         );
         _optimisticTargetQty[vId] = item['quantity'] as int;
@@ -422,6 +475,9 @@ class CartService extends ChangeNotifier {
             price: it.price,
             qty: it.qty,
             isFree: it.isFree,
+            packVolume: it.packVolume,
+            basePackingUnit: it.basePackingUnit,
+            basePacking: it.basePacking,
           ),
         )
         .toList();
@@ -464,6 +520,9 @@ class CartService extends ChangeNotifier {
             price: it.price,
             qty: it.qty,
             isFree: it.isFree,
+            packVolume: it.packVolume,
+            basePackingUnit: it.basePackingUnit,
+            basePacking: it.basePacking,
           ),
         )
         .toList();
@@ -491,7 +550,9 @@ class CartService extends ChangeNotifier {
 
     // Capture true backup for this variant if a sync sequence is starting for it
     if (!_inFlightSyncCounts.containsKey(variantId)) {
-      final backupItemIndex = backup.indexWhere((it) => it.variantId == variantId);
+      final backupItemIndex = backup.indexWhere(
+        (it) => it.variantId == variantId,
+      );
       if (backupItemIndex != -1) {
         final item = backup[backupItemIndex];
         _trueBackupItems[variantId] = CartItem(
@@ -505,6 +566,9 @@ class CartService extends ChangeNotifier {
           price: item.price,
           qty: item.qty,
           isFree: item.isFree,
+          packVolume: item.packVolume,
+          basePackingUnit: item.basePackingUnit,
+          basePacking: item.basePacking,
         );
       } else {
         _trueBackupItems[variantId] = null;
@@ -549,10 +613,7 @@ class CartService extends ChangeNotifier {
             updatesToSync.forEach((vId, qty) {
               // Only sync if this is still the latest target quantity the user wanted
               if (_optimisticTargetQty[vId] == qty) {
-                itemsPayload.add({
-                  'variantId': vId,
-                  'quantity': qty,
-                });
+                itemsPayload.add({'variantId': vId, 'quantity': qty});
               } else {
                 debugPrint(
                   "[Cart API] Skipping obsolete sync for $vId: queued $qty, current ${_optimisticTargetQty[vId]}",
@@ -577,12 +638,16 @@ class CartService extends ChangeNotifier {
             );
 
             if (response.statusCode == 429) {
-              debugPrint("[Cart API] Sync rate-limited (429). Keeping local changes.");
+              debugPrint(
+                "[Cart API] Sync rate-limited (429). Keeping local changes.",
+              );
               return;
             }
 
             if (response.statusCode >= 500) {
-              debugPrint("[Cart API] Server error (${response.statusCode}). Keeping local changes.");
+              debugPrint(
+                "[Cart API] Server error (${response.statusCode}). Keeping local changes.",
+              );
               return;
             }
 
@@ -600,7 +665,8 @@ class CartService extends ChangeNotifier {
           } catch (e) {
             debugPrint("Error in Batch Sync: $e");
             // Check for temporary network or timeout issues
-            final isNetworkError = e is TimeoutException ||
+            final isNetworkError =
+                e is TimeoutException ||
                 e.toString().contains('SocketException') ||
                 e.toString().contains('HandshakeException') ||
                 e.toString().contains('ClientException') ||
@@ -608,13 +674,19 @@ class CartService extends ChangeNotifier {
                 e.toString().contains('ConnectionTimedOut');
 
             if (isNetworkError) {
-              debugPrint("[Cart API] Network error. Keeping optimistic changes locally.");
+              debugPrint(
+                "[Cart API] Network error. Keeping optimistic changes locally.",
+              );
             } else {
               // Rollback only the variants in this batch that don't have newer updates
               for (final vId in updatesToSync.keys) {
-                final hasNewerUpdate = (_inFlightSyncCounts[vId] ?? 0) > 1 || _updateDebounceTimers.containsKey(vId);
+                final hasNewerUpdate =
+                    (_inFlightSyncCounts[vId] ?? 0) > 1 ||
+                    _updateDebounceTimers.containsKey(vId);
                 if (!hasNewerUpdate) {
-                  final localItemIndex = _items.indexWhere((it) => it.variantId == vId);
+                  final localItemIndex = _items.indexWhere(
+                    (it) => it.variantId == vId,
+                  );
                   if (_trueBackupItems.containsKey(vId)) {
                     final backupItem = _trueBackupItems[vId];
                     if (backupItem != null) {
@@ -637,7 +709,8 @@ class CartService extends ChangeNotifier {
             // Decrement in-flight count for all synced variants
             for (final vId in updatesToSync.keys) {
               _decrementInFlight(vId);
-              if (!_inFlightSyncCounts.containsKey(vId) && !_updateDebounceTimers.containsKey(vId)) {
+              if (!_inFlightSyncCounts.containsKey(vId) &&
+                  !_updateDebounceTimers.containsKey(vId)) {
                 _optimisticTargetQty.remove(vId);
                 _trueBackupItems.remove(vId);
               }
@@ -656,12 +729,89 @@ class CartService extends ChangeNotifier {
     final List itemsJson = cartMap['items'] ?? [];
     final List freeItemsJson = cartMap['freeItems'] ?? [];
 
-    final List<CartItem> parsedItems = itemsJson
-        .map((j) => CartItem.fromJson(j))
-        .toList();
-    final List<CartItem> parsedFreeItems = freeItemsJson
-        .map((j) => CartItem.fromJson(j, isFree: true))
-        .toList();
+    final List<CartItem> parsedItems = itemsJson.map((j) {
+      final item = CartItem.fromJson(j);
+      final existingIndex = _items.indexWhere(
+        (it) => it.variantId == item.variantId && !it.isFree,
+      );
+      if (existingIndex != -1) {
+        final existingItem = _items[existingIndex];
+        return CartItem(
+          itemId: item.itemId ?? existingItem.itemId,
+          productId: item.productId.isNotEmpty
+              ? item.productId
+              : existingItem.productId,
+          variantId: item.variantId,
+          productName:
+              (item.productName.isNotEmpty && item.productName != 'Product')
+              ? item.productName
+              : existingItem.productName,
+          productImage: item.productImage.isNotEmpty
+              ? item.productImage
+              : existingItem.productImage,
+          technicalName: item.technicalName.isNotEmpty
+              ? item.technicalName
+              : existingItem.technicalName,
+          variant: item.variant.isNotEmpty
+              ? item.variant
+              : existingItem.variant,
+          price: item.price > 0 ? item.price : existingItem.price,
+          qty: item.qty,
+          isFree: item.isFree,
+          packVolume: item.packVolume > 0 && item.packVolume != 1.0
+              ? item.packVolume
+              : existingItem.packVolume,
+          basePackingUnit:
+              (item.basePackingUnit.isNotEmpty && item.basePackingUnit != 'lit')
+              ? item.basePackingUnit
+              : existingItem.basePackingUnit,
+          basePacking: item.basePacking ?? existingItem.basePacking,
+        );
+      }
+      return item;
+    }).toList();
+
+    final List<CartItem> parsedFreeItems = freeItemsJson.map((j) {
+      final item = CartItem.fromJson(j, isFree: true);
+      final existingIndex = _items.indexWhere(
+        (it) => it.variantId == item.variantId && it.isFree,
+      );
+      if (existingIndex != -1) {
+        final existingItem = _items[existingIndex];
+        return CartItem(
+          itemId: item.itemId ?? existingItem.itemId,
+          productId: item.productId.isNotEmpty
+              ? item.productId
+              : existingItem.productId,
+          variantId: item.variantId,
+          productName:
+              (item.productName.isNotEmpty && item.productName != 'Product')
+              ? item.productName
+              : existingItem.productName,
+          productImage: item.productImage.isNotEmpty
+              ? item.productImage
+              : existingItem.productImage,
+          technicalName: item.technicalName.isNotEmpty
+              ? item.technicalName
+              : existingItem.technicalName,
+          variant: item.variant.isNotEmpty
+              ? item.variant
+              : existingItem.variant,
+          price: item.price > 0 ? item.price : existingItem.price,
+          qty: item.qty,
+          isFree: item.isFree,
+          packVolume: item.packVolume > 0 && item.packVolume != 1.0
+              ? item.packVolume
+              : existingItem.packVolume,
+          basePackingUnit:
+              (item.basePackingUnit.isNotEmpty && item.basePackingUnit != 'lit')
+              ? item.basePackingUnit
+              : existingItem.basePackingUnit,
+          basePacking: item.basePacking ?? existingItem.basePacking,
+        );
+      }
+      return item;
+    }).toList();
 
     // Populate variantId to itemId map
     _variantToItemId.clear();
@@ -686,6 +836,9 @@ class CartService extends ChangeNotifier {
           price: item.price,
           qty: item.qty,
           isFree: item.isFree,
+          packVolume: item.packVolume,
+          basePackingUnit: item.basePackingUnit,
+          basePacking: item.basePacking,
         );
       }
     }
