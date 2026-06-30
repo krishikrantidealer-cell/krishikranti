@@ -34,8 +34,6 @@ class _SearchScreenState extends State<SearchScreen>
   final FavoriteService _favoriteService = FavoriteService();
   final SpeechToText _speechToText = SpeechToText();
 
-  late AnimationController _pulseController;
-
   Timer? _debounce;
   List<Product> _searchResults = [];
   bool _isLoading = false;
@@ -44,6 +42,7 @@ class _SearchScreenState extends State<SearchScreen>
 
   List<String> _recentSearches = [];
   bool _isVoiceSearching = false;
+  bool _isSpeechInitialized = false;
   static const platform = MethodChannel(
     'com.krishi.dealer.retailer/voice_search',
   );
@@ -192,17 +191,81 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   Future<void> _showBlinkitVoiceSearch() async {
-    try {
-      final String? result = await platform.invokeMethod('startVoiceSearch');
-      if (result != null && result.isNotEmpty) {
-        setState(() {
-          _searchController.text = result;
-          _onSearchChanged(result);
-        });
-        _saveRecentSearch(result);
+    // 1. Android Native Implementation (Uses system dialog)
+    if (Theme.of(context).platform == TargetPlatform.android) {
+      try {
+        final String? result = await platform.invokeMethod('startVoiceSearch');
+        if (result != null && result.isNotEmpty) {
+          setState(() {
+            _searchController.text = result;
+            _onSearchChanged(result);
+          });
+          _saveRecentSearch(result);
+        }
+        return;
+      } on PlatformException catch (e) {
+        debugPrint("Android native voice search failed: '${e.message}'. Falling back to plugin.");
       }
-    } on PlatformException catch (e) {
-      debugPrint("Failed to get voice search: '${e.message}'.");
+    }
+
+    // 2. iOS / Cross-platform Plugin Implementation (Using speech_to_text)
+    try {
+      if (!_isSpeechInitialized) {
+        _isSpeechInitialized = await _speechToText.initialize(
+          onError: (error) {
+            debugPrint('Speech Error: ${error.errorMsg}');
+            setState(() => _isVoiceSearching = false);
+          },
+          onStatus: (status) {
+            debugPrint('Speech Status: $status');
+            if (status == 'done' || status == 'notListening') {
+              setState(() => _isVoiceSearching = false);
+            }
+          },
+        );
+      }
+
+      if (_isSpeechInitialized) {
+        setState(() => _isVoiceSearching = true);
+
+        // Show a simple SnackBar or HUD on iOS to indicate listening
+        if (Theme.of(context).platform == TargetPlatform.iOS) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(CupertinoIcons.mic_fill, color: Colors.white, size: 20),
+                  SizedBox(width: 12),
+                  Text("Listening..."),
+                ],
+              ),
+              duration: Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Color(0xFF2E7D32),
+            ),
+          );
+        }
+
+        await _speechToText.listen(
+          onResult: (result) {
+            setState(() {
+              _searchController.text = result.recognizedWords;
+              if (result.finalResult) {
+                _isVoiceSearching = false;
+                _onSearchChanged(result.recognizedWords);
+                _saveRecentSearch(result.recognizedWords);
+              }
+            });
+          },
+          listenFor: const Duration(seconds: 10),
+          pauseFor: const Duration(seconds: 3),
+        );
+      } else {
+        debugPrint("Speech recognition not available or permission denied.");
+      }
+    } catch (e) {
+      debugPrint("Error during voice search: $e");
+      setState(() => _isVoiceSearching = false);
     }
   }
 

@@ -63,6 +63,11 @@ class ProfileService extends ChangeNotifier {
         final Map<String, dynamic> data = jsonDecode(response.body);
         final newUser = UserModel.fromJson(data);
 
+        if (newUser.isBlocked) {
+          await HttpService.forceLogout();
+          return;
+        }
+
         final userMap = data['user'] ?? data;
         final bool isProfileComplete = userMap['isProfileComplete'] ?? true;
 

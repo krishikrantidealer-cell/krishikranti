@@ -11,6 +11,7 @@ class UserModel {
   final String? licenceImage;
   final String? shopImage;
   final String? gstNumber;
+  final bool isBlocked;
 
   UserModel({
     required this.name,
@@ -23,6 +24,7 @@ class UserModel {
     this.licenceImage,
     this.shopImage,
     this.gstNumber,
+    this.isBlocked = false,
   });
 
   String get avatarLetter => name.isNotEmpty ? name[0].toUpperCase() : 'U';
@@ -46,6 +48,7 @@ class UserModel {
       licenceImage: user['licenceImage'],
       shopImage: user['shopImage'],
       gstNumber: user['gstNumber'],
+      isBlocked: user['isBlocked'] ?? false,
     );
   }
 
@@ -61,6 +64,7 @@ class UserModel {
       'licenceImage': licenceImage,
       'shopImage': shopImage,
       'gstNumber': gstNumber,
+      'isBlocked': isBlocked,
     };
   }
 
@@ -80,6 +84,7 @@ class UserModel {
     String? licenceImage,
     String? shopImage,
     String? gstNumber,
+    bool? isBlocked,
   }) {
     return UserModel(
       name: name ?? this.name,
@@ -92,6 +97,7 @@ class UserModel {
       licenceImage: licenceImage ?? this.licenceImage,
       shopImage: shopImage ?? this.shopImage,
       gstNumber: gstNumber ?? this.gstNumber,
+      isBlocked: isBlocked ?? this.isBlocked,
     );
   }
 }

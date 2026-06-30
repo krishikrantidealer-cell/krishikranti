@@ -11,11 +11,25 @@ class HttpService {
   static final dio.Dio _dio = dio.Dio();
   static final http.Client _client = http.Client();
 
-  static void _forceLogout() {
+  static Future<void> forceLogout() async {
+    await AuthService.logout();
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
       '/phone-verify',
       (route) => false,
     );
+  }
+
+  static Future<bool> _checkAndHandleBlockedUser(int statusCode, String? body) async {
+    if (statusCode == 403) {
+      final bodyLower = (body ?? '').toLowerCase();
+      if (bodyLower.contains('blocked') || 
+          bodyLower.contains('suspended') || 
+          bodyLower.contains('access denied')) {
+        await forceLogout();
+        return true;
+      }
+    }
+    return false;
   }
 
   static Future<Map<String, String>> _getHeaders() async {
@@ -37,6 +51,10 @@ class HttpService {
         headers: {...defaultHeaders, ...?headers},
       );
 
+      if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
+        return response;
+      }
+
       if (response.statusCode == 401 || response.statusCode == 403) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
@@ -46,7 +64,7 @@ class HttpService {
             headers: {...newHeaders, ...?headers},
           );
         } else if (!(await AuthService.isLoggedIn())) {
-          _forceLogout();
+          await forceLogout();
         }
       }
       return response;
@@ -68,6 +86,10 @@ class HttpService {
         body: body != null ? jsonEncode(body) : null,
       );
 
+      if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
+        return response;
+      }
+
       if (response.statusCode == 401 || response.statusCode == 403) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
@@ -78,7 +100,7 @@ class HttpService {
             body: body != null ? jsonEncode(body) : null,
           );
         } else if (!(await AuthService.isLoggedIn())) {
-          _forceLogout();
+          await forceLogout();
         }
       }
       return response;
@@ -100,6 +122,10 @@ class HttpService {
         body: body != null ? jsonEncode(body) : null,
       );
 
+      if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
+        return response;
+      }
+
       if (response.statusCode == 401 || response.statusCode == 403) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
@@ -110,7 +136,7 @@ class HttpService {
             body: body != null ? jsonEncode(body) : null,
           );
         } else if (!(await AuthService.isLoggedIn())) {
-          _forceLogout();
+          await forceLogout();
         }
       }
       return response;
@@ -132,6 +158,10 @@ class HttpService {
         body: body != null ? jsonEncode(body) : null,
       );
 
+      if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
+        return response;
+      }
+
       if (response.statusCode == 401 || response.statusCode == 403) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
@@ -142,7 +172,7 @@ class HttpService {
             body: body != null ? jsonEncode(body) : null,
           );
         } else if (!(await AuthService.isLoggedIn())) {
-          _forceLogout();
+          await forceLogout();
         }
       }
       return response;
@@ -185,6 +215,15 @@ class HttpService {
 
       return response;
     } on dio.DioException catch (e) {
+      if (e.response != null) {
+        final blockHandled = await _checkAndHandleBlockedUser(
+          e.response!.statusCode ?? 0,
+          jsonEncode(e.response!.data),
+        );
+        if (blockHandled) {
+          rethrow;
+        }
+      }
       if (e.response?.statusCode == 401) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
@@ -211,7 +250,7 @@ class HttpService {
             onSendProgress: onProgress,
           );
         } else if (!(await AuthService.isLoggedIn())) {
-          _forceLogout();
+          await forceLogout();
         }
       }
       rethrow;
@@ -255,6 +294,15 @@ class HttpService {
 
       return response;
     } on dio.DioException catch (e) {
+      if (e.response != null) {
+        final blockHandled = await _checkAndHandleBlockedUser(
+          e.response!.statusCode ?? 0,
+          jsonEncode(e.response!.data),
+        );
+        if (blockHandled) {
+          rethrow;
+        }
+      }
       if (e.response?.statusCode == 401) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
@@ -284,7 +332,7 @@ class HttpService {
             onSendProgress: onProgress,
           );
         } else if (!(await AuthService.isLoggedIn())) {
-          _forceLogout();
+          await forceLogout();
         }
       }
       rethrow;
@@ -321,6 +369,13 @@ class HttpService {
 
       var response = await request.send();
 
+      if (response.statusCode == 403) {
+        try {
+          final responseBody = await response.stream.bytesToString();
+          await _checkAndHandleBlockedUser(response.statusCode, responseBody);
+        } catch (_) {}
+      }
+
       if (response.statusCode == 401) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
@@ -340,7 +395,7 @@ class HttpService {
           );
           response = await newRequest.send();
         } else if (!(await AuthService.isLoggedIn())) {
-          _forceLogout();
+          await forceLogout();
         }
       }
       return response;

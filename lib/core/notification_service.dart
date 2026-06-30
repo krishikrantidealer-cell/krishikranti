@@ -17,6 +17,7 @@ import 'package:krishikranti/core/notification_model.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
+import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 
 // Background message handler must be a top-level function
@@ -126,6 +127,16 @@ class NotificationService {
       debugPrint("Received Foreground Message: ${message.notification?.title}");
 
       if (message.notification != null) {
+        final title = (message.notification!.title ?? "").toLowerCase();
+        final body = (message.notification!.body ?? "").toLowerCase();
+        if (title.contains('blocked') ||
+            title.contains('suspended') ||
+            body.contains('blocked') ||
+            body.contains('suspended')) {
+          await HttpService.forceLogout();
+          return;
+        }
+
         // Use our unified showNotification utility
         showNotification(
           title: message.notification!.title ?? "Update",
@@ -136,8 +147,6 @@ class NotificationService {
               : NotificationCategory.utility,
         );
 
-        final title = (message.notification!.title ?? "").toLowerCase();
-        final body = (message.notification!.body ?? "").toLowerCase();
         if (title.contains('kyc') ||
             title.contains('verification') ||
             body.contains('kyc') ||
@@ -182,7 +191,32 @@ class NotificationService {
       return;
     }
 
-    String? token = await _firebaseMessaging.getToken();
+    String? token;
+    int retryCount = 0;
+    const int maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        if (Platform.isIOS) {
+          // On iOS, sometimes we need to wait for the APNS token to be available
+          String? apnsToken = await _firebaseMessaging.getAPNSToken();
+          if (apnsToken == null) {
+            debugPrint("📱 APNS token not ready yet, retrying... ($retryCount)");
+            await Future.delayed(const Duration(seconds: 3));
+            retryCount++;
+            continue;
+          }
+        }
+
+        token = await _firebaseMessaging.getToken();
+        if (token != null) break;
+      } catch (e) {
+        debugPrint("📱 Error getting FCM token: $e");
+        await Future.delayed(const Duration(seconds: 3));
+        retryCount++;
+      }
+    }
+
     if (token != null) {
       debugPrint("📱 Firebase Messaging Token: $token");
 
@@ -381,8 +415,14 @@ class NotificationService {
         return;
       }
 
-      // If notification contains kyc/profile info, refresh profile
+      // If notification indicates blocked/suspended account, logout immediately
       final payloadString = payload.toLowerCase();
+      if (payloadString.contains('blocked') || payloadString.contains('suspended')) {
+        await HttpService.forceLogout();
+        return;
+      }
+
+      // If notification contains kyc/profile info, refresh profile
       if (payloadString.contains('kyc') || payloadString.contains('verification')) {
         if (navigatorKey.currentContext != null) {
           try {

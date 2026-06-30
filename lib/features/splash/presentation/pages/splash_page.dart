@@ -10,6 +10,8 @@ import 'package:krishikranti/core/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/core/update_service.dart';
+import 'package:provider/provider.dart';
+import 'package:krishikranti/core/profile_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -39,6 +41,21 @@ class _SplashPageState extends State<SplashPage> {
         final loggedIn = await AuthService.isLoggedIn();
 
         if (loggedIn) {
+          // Proactively fetch latest user profile to verify if blocked/suspended
+          try {
+            final profileService = Provider.of<ProfileService>(context, listen: false);
+            await profileService.fetchProfileFromServer();
+          } catch (e) {
+            debugPrint("Splash profile fetch error: $e");
+          }
+
+          // Check if they were force-logged out during fetch because they are blocked
+          final stillLoggedIn = await AuthService.isLoggedIn();
+          if (!stillLoggedIn && mounted) {
+            Navigator.of(context).pushReplacementNamed('/phone-verify');
+            return;
+          }
+
           final profileDone = await AuthService.isProfileComplete();
 
           if (mounted) {

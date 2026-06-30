@@ -9,7 +9,6 @@ import 'package:krishikranti/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:ui';
 import 'package:lottie/lottie.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/screens/checkout_screen.dart';
@@ -362,62 +361,63 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isKycComplete = Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
+    final isKycComplete =
+        Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
           children: [
-              CustomScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                slivers: [
-                  _buildImageHero(context),
-                  SliverToBoxAdapter(
-                    child: AnimationLimiter(
-                      key: const ValueKey('product_anim_limiter'),
-                      child: Column(
-                        children: AnimationConfiguration.toStaggeredList(
-                          duration: const Duration(milliseconds: 600),
-                          childAnimationBuilder: (w) => SlideAnimation(
-                            verticalOffset: 30,
-                            child: FadeInAnimation(child: w),
-                          ),
-                          children: [
-                            _buildPremiumInfoSection(),
-                            _buildExpertAnalysis(),
-                            _buildConfigurationCard(),
-                            _buildProductDescription(),
-                          ],
+            CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              slivers: [
+                _buildImageHero(context),
+                SliverToBoxAdapter(
+                  child: AnimationLimiter(
+                    key: const ValueKey('product_anim_limiter'),
+                    child: Column(
+                      children: AnimationConfiguration.toStaggeredList(
+                        duration: const Duration(milliseconds: 600),
+                        childAnimationBuilder: (w) => SlideAnimation(
+                          verticalOffset: 30,
+                          child: FadeInAnimation(child: w),
                         ),
+                        children: [
+                          _buildPremiumInfoSection(),
+                          _buildExpertAnalysis(),
+                          _buildConfigurationCard(),
+                          _buildProductDescription(),
+                        ],
                       ),
                     ),
                   ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: 100), // Bottom padding for actions
-                  ),
-                ],
-              ),
-              Consumer<CartService>(
-                builder: (context, cart, child) => _buildFloatingActionBar(),
-              ),
-              ValueListenableBuilder<bool>(
-                valueListenable: _showStickyHeaderNotifier,
-                builder: (context, showSticky, child) {
-                  if (showSticky) {
-                    return Consumer<CartService>(
-                      builder: (context, cart, child) => _buildStickyHeader(),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-              if (_showSuccessAnimation) _buildSuccessAnimationOverlay(),
-            ],
-          ),
+                ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100), // Bottom padding for actions
+                ),
+              ],
+            ),
+            Consumer<CartService>(
+              builder: (context, cart, child) => _buildFloatingActionBar(),
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: _showStickyHeaderNotifier,
+              builder: (context, showSticky, child) {
+                if (showSticky) {
+                  return Consumer<CartService>(
+                    builder: (context, cart, child) => _buildStickyHeader(),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            if (_showSuccessAnimation) _buildSuccessAnimationOverlay(),
+          ],
+        ),
       ),
     );
   }
@@ -435,13 +435,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         () => Navigator.pop(context),
       ),
       actions: [
-        _buildHeaderIcon(Icons.share_outlined, () {
-          Share.share('Check out ${_product.title} on Krishi Kranti');
-          MetaAnalyticsService.logShare(
-            productId: _product.id,
-            productName: _product.title,
-          );
-        }),
+        Consumer<CartService>(
+          builder: (context, cart, child) {
+            return _buildHeaderIcon(Icons.shopping_cart_outlined, () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+            }, badgeCount: cart.totalCount);
+          },
+        ),
         const SizedBox(width: 8),
         ListenableBuilder(
           listenable: _favoriteService,
@@ -556,6 +560,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     IconData icon,
     VoidCallback onTap, {
     Color color = Colors.black87,
+    int badgeCount = 0,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -566,7 +571,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
       child: IconButton(
-        icon: Icon(icon, color: color, size: 20),
+        icon: badgeCount == 0
+            ? Icon(icon, color: color, size: 20)
+            : Badge(
+                label: Text(badgeCount > 99 ? '99+' : badgeCount.toString()),
+                backgroundColor: Colors.redAccent,
+                child: Icon(icon, color: color, size: 20),
+              ),
         onPressed: onTap,
       ),
     );
@@ -766,7 +777,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildConfigurationCard() {
     if (_product.variants.isEmpty) return const SizedBox.shrink();
-    final isKycComplete = Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
+    final isKycComplete =
+        Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
 
     return RepaintBoundary(
       child: Padding(
@@ -876,7 +888,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             children: [
                               // Left Card: Pack Size card (Stunning pill badge layout - compacted)
                               GestureDetector(
-                                onTap: (!isKycComplete || isSelected || isSyncing)
+                                onTap:
+                                    (!isKycComplete || isSelected || isSyncing)
                                     ? null
                                     : () => _syncVariantWithCart(v, 1),
                                 behavior: HitTestBehavior.opaque,
@@ -978,7 +991,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               // Right Card: Variant Card (Stunning pricing & quantity container - compacted)
                               Expanded(
                                 child: GestureDetector(
-                                  onTap: (!isKycComplete || isSelected || isSyncing)
+                                  onTap:
+                                      (!isKycComplete ||
+                                          isSelected ||
+                                          isSyncing)
                                       ? null
                                       : () => _syncVariantWithCart(v, 1),
                                   behavior: HitTestBehavior.opaque,
@@ -1057,8 +1073,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                     Text(
                                                       "KYC Required",
                                                       style: TextStyle(
-                                                        color: Colors.red.shade700,
-                                                        fontWeight: FontWeight.w800,
+                                                        color:
+                                                            Colors.red.shade700,
+                                                        fontWeight:
+                                                            FontWeight.w800,
                                                         fontSize: 11.5,
                                                       ),
                                                     )
@@ -1072,7 +1090,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                         fontSize: 13.5,
                                                       ),
                                                     ),
-                                                    if (perUnitLabel != null) ...[
+                                                    if (perUnitLabel !=
+                                                        null) ...[
                                                       const SizedBox(width: 4),
                                                       Text(
                                                         "($perUnitLabel)",
@@ -1088,8 +1107,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 ],
                                               ),
                                               // Row 2: Original Price and Save Percentage (only if discounted)
-                                              if (isKycComplete && displayCompareAtPrice >
-                                                  displayPrice) ...[
+                                              if (isKycComplete &&
+                                                  displayCompareAtPrice >
+                                                      displayPrice) ...[
                                                 const SizedBox(height: 3),
                                                 Row(
                                                   crossAxisAlignment:
@@ -1291,79 +1311,78 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                               ],
                                             ),
                                           )
+                                        else if (!isKycComplete)
+                                          Container(
+                                            width: 80,
+                                            height: 32,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade100,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: Colors.grey.shade300,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              CupertinoIcons.lock_fill,
+                                              color: Colors.grey,
+                                              size: 14,
+                                            ),
+                                          )
                                         else
-                                          if (!isKycComplete)
-                                            Container(
+                                          GestureDetector(
+                                            onTap: () =>
+                                                _syncVariantWithCart(v, 1),
+                                            child: Container(
                                               width: 80,
                                               height: 32,
                                               alignment: Alignment.center,
                                               decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,
+                                                color: Colors.white,
                                                 borderRadius:
                                                     BorderRadius.circular(6),
                                                 border: Border.all(
-                                                  color: Colors.grey.shade300,
+                                                  color: primaryGreen,
                                                   width: 1.5,
                                                 ),
-                                              ),
-                                              child: const Icon(
-                                                CupertinoIcons.lock_fill,
-                                                color: Colors.grey,
-                                                size: 14,
-                                              ),
-                                            )
-                                          else
-                                            GestureDetector(
-                                              onTap: () =>
-                                                  _syncVariantWithCart(v, 1),
-                                              child: Container(
-                                                width: 80,
-                                                height: 32,
-                                                alignment: Alignment.center,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                  border: Border.all(
-                                                    color: primaryGreen,
-                                                    width: 1.5,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: primaryGreen
+                                                        .withOpacity(0.04),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(
+                                                      0,
+                                                      1.5,
+                                                    ),
                                                   ),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: primaryGreen
-                                                          .withOpacity(0.04),
-                                                      blurRadius: 4,
-                                                      offset: const Offset(
-                                                        0,
-                                                        1.5,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      l10n.addLabel,
-                                                      style: TextStyle(
-                                                        fontSize: 11.5,
-                                                        fontWeight:
-                                                            FontWeight.w900,
-                                                        color: primaryGreen,
-                                                        letterSpacing: 0.5,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 3),
-                                                    Icon(
-                                                      Icons.add_rounded,
-                                                      size: 13,
+                                                ],
+                                              ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    l10n.addLabel,
+                                                    style: TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight:
+                                                          FontWeight.w900,
                                                       color: primaryGreen,
+                                                      letterSpacing: 0.5,
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Icon(
+                                                    Icons.add_rounded,
+                                                    size: 13,
+                                                    color: primaryGreen,
+                                                  ),
+                                                ],
                                               ),
                                             ),
+                                          ),
                                       ],
                                     ),
                                   ),
@@ -2898,7 +2917,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildFloatingActionBar() {
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
-    final isKycComplete = Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
+    final isKycComplete =
+        Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
     final theme = Theme.of(context);
     return Positioned(
       bottom: bottomPadding > 0 ? bottomPadding * 0.4 : 10,
@@ -2977,7 +2997,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildStickyHeader() {
-    final isKycComplete = Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
+    final isKycComplete =
+        Provider.of<ProfileService>(context).user?.isKycComplete ?? false;
     return Positioned(
       top: 0,
       left: 0,
@@ -3218,7 +3239,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildTierMilestonesRow(Variant v, int quantity) {
-    final isKycComplete = Provider.of<ProfileService>(context, listen: false).user?.isKycComplete ?? false;
+    final isKycComplete =
+        Provider.of<ProfileService>(
+          context,
+          listen: false,
+        ).user?.isKycComplete ??
+        false;
     if (!isKycComplete) return const SizedBox.shrink();
     final String baseUnit = v.basePackingUnit;
     final double totalVolume = v.packVolume * quantity;

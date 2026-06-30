@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:flutter_facebook_app_links/flutter_facebook_app_links.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/constants/api_constants.dart';
 
 class MetaAnalyticsService {
   static final FacebookAppEvents _facebookAppEvents = FacebookAppEvents();
@@ -11,13 +14,66 @@ class MetaAnalyticsService {
   static const String _installSourceKey = 'meta_install_source';
   static const String _deepLinkUrlKey = 'meta_deeplink_url';
 
+  /// Internal helper to push telemetry events directly to MongoDB database
+  static Future<void> _logToDatabase(String eventName, Map<String, dynamic>? parameters) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? userJson = prefs.getString('user_profile_cache');
+      String userIdentifier = 'Guest';
+      if (userJson != null) {
+        try {
+          final decoded = jsonDecode(userJson);
+          userIdentifier = decoded['email'] ?? decoded['phoneNumber'] ?? 'Guest';
+        } catch (_) {}
+      }
+
+      String device = 'Unknown Platform';
+      if (kIsWeb) {
+        device = 'Chrome/Safari Browser (Web)';
+      } else {
+        device = '${defaultTargetPlatform.name.toUpperCase()} Mobile App';
+      }
+
+      String details = '';
+      if (parameters != null && parameters.isNotEmpty) {
+        if (parameters.containsKey('details')) {
+          details = parameters['details'].toString();
+        } else {
+          details = parameters.entries
+              .where((e) => e.key != 'details' && e.value != null)
+              .take(3)
+              .map((e) => '${e.key}: ${e.value}')
+              .join(' • ');
+        }
+      }
+
+      final body = {
+        'user': userIdentifier,
+        'eventType': eventName,
+        'device': device,
+        'details': details,
+        'payload': parameters ?? {},
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+        'role': 'user',
+      };
+
+      debugPrint('[DB Telemetry] Logging: $eventName');
+      
+      final url = '${ApiConstants.baseUrl}/api/events';
+      await HttpService.post(url, body: body);
+    } catch (e) {
+      debugPrint('⚠️ DB Telemetry log failed: $e');
+    }
+  }
+
   /// Initializes the Meta SDK and checks for deferred deep links (attribution)
   static Future<void> initialize() async {
     try {
       debugPrint("📢 Initializing Meta SDK...");
 
-      // 1. Enable advertiser tracking (essential for iOS App Tracking Transparency)
+      // 1. Enable advertiser tracking and auto event logging
       await _facebookAppEvents.setAdvertiserTracking(enabled: true);
+      await _facebookAppEvents.setAutoLogAppEventsEnabled(true);
 
       // 2. Retrieve deferred deep link to check install attribution (ads vs organic)
       final prefs = await SharedPreferences.getInstance();
@@ -94,6 +150,9 @@ class MetaAnalyticsService {
       debugPrint(
         "📊 Meta SDK logged event: $name with parameters: $formattedParams",
       );
+      
+      // Auto-mirror custom events to database
+      await _logToDatabase(name, parameters);
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log event $name: $e");
     }
@@ -118,6 +177,15 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged AddToCart for $productName ($productId), price: $price, qty: $quantity");
+      
+      // Log to database
+      await _logToDatabase('add_to_cart', {
+        'productId': productId,
+        'productName': productName,
+        'price': price,
+        'quantity': quantity,
+        'details': 'Added $productName to cart (Qty: $quantity)',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log AddToCart: $e");
     }
@@ -135,6 +203,13 @@ class MetaAnalyticsService {
         numItems: itemCount,
       );
       debugPrint("📊 Meta SDK: Logged InitiateCheckout, total: $totalAmount, items: $itemCount");
+      
+      // Log to database
+      await _logToDatabase('checkout_started', {
+        'totalAmount': totalAmount,
+        'itemCount': itemCount,
+        'details': 'Checkout initiated for ₹$totalAmount ($itemCount items)',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log InitiateCheckout: $e");
     }
@@ -154,6 +229,13 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged Purchase of amount: $amount, orderId: $orderId");
+      
+      // Log to database
+      await _logToDatabase('payment_success', {
+        'amount': amount,
+        'orderId': orderId,
+        'details': 'Completed purchase of ₹$amount (Order: $orderId)',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log Purchase: $e");
     }
@@ -168,6 +250,12 @@ class MetaAnalyticsService {
         registrationMethod: registrationMethod,
       );
       debugPrint("📊 Meta SDK: Logged CompletedRegistration with method: $registrationMethod");
+      
+      // Log to database
+      await _logToDatabase('registration_complete', {
+        'method': registrationMethod,
+        'details': 'Registration completed via $registrationMethod',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log CompletedRegistration: $e");
     }
@@ -190,6 +278,14 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged ViewProduct for $productName ($productId)");
+      
+      // Log to database
+      await _logToDatabase('product_view', {
+        'productId': productId,
+        'productName': productName,
+        'price': price,
+        'details': 'Viewed product details for $productName',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log ViewProduct: $e");
     }
@@ -209,6 +305,13 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged Search for '$query', success: $success");
+      
+      // Log to database
+      await _logToDatabase('product_search', {
+        'query': query,
+        'success': success,
+        'details': 'Searched catalog for "$query"',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log Search: $e");
     }
@@ -247,6 +350,14 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged AddToWishlist for $productName ($productId)");
+      
+      // Log to database
+      await _logToDatabase('add_to_wishlist', {
+        'productId': productId,
+        'productName': productName,
+        'price': price,
+        'details': 'Added $productName to wishlist',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log AddToWishlist: $e");
     }
@@ -267,6 +378,13 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged Share for $productName ($productId)");
+      
+      // Log to database
+      await _logToDatabase('product_share', {
+        'productId': productId,
+        'productName': productName,
+        'details': 'Shared product $productName',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log Share: $e");
     }
@@ -288,6 +406,14 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged RemoveFromCart for $productName ($productId)");
+      
+      // Log to database
+      await _logToDatabase('remove_from_cart', {
+        'productId': productId,
+        'productName': productName,
+        'price': price,
+        'details': 'Removed $productName from cart',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log RemoveFromCart: $e");
     }
@@ -307,6 +433,13 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged ApplyCoupon code: $couponCode, discount: $discountAmount");
+      
+      // Log to database
+      await _logToDatabase('apply_coupon', {
+        'couponCode': couponCode,
+        'discountAmount': discountAmount,
+        'details': 'Applied coupon $couponCode (Saved ₹$discountAmount)',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log ApplyCoupon: $e");
     }
@@ -324,6 +457,12 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged KYC Submitted with type: $kycType");
+      
+      // Log to database
+      await _logToDatabase('kyc_submitted', {
+        'kycType': kycType,
+        'details': 'Submitted KYC documents ($kycType)',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log KYC Submitted: $e");
     }
@@ -331,7 +470,7 @@ class MetaAnalyticsService {
 
   /// Logs when contact support is clicked
   static Future<void> logContactSupport({
-    required String contactMethod, // 'Call', 'WhatsApp', etc.
+    required String contactMethod,
   }) async {
     try {
       await _facebookAppEvents.logEvent(
@@ -341,6 +480,12 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged Contact Support via: $contactMethod");
+      
+      // Log to database
+      await _logToDatabase('contact_support', {
+        'contactMethod': contactMethod,
+        'details': 'Contacted support via $contactMethod',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log Contact Support: $e");
     }
@@ -358,6 +503,12 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged Login with method: $loginMethod");
+      
+      // Log to database
+      await _logToDatabase('login_success', {
+        'method': loginMethod,
+        'details': 'Logged in via $loginMethod',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log Login: $e");
     }
@@ -379,6 +530,14 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged ViewCategory: $categoryName, isCollection: $isCollection");
+      
+      // Log to database
+      await _logToDatabase('category_view', {
+        'categoryName': categoryName,
+        'categoryId': categoryId ?? '',
+        'isCollection': isCollection,
+        'details': 'Viewed ${isCollection ? 'collection' : 'category'} $categoryName',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log ViewCategory: $e");
     }
@@ -398,6 +557,13 @@ class MetaAnalyticsService {
         },
       );
       debugPrint("📊 Meta SDK: Logged CheckoutFailure: $reason (Code: $code)");
+      
+      // Log to database (payment_failed)
+      await _logToDatabase('payment_failed', {
+        'reason': reason,
+        'errorCode': code,
+        'details': 'Payment/Checkout failed: $reason',
+      });
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Failed to log CheckoutFailure: $e");
     }
