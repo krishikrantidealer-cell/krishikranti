@@ -243,11 +243,7 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      _buildField(
-                        l10n.state,
-                        _stateController,
-                        "Maharashtra",
-                      ),
+                      _buildField(l10n.state, _stateController, "Maharashtra"),
 
                       const SizedBox(height: 24),
 

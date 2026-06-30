@@ -42,6 +42,125 @@ class _ProductCardState extends State<ProductCard>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
+  IconData _getVariantUnitIcon(String unit) {
+    switch (unit.toLowerCase()) {
+      case 'lit':
+      case 'l':
+      case 'ml':
+        return Icons.water_drop_outlined;
+      case 'kg':
+      case 'g':
+      case 'gm':
+        return Icons.scale_outlined;
+      case 'pcs':
+      case 'piece':
+      case 'pieces':
+      default:
+        return Icons.inventory_2_outlined;
+    }
+  }
+
+  String? _getPackConfig(String sizeStr) {
+    final match = RegExp(r'\(([^)]+)\)').firstMatch(sizeStr);
+    return match?.group(1);
+  }
+
+  String _getCleanSize(String sizeStr) {
+    final idx = sizeStr.indexOf('(');
+    if (idx != -1) {
+      return sizeStr.substring(0, idx).trim();
+    }
+    return sizeStr.trim();
+  }
+
+  String _getFormattedVolumeDetail(Variant variant) {
+    final String baseUnit = variant.basePackingUnit;
+    final idx = variant.size.indexOf('(');
+    final String packSize = idx != -1
+        ? variant.size.substring(0, idx).trim()
+        : variant.size.trim();
+
+    String? configName =
+        variant.basePacking != null && variant.basePacking!.isNotEmpty
+        ? variant.basePacking
+        : null;
+
+    if (configName == null && idx != -1) {
+      final match = RegExp(r'\(([^)]+)\)').firstMatch(variant.size);
+      configName = match?.group(1);
+    }
+
+    final bool isKg = baseUnit == 'kg';
+    final bool isPcs = baseUnit == 'pcs';
+    final String unitSuffix = isPcs
+        ? "Pcs"
+        : isKg
+        ? "Kg"
+        : "L";
+
+    final String formattedVol = variant.packVolume % 1 == 0
+        ? variant.packVolume.toInt().toString()
+        : variant.packVolume.toStringAsFixed(
+            variant.packVolume < 1
+                ? (variant.packVolume * 100 % 10 == 0 ? 1 : 2)
+                : 1,
+          );
+
+    if (configName == null || configName.toLowerCase() == "single") {
+      if (variant.packVolume > 1.0) {
+        configName = "$formattedVol $unitSuffix";
+      } else {
+        return packSize;
+      }
+    }
+
+    return "$packSize x $configName = $formattedVol $unitSuffix";
+  }
+
+  Widget _buildVariantDetails(
+    Variant variant,
+    ThemeData theme, {
+    required bool isGridView,
+  }) {
+    final displayDetail = _getFormattedVolumeDetail(variant);
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        // Size Tag (shows packaging detail or size)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey.shade200, width: 0.8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _getVariantUnitIcon(variant.basePackingUnit),
+                size: 10,
+                color: Colors.grey.shade600,
+              ),
+              const SizedBox(width: 3),
+              TranslatableText(
+                displayDetail,
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontSize: isGridView ? 8.5 : 9.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -101,7 +220,9 @@ class _ProductCardState extends State<ProductCard>
                   ProductDetailScreen(
                     product: widget.product,
                     thumbnailUrl: widget.product.thumbnail,
-                    heroTag: widget.heroTag ?? 'product_${widget.category}_${widget.product.id}',
+                    heroTag:
+                        widget.heroTag ??
+                        'product_${widget.category}_${widget.product.id}',
                   ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
@@ -141,7 +262,8 @@ class _ProductCardState extends State<ProductCard>
     final profileService = Provider.of<ProfileService>(context);
     final isKycComplete = profileService.user?.isKycComplete ?? false;
     double discountPercent = 0.0;
-    if (isKycComplete && widget.product.compareAtPrice > widget.product.price &&
+    if (isKycComplete &&
+        widget.product.compareAtPrice > widget.product.price &&
         widget.product.compareAtPrice > 0) {
       discountPercent =
           ((widget.product.compareAtPrice - widget.product.price) /
@@ -183,7 +305,9 @@ class _ProductCardState extends State<ProductCard>
                           child: HeroMode(
                             enabled: !widget.isPopping,
                             child: Hero(
-                              tag: widget.heroTag ?? 'product_${widget.category}_${widget.product.id}',
+                              tag:
+                                  widget.heroTag ??
+                                  'product_${widget.category}_${widget.product.id}',
                               child: ProgressiveImage(
                                 thumbnailUrl: widget.product.thumbnail,
                                 imageUrl: widget.product.images.isNotEmpty
@@ -298,6 +422,14 @@ class _ProductCardState extends State<ProductCard>
                           fontStyle: FontStyle.italic,
                         ),
                       ),
+                      if (widget.product.lowestPriceVariant != null) ...[
+                        const SizedBox(height: 6),
+                        _buildVariantDetails(
+                          widget.product.lowestPriceVariant!,
+                          theme,
+                          isGridView: true,
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -361,9 +493,8 @@ class _ProductCardState extends State<ProductCard>
                                 borderRadius: BorderRadius.circular(8),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: theme.colorScheme.primary.withOpacity(
-                                      0.24,
-                                    ),
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.24),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -474,7 +605,8 @@ class _ProductCardState extends State<ProductCard>
     final isKycComplete = profileService.user?.isKycComplete ?? false;
     double discountPercent = 0.0;
     double savingsAmount = 0.0;
-    if (isKycComplete && widget.product.compareAtPrice > widget.product.price &&
+    if (isKycComplete &&
+        widget.product.compareAtPrice > widget.product.price &&
         widget.product.compareAtPrice > 0) {
       discountPercent =
           ((widget.product.compareAtPrice - widget.product.price) /
@@ -517,7 +649,9 @@ class _ProductCardState extends State<ProductCard>
                         child: HeroMode(
                           enabled: !widget.isPopping,
                           child: Hero(
-                            tag: widget.heroTag ?? 'product_${widget.category}_${widget.product.id}',
+                            tag:
+                                widget.heroTag ??
+                                'product_${widget.category}_${widget.product.id}',
                             child: ProgressiveImage(
                               thumbnailUrl: widget.product.thumbnail,
                               imageUrl: widget.product.images.isNotEmpty
@@ -691,6 +825,14 @@ class _ProductCardState extends State<ProductCard>
                             fontStyle: FontStyle.italic,
                           ),
                         ),
+                        if (widget.product.lowestPriceVariant != null) ...[
+                          const SizedBox(height: 6),
+                          _buildVariantDetails(
+                            widget.product.lowestPriceVariant!,
+                            theme,
+                            isGridView: false,
+                          ),
+                        ],
                         const SizedBox(height: 6),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,

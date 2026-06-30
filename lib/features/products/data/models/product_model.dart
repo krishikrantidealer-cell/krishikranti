@@ -46,6 +46,12 @@ class Product {
     return variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
   }
 
+  // Helper to get the variant with the lowest price
+  Variant? get lowestPriceVariant {
+    if (variants.isEmpty) return null;
+    return variants.reduce((a, b) => a.price < b.price ? a : b);
+  }
+
   // Helper to get max compareAtPrice
   double get compareAtPrice {
     if (maxPrice != null) return maxPrice!;
