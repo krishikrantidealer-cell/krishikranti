@@ -40,6 +40,7 @@ class _SplashPageState extends State<SplashPage> {
 
         final loggedIn = await AuthService.isLoggedIn();
 
+        if (!mounted) return;
         if (loggedIn) {
           // Proactively fetch latest user profile to verify if blocked/suspended
           try {
@@ -52,7 +53,7 @@ class _SplashPageState extends State<SplashPage> {
           // Check if they were force-logged out during fetch because they are blocked
           final stillLoggedIn = await AuthService.isLoggedIn();
           if (!stillLoggedIn && mounted) {
-            Navigator.of(context).pushReplacementNamed('/phone-verify');
+            Navigator.of(context).pushReplacementNamed('/choose-user-type');
             return;
           }
 
@@ -76,13 +77,28 @@ class _SplashPageState extends State<SplashPage> {
             }
           }
         } else {
+          final prefs = await SharedPreferences.getInstance();
+          final selectedUserType = prefs.getString('selected_user_type');
+
           if (mounted) {
-            // Always go to Login flow first. Language selection is bypassed at startup.
-            Navigator.of(context).pushReplacementNamed('/phone-verify').then((_) {
-              if (updateType == UpdateType.optional && mounted) {
-                UpdateService.showUpdateDialog(context, UpdateType.optional);
-              }
-            });
+            if (selectedUserType != null) {
+              final nextRoute = selectedUserType == 'farmer'
+                  ? '/farmer-redirect'
+                  : '/phone-verify';
+              Navigator.of(context).pushReplacementNamed(nextRoute).then((_) {
+                if (updateType == UpdateType.optional && mounted) {
+                  UpdateService.showUpdateDialog(context, UpdateType.optional);
+                }
+              });
+            } else {
+              Navigator.of(context)
+                  .pushReplacementNamed('/choose-user-type')
+                  .then((_) {
+                if (updateType == UpdateType.optional && mounted) {
+                  UpdateService.showUpdateDialog(context, UpdateType.optional);
+                }
+              });
+            }
           }
         }
       }
@@ -90,8 +106,9 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void initialization() async {
-    // Proactively "ping" the backend to wake up the Render server
-    HttpService.get(ApiConstants.baseUrl).catchError((_) => null);
+    try {
+      await HttpService.get(ApiConstants.baseUrl);
+    } catch (_) {}
 
     // Sync Push Notification Token with backend once app is ready
     NotificationService.syncToken();

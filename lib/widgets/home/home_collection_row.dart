@@ -144,6 +144,7 @@ class HomeCollectionRow extends StatelessWidget {
                                     ? CachedNetworkImage(
                                         imageUrl: subCrop.image!,
                                         fit: BoxFit.cover,
+                                        memCacheWidth: 200,
                                         placeholder: (_, __) => Container(
                                           color: Colors.grey[100],
                                           child: const Center(

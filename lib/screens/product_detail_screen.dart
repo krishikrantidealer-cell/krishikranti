@@ -513,6 +513,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: CachedNetworkImage(
                             imageUrl: url,
                             fit: BoxFit.contain,
+                            memCacheWidth: 1000,
                           ),
                         ),
                       ),

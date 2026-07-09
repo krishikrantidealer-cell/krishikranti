@@ -863,6 +863,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         child: CachedNetworkImage(
                           imageUrl: item.image ?? '',
                           fit: BoxFit.cover,
+                          memCacheWidth: 150,
                           placeholder: (context, url) => Container(
                             color: Colors.grey.shade50,
                             child: const Center(
@@ -948,6 +949,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         child: CachedNetworkImage(
                           imageUrl: freeItem.imageUrl ?? '',
                           fit: BoxFit.cover,
+                          memCacheWidth: 150,
                           placeholder: (context, url) => Container(
                             color: Colors.grey.shade50,
                             child: const Center(

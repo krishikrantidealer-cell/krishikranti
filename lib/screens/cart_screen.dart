@@ -1256,6 +1256,7 @@ class _CartItemRow extends StatelessWidget {
                               child: CachedNetworkImage(
                                 imageUrl: item.productImage,
                                 fit: BoxFit.contain,
+                                memCacheWidth: 200,
                                 placeholder: (context, url) => const Center(
                                   child: CupertinoActivityIndicator(radius: 6),
                                 ),

@@ -14,6 +14,7 @@ class NotificationModel {
   final String group;
   final NotificationCategory category;
   final String? payload;
+  final String? imageUrl;
 
   NotificationModel({
     required this.id,
@@ -26,6 +27,7 @@ class NotificationModel {
     required this.group,
     required this.category,
     this.payload,
+    this.imageUrl,
   });
 
   Map<String, dynamic> toJson() {
@@ -38,6 +40,7 @@ class NotificationModel {
       'group': group,
       'category': category.name,
       if (payload != null) 'payload': payload,
+      if (imageUrl != null) 'imageUrl': imageUrl,
     };
   }
 
@@ -62,6 +65,7 @@ class NotificationModel {
       group: json['group'] as String,
       category: category,
       payload: json['payload'] as String?,
+      imageUrl: json['imageUrl'] as String?,
     );
   }
 }

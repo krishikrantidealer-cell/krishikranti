@@ -845,6 +845,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: CachedNetworkImage(
                       imageUrl: item.productImage,
                       fit: BoxFit.contain,
+                      memCacheWidth: 200,
                       placeholder: (context, url) => const Center(
                         child: CupertinoActivityIndicator(radius: 5),
                       ),

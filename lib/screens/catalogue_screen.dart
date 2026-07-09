@@ -676,6 +676,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                     fit: BoxFit.cover,
                     width: double.infinity,
                     height: double.infinity,
+                    memCacheWidth: 800,
                     fadeInDuration: const Duration(milliseconds: 300),
                     placeholder: (context, url) =>
                         Container(color: const Color(0xFFF5F5F5)),
@@ -1238,6 +1239,7 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
                 child: Image.asset(
                   assetIcon,
                   fit: BoxFit.contain,
+                  cacheWidth: 150,
                   errorBuilder: (context, error, stackTrace) => Icon(
                     widget.icon,
                     color: theme.colorScheme.primary,

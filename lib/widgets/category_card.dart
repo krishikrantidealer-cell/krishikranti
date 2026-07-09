@@ -54,10 +54,12 @@ class _CategoryCardState extends State<CategoryCard> {
             child: CachedNetworkImage(
               imageUrl: widget.image,
               fit: BoxFit.fill,
+              memCacheWidth: 250,
               placeholder: (context, url) => Container(color: Colors.grey[200]),
               errorWidget: (context, url, error) => CachedNetworkImage(
                 imageUrl: widget.fallbackImage,
                 fit: BoxFit.fill,
+                memCacheWidth: 250,
                 placeholder: (context, url) => Container(color: Colors.grey[200]),
                 errorWidget: (context, url, error) => Container(
                   color: theme.colorScheme.primary.withValues(alpha: 0.1),

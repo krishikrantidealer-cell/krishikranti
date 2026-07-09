@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EkycPage extends StatefulWidget {
   const EkycPage({super.key});
@@ -39,12 +40,25 @@ class _EkycPageState extends State<EkycPage> {
   double _uploadProgress = 0;
   String _loadingMessage = "";
 
+  String _userType = 'retailer';
+
   @override
   void initState() {
     super.initState();
+    _loadUserType();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ProfileService>(context, listen: false).fetchProfileFromServer();
     });
+  }
+
+  Future<void> _loadUserType() async {
+    final prefs = await SharedPreferences.getInstance();
+    final type = prefs.getString('selected_user_type') ?? 'retailer';
+    if (mounted) {
+      setState(() {
+        _userType = type;
+      });
+    }
   }
 
   Future<void> _pickImage(ImageSource source, bool isLicense) async {
@@ -128,7 +142,7 @@ class _EkycPageState extends State<EkycPage> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.file(image, fit: BoxFit.contain),
+              child: Image.file(image, fit: BoxFit.contain, cacheWidth: 1000),
             ),
             Positioned(
               top: 10,
@@ -496,7 +510,9 @@ class _EkycPageState extends State<EkycPage> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        "Retailer & Distributor",
+                                        _userType.isEmpty
+                                            ? "Retailer"
+                                            : _userType[0].toUpperCase() + _userType.substring(1),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyLarge
@@ -696,7 +712,7 @@ class _EkycPageState extends State<EkycPage> {
                                                       await getTemporaryDirectory();
                                                   final targetPath = path.join(
                                                     tempDir.path,
-                                                    "compressed_license_${DateTime.now().millisecondsSinceEpoch}$extLic",
+                                                    "compressed_license_${DateTime.now().millisecondsSinceEpoch}.jpg",
                                                   );
 
                                                   final compressedFile =
@@ -722,7 +738,7 @@ class _EkycPageState extends State<EkycPage> {
                                                       await getTemporaryDirectory();
                                                   final targetPath = path.join(
                                                     tempDir.path,
-                                                    "compressed_shop_${DateTime.now().millisecondsSinceEpoch}$extShop",
+                                                    "compressed_shop_${DateTime.now().millisecondsSinceEpoch}.jpg",
                                                   );
 
                                                   final compressedFile =
@@ -743,6 +759,9 @@ class _EkycPageState extends State<EkycPage> {
                                                       "Uploading to secure server...";
                                                 });
 
+                                                final prefs = await SharedPreferences.getInstance();
+                                                final selectedType = prefs.getString('selected_user_type') ?? 'retailer';
+
                                                 final response =
                                                     await HttpService.uploadFiles(
                                                       ApiConstants.kyc,
@@ -756,8 +775,7 @@ class _EkycPageState extends State<EkycPage> {
                                                                 .text
                                                                 .trim()
                                                                 .toUpperCase(),
-                                                        'userType':
-                                                            'Retailer and Distributor',
+                                                        'userType': selectedType,
                                                       },
                                                       files: {
                                                         if (finalLicensePath != null)
@@ -790,7 +808,7 @@ class _EkycPageState extends State<EkycPage> {
                                                       isKycComplete: false,
                                                     );
                                                     MetaAnalyticsService.logKycSubmitted(
-                                                      kycType: 'Retailer and Distributor',
+                                                      kycType: selectedType,
                                                     );
                                                     HapticUtil.success();
                                                     Navigator.pushNamedAndRemoveUntil(
@@ -1197,7 +1215,7 @@ class _EkycPageState extends State<EkycPage> {
                                       ],
                                     ),
                                   )
-                                : Image.file(image, fit: BoxFit.cover))
+                                : Image.file(image, fit: BoxFit.cover, cacheWidth: 400))
                           : (remoteUrl!.toLowerCase().endsWith('.pdf')
                                 ? Container(
                                     color: Colors.grey.shade100,
@@ -1225,6 +1243,7 @@ class _EkycPageState extends State<EkycPage> {
                                 : Image.network(
                                     remoteUrl,
                                     fit: BoxFit.cover,
+                                    cacheWidth: 400,
                                     errorBuilder:
                                         (context, error, stackTrace) =>
                                             Container(

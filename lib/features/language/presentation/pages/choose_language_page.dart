@@ -356,7 +356,7 @@ class _ChooseLanguagePageState extends State<ChooseLanguagePage>
       theme: theme,
       onPressed: () {
         HapticFeedback.mediumImpact();
-        Navigator.of(context).pushReplacementNamed('/phone-verify');
+        Navigator.of(context).pushReplacementNamed('/choose-user-type');
       },
     );
   }

@@ -78,6 +78,7 @@ class HomeBannerSection extends StatelessWidget {
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
                             width: double.infinity,
+                            memCacheWidth: 800,
                             placeholder: (_, __) =>
                                 Container(color: Colors.grey[200]),
                             errorWidget: (_, __, ___) => const Center(

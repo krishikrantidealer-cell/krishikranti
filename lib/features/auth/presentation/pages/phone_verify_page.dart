@@ -4,6 +4,7 @@ import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/utils/haptic_util.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class PhoneVerifyPage extends StatefulWidget {
@@ -134,6 +135,44 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Floating Back Button
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 10,
+              left: 16,
+              child: GestureDetector(
+                onTap: () async {
+                  HapticUtil.light();
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.remove('selected_user_type');
+                  if (!context.mounted) return;
+                  Navigator.of(context)
+                      .pushReplacementNamed('/choose-user-type');
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 20,
+                    color: Colors.black87,
                   ),
                 ),
               ),

@@ -19,6 +19,8 @@ import 'package:krishikranti/core/update_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/features/splash/presentation/pages/splash_page.dart';
 import 'package:krishikranti/features/language/presentation/pages/choose_language_page.dart';
+import 'package:krishikranti/features/auth/presentation/pages/choose_user_type_page.dart';
+import 'package:krishikranti/features/auth/presentation/pages/farmer_redirect_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/phone_verify_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/otp_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/register_page.dart';
@@ -129,6 +131,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashPage(),
+        '/choose-user-type': (context) => const ChooseUserTypePage(),
+        '/farmer-redirect': (context) => const FarmerRedirectPage(),
         '/language': (context) => const ChooseLanguagePage(),
         '/phone-verify': (context) => const PhoneVerifyPage(),
         '/otp': (context) => const OtpPage(),

@@ -1141,6 +1141,7 @@ class _OrderCardState extends State<_OrderCard>
                 ? CachedNetworkImage(
                     imageUrl: url,
                     fit: BoxFit.cover,
+                    memCacheWidth: 200,
                     placeholder: (context, url) => Container(
                       color: Colors.grey.shade100,
                       child: const Center(child: CupertinoActivityIndicator()),

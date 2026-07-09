@@ -16,6 +16,8 @@ import 'package:krishikranti/main.dart'; // To access navigatorKey
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
@@ -26,6 +28,23 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Ensure Firebase is initialized for background tasks if needed
   await Firebase.initializeApp();
   debugPrint("Handling a background message: ${message.messageId}");
+
+  // If it's a data-only message with no system notification, trigger a local one
+  // so that images and banners show up based on our showNotification logic.
+  if (message.notification == null && message.data.isNotEmpty) {
+    String? imageUrl = message.data['image'];
+    await NotificationService.showNotification(
+      title: message.data['title'] ?? "New Alert",
+      body: message.data['body'] ?? "",
+      payload: jsonEncode(message.data),
+      imageUrl: imageUrl,
+      category:
+          message.data['category'] == 'marketing'
+              ? NotificationCategory.marketing
+              : NotificationCategory.utility,
+    );
+  }
+
   await NotificationService.saveNotificationToLocal(message);
 }
 
@@ -137,11 +156,20 @@ class NotificationService {
           return;
         }
 
+        String? imageUrl;
+        if (Platform.isAndroid) {
+          imageUrl = message.notification?.android?.imageUrl;
+        } else if (Platform.isIOS) {
+          imageUrl = message.notification?.apple?.imageUrl;
+        }
+        imageUrl ??= message.data['image'];
+
         // Use our unified showNotification utility
         showNotification(
           title: message.notification!.title ?? "Update",
           body: message.notification!.body ?? "",
           payload: jsonEncode(message.data),
+          imageUrl: imageUrl,
           category: message.data['category'] == 'marketing'
               ? NotificationCategory.marketing
               : NotificationCategory.utility,
@@ -245,6 +273,7 @@ class NotificationService {
     int? progress,
     int? maxProgress,
     bool indeterminate = false,
+    String? imageUrl,
   }) async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'krishikranti_high_importance_channel',
@@ -257,20 +286,25 @@ class NotificationService {
 
     if (shouldSaveToHistory) {
       final newNotif = NotificationModel(
-        id: notificationId?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id:
+            notificationId?.toString() ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         title: title,
         description: body,
         time: "Just now",
-        icon: category == NotificationCategory.marketing
-            ? CupertinoIcons.bolt_fill
-            : CupertinoIcons.cube_box_fill,
-        color: category == NotificationCategory.marketing
-            ? Colors.orange
-            : const Color(0xFF2E7D32),
+        icon:
+            category == NotificationCategory.marketing
+                ? CupertinoIcons.bolt_fill
+                : CupertinoIcons.cube_box_fill,
+        color:
+            category == NotificationCategory.marketing
+                ? Colors.orange
+                : const Color(0xFF2E7D32),
         isUnread: true,
         group: "Today",
         category: category,
         payload: payload,
+        imageUrl: imageUrl,
       );
 
       // Save to local storage for the Notification Screen
@@ -279,6 +313,18 @@ class NotificationService {
     }
 
     final notifId = notificationId ?? DateTime.now().hashCode;
+
+    String? bigPicturePath;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        bigPicturePath = await _downloadAndSaveFile(
+          imageUrl,
+          'notification_img_$notifId',
+        );
+      } catch (e) {
+        debugPrint("Error downloading notification image: $e");
+      }
+    }
 
     // Show the actual system notification
     await _localNotificationsPlugin.show(
@@ -299,15 +345,44 @@ class NotificationService {
           progress: progress ?? 0,
           indeterminate: indeterminate,
           onlyAlertOnce: true, // Prevents notification alert noise/buzz on every progress tick
+          largeIcon:
+              bigPicturePath != null
+                  ? FilePathAndroidBitmap(bigPicturePath)
+                  : null,
+          styleInformation:
+              bigPicturePath != null
+                  ? BigPictureStyleInformation(
+                    FilePathAndroidBitmap(bigPicturePath),
+                    largeIcon: FilePathAndroidBitmap(bigPicturePath),
+                    contentTitle: title,
+                    summaryText: body,
+                  )
+                  : null,
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+          attachments:
+              bigPicturePath != null
+                  ? [DarwinNotificationAttachment(bigPicturePath)]
+                  : null,
         ),
       ),
       payload: payload,
     );
+  }
+
+  static Future<String> _downloadAndSaveFile(
+    String url,
+    String fileName,
+  ) async {
+    final Directory directory = await getTemporaryDirectory();
+    final String filePath = '${directory.path}/$fileName';
+    final http.Response response = await http.get(Uri.parse(url));
+    final File file = File(filePath);
+    await file.writeAsBytes(response.bodyBytes);
+    return filePath;
   }
 
   /// Helper to save manually triggered notifications
@@ -330,7 +405,8 @@ class NotificationService {
   static Future<NotificationModel?> saveNotificationToLocal(
     RemoteMessage message,
   ) async {
-    if (message.notification == null) return null;
+    // Only save if it has a notification body or data fields that look like a notification
+    if (message.notification == null && message.data.isEmpty) return null;
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -339,31 +415,45 @@ class NotificationService {
 
       // Parse payload
       final String categoryStr = message.data['category'] ?? 'utility';
-      final NotificationCategory category = categoryStr == 'marketing'
-          ? NotificationCategory.marketing
-          : NotificationCategory.utility;
+      final NotificationCategory category =
+          categoryStr == 'marketing'
+              ? NotificationCategory.marketing
+              : NotificationCategory.utility;
 
       // Determine UI elements based on category
-      final IconData icon = category == NotificationCategory.marketing
-          ? CupertinoIcons.bolt_fill
-          : CupertinoIcons.cube_box_fill;
-      final Color color = category == NotificationCategory.marketing
-          ? Colors.orange
-          : const Color(0xFF2E7D32);
+      final IconData icon =
+          category == NotificationCategory.marketing
+              ? CupertinoIcons.bolt_fill
+              : CupertinoIcons.cube_box_fill;
+      final Color color =
+          category == NotificationCategory.marketing
+              ? Colors.orange
+              : const Color(0xFF2E7D32);
+
+      String? imageUrl;
+      if (Platform.isAndroid) {
+        imageUrl = message.notification?.android?.imageUrl;
+      } else if (Platform.isIOS) {
+        imageUrl = message.notification?.apple?.imageUrl;
+      }
+      imageUrl ??= message.data['image'];
 
       // Create model
       final NotificationModel newNotif = NotificationModel(
         id:
             message.messageId ??
             DateTime.now().millisecondsSinceEpoch.toString(),
-        title: message.notification!.title ?? "New Alert",
-        description: message.notification!.body ?? "",
+        title: message.notification?.title ?? message.data['title'] ?? "Alert",
+        description:
+            message.notification?.body ?? message.data['body'] ?? "New Update",
         time: "Just now",
         icon: icon,
         color: color,
         isUnread: true,
         group: "Today",
         category: category,
+        imageUrl: imageUrl,
+        payload: jsonEncode(message.data),
       );
 
       // Save to list (add to top)
