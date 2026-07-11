@@ -88,7 +88,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
     }
   }
 
-  void _loginAsGuest() async {
+  void loginAsGuest() async {
     HapticUtil.medium();
     setState(() => _isLoading = true);
 
@@ -441,29 +441,29 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: OutlinedButton(
-                        onPressed: _isLoading ? null : _loginAsGuest,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF2E7D32),
-                          side: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
-                        child: Text(
-                          "Browse as Guest",
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontSize: 18,
-                            color: const Color(0xFF2E7D32),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
+                    // const SizedBox(height: 16),
+                    // SizedBox(
+                    //   width: double.infinity,
+                    //   height: 54,
+                    //   child: OutlinedButton(
+                    //     onPressed: _isLoading ? null : _loginAsGuest,
+                    //     style: OutlinedButton.styleFrom(
+                    //       foregroundColor: const Color(0xFF2E7D32),
+                    //       side: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+                    //       shape: RoundedRectangleBorder(
+                    //         borderRadius: BorderRadius.circular(18),
+                    //       ),
+                    //     ),
+                    //     child: Text(
+                    //       "Browse as Guest",
+                    //       style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    //         fontSize: 18,
+                    //         color: const Color(0xFF2E7D32),
+                    //         fontWeight: FontWeight.bold,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
