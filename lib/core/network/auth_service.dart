@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:krishikranti/core/constants/api_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static const _storage = FlutterSecureStorage();
@@ -64,6 +65,9 @@ class AuthService {
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _isProfileCompleteKey);
     await _storage.delete(key: _isKycCompleteKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('selected_user_type');
+    await prefs.remove('isLoggedIn');
   }
 
   static Future<bool> isLoggedIn() async {

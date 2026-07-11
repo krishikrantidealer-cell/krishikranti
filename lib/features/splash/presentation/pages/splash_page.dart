@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'dart:async';
 import '../widgets/wavy_painter.dart';
 import 'package:krishikranti/core/network/http_service.dart';
@@ -33,10 +34,33 @@ class _SplashPageState extends State<SplashPage> {
       if (mounted) {
         // Perform Firebase Remote Config Force/Optional Update check
         final updateType = await UpdateService.checkUpdateStatus();
-        if (updateType == UpdateType.force && mounted) {
-          UpdateService.showUpdateDialog(context, UpdateType.force);
-          return; // Block entry to the app
+
+        // Trigger Google Play in-app update check (Flexible background or Immediate)
+        bool nativeUpdateTriggered = false;
+        if (mounted) {
+          nativeUpdateTriggered =
+              await UpdateService.checkAndTriggerPlayStoreUpdate(
+                context,
+                updateType,
+              );
         }
+
+        // Commented out Force Update block for testing in-app updates
+        /*
+        if (nativeUpdateTriggered) {
+          if (updateType == UpdateType.force) {
+            return; // Block entry to the app
+          }
+        } else {
+          if (updateType == UpdateType.force && mounted) {
+            UpdateService.showUpdateDialog(context, UpdateType.force);
+            return; // Block entry to the app
+          }
+        }
+        */
+
+        final showOptionalDialog =
+            !nativeUpdateTriggered && updateType == UpdateType.optional;
 
         final loggedIn = await AuthService.isLoggedIn();
 
@@ -44,7 +68,10 @@ class _SplashPageState extends State<SplashPage> {
         if (loggedIn) {
           // Proactively fetch latest user profile to verify if blocked/suspended
           try {
-            final profileService = Provider.of<ProfileService>(context, listen: false);
+            final profileService = Provider.of<ProfileService>(
+              context,
+              listen: false,
+            );
             await profileService.fetchProfileFromServer();
           } catch (e) {
             debugPrint("Splash profile fetch error: $e");
@@ -62,15 +89,17 @@ class _SplashPageState extends State<SplashPage> {
           if (mounted) {
             if (!profileDone) {
               Navigator.of(context).pushReplacementNamed('/register').then((_) {
-                if (updateType == UpdateType.optional && mounted) {
+                if (showOptionalDialog && mounted) {
                   UpdateService.showUpdateDialog(context, UpdateType.optional);
                 }
               });
             } else {
               // We go directly to dashboard. KYC is no longer mandatory at startup
               // as it can be completed via the Profile section.
-              Navigator.of(context).pushReplacementNamed('/dashboard').then((_) {
-                if (updateType == UpdateType.optional && mounted) {
+              Navigator.of(context).pushReplacementNamed('/dashboard').then((
+                _,
+              ) {
+                if (showOptionalDialog && mounted) {
                   UpdateService.showUpdateDialog(context, UpdateType.optional);
                 }
               });
@@ -86,15 +115,15 @@ class _SplashPageState extends State<SplashPage> {
                   ? '/farmer-redirect'
                   : '/phone-verify';
               Navigator.of(context).pushReplacementNamed(nextRoute).then((_) {
-                if (updateType == UpdateType.optional && mounted) {
+                if (showOptionalDialog && mounted) {
                   UpdateService.showUpdateDialog(context, UpdateType.optional);
                 }
               });
             } else {
-              Navigator.of(context)
-                  .pushReplacementNamed('/choose-user-type')
-                  .then((_) {
-                if (updateType == UpdateType.optional && mounted) {
+              Navigator.of(
+                context,
+              ).pushReplacementNamed('/choose-user-type').then((_) {
+                if (showOptionalDialog && mounted) {
                   UpdateService.showUpdateDialog(context, UpdateType.optional);
                 }
               });
@@ -114,10 +143,15 @@ class _SplashPageState extends State<SplashPage> {
     NotificationService.syncToken();
 
     // Start background sequential download of all models post-splash
-    debugPrint('[Splash] Triggering post-splash background sequential download of all language models.');
+    debugPrint(
+      '[Splash] Triggering post-splash background sequential download of all language models.',
+    );
     DynamicTranslationService().startBackgroundDownloadOfAllModels();
 
     FlutterNativeSplash.remove();
+
+    // Trigger App Tracking Transparency dialog request on iOS
+    MetaAnalyticsService.requestATT();
   }
 
   @override

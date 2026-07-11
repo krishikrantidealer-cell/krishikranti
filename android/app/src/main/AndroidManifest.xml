@@ -26,7 +26,7 @@
         android:name="android.permission.READ_MEDIA_VIDEO"
         tools:node="remove" />
     <application
-        android:label="Krishi Dealer-Retailer App"
+        android:label="Krishi Kranti Dealer App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true"

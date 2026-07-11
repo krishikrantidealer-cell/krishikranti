@@ -14,7 +14,7 @@ class HttpService {
   static Future<void> forceLogout() async {
     await AuthService.logout();
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      '/phone-verify',
+      '/choose-user-type',
       (route) => false,
     );
   }

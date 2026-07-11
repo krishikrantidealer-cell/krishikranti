@@ -72,19 +72,6 @@ class MetaAnalyticsService {
     try {
       debugPrint("📢 Initializing Meta SDK...");
 
-      // iOS App Tracking Transparency check
-      if (Platform.isIOS) {
-        try {
-          final trackingStatus = await AppTrackingTransparency.trackingAuthorizationStatus;
-          if (trackingStatus == TrackingStatus.notDetermined) {
-            debugPrint("📢 Prompting iOS App Tracking Transparency...");
-            await AppTrackingTransparency.requestTrackingAuthorization();
-          }
-        } catch (e) {
-          debugPrint("⚠️ Meta SDK: Error prompting App Tracking Transparency: $e");
-        }
-      }
-
       // 1. Enable advertiser tracking and auto event logging
       await _facebookAppEvents.setAdvertiserTracking(enabled: true);
       await _facebookAppEvents.setAutoLogAppEventsEnabled(true);
@@ -642,5 +629,22 @@ class MetaAnalyticsService {
       await _checkAttribution();
     }
     return prefs.getString(_deepLinkUrlKey);
+  }
+
+  /// Explicitly requests App Tracking Transparency for iOS
+  static Future<void> requestATT() async {
+    if (Platform.isIOS) {
+      try {
+        final trackingStatus = await AppTrackingTransparency.trackingAuthorizationStatus;
+        if (trackingStatus == TrackingStatus.notDetermined) {
+          debugPrint("📢 Prompting iOS App Tracking Transparency...");
+          await Future.delayed(const Duration(milliseconds: 1000));
+          final status = await AppTrackingTransparency.requestTrackingAuthorization();
+          debugPrint("📢 iOS App Tracking Transparency status: $status");
+        }
+      } catch (e) {
+        debugPrint("⚠️ Meta SDK: Error prompting App Tracking Transparency: $e");
+      }
+    }
   }
 }

@@ -12,6 +12,8 @@ import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
+import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 
@@ -58,12 +60,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Text(l10n.yes),
             onPressed: () async {
               await AuthService.logout();
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('isLoggedIn', false);
               if (context.mounted) {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
-                  '/phone-verify',
+                  '/choose-user-type',
                   (route) => false,
                 );
               }
@@ -72,6 +72,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    HapticFeedback.heavyImpact();
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text(
+          "Delete Account",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            "Are you sure you want to permanently delete your account? All your personal information, address history, and KYC details will be permanently removed. This action cannot be undone.",
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Cancel", style: TextStyle(color: Colors.blue)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              _performAccountDeletion(context);
+            },
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _performAccountDeletion(BuildContext context) async {
+    // Show a loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Colors.red),
+      ),
+    );
+
+    try {
+      // Call backend DELETE API
+      final response = await HttpService.delete('${ApiConstants.baseUrl}/api/users/me');
+      
+      // Close loading indicator
+      if (context.mounted) Navigator.pop(context);
+
+      if (response.statusCode == 200) {
+        // Clear auth tokens and logout
+        await AuthService.logout();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Account successfully deleted."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/choose-user-type',
+            (route) => false,
+          );
+        }
+      } else {
+        throw 'Failed to delete account (Server returned ${response.statusCode})';
+      }
+    } catch (e) {
+      // Close loading indicator if open
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -480,6 +563,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onTap: () => _showLogoutDialog(context),
                           label: l10n.logout,
                         ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () => _showDeleteAccountDialog(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                          ),
+                          child: const Text(
+                            "Delete Account",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 24),
                         Center(
                           child: Column(
@@ -498,7 +595,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                "KRISHI KRANTI • VERSION 2.0.1",
+                                "KRISHI KRANTI DEALER APP • VERSION 2.0.1",
                                 style: TextStyle(
                                   color: Colors.grey.shade500,
                                   fontSize: 9,

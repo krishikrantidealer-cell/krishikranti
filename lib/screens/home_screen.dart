@@ -14,6 +14,7 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
+import 'package:krishikranti/core/utils/guest_barrier_util.dart';
 import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:krishikranti/widgets/breathing_mic_icon.dart';
 import 'package:provider/provider.dart';
@@ -544,6 +545,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
+                if (profile.isGuest) {
+                  GuestBarrierUtil.showGuestLoginDialog(context);
+                  return;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -584,7 +589,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           child: Center(
                             child: TranslatableText(
-                              profile.avatarLetter,
+                              profile.isGuest ? 'G' : profile.avatarLetter,
                               style: TextStyle(
                                 color: theme.colorScheme.primary,
                                 fontSize: 18,
@@ -646,7 +651,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 1),
                   TranslatableText(
-                    profile.name,
+                    profile.isGuest ? 'Guest' : profile.name,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                       fontSize: 17,
@@ -669,12 +674,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildCartButton(BuildContext context, ThemeData theme) {
+    final profile = Provider.of<ProfileService>(context, listen: false);
     return Consumer<CartService>(
       builder: (context, cart, child) {
-        final count = cart.totalCount;
+        final count = profile.isGuest ? 0 : cart.totalCount;
         return IconButton.filled(
           onPressed: () {
             HapticFeedback.lightImpact();
+            if (profile.isGuest) {
+              GuestBarrierUtil.showGuestLoginDialog(context);
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CartScreen()),

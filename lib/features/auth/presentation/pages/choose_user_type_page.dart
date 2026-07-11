@@ -26,15 +26,9 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
     'en': {
       'selectUserType': 'Select User Type',
       'subtitle': 'Choose how you want to use KrishiDealer',
-      'retailerTitle': 'Retailer',
+      'retailerTitle': 'Retailer / Wholesaler',
       'retailerDesc':
-          'Order fertilizers, seeds & agrochemicals in bulk for your retail shop.',
-      'distributorTitle': 'Distributor',
-      'distributorDesc':
-          'Distribute agri-inputs and manage wholesaling operations.',
-      'wholesalerTitle': 'Wholesaler',
-      'wholesalerDesc':
-          'Order agricultural inputs in bulk and manage wholesale operations.',
+          'Order fertilizers, seeds & agrochemicals in bulk for retail or wholesale business.',
       'farmerTitle': 'Farmer',
       'farmerDesc':
           'Purchase premium organic inputs directly for personal cultivation.',
@@ -44,15 +38,9 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
     'hi': {
       'selectUserType': 'यूज़र का प्रकार चुनें',
       'subtitle': 'चुनें कि आप कृषिडीलर का उपयोग कैसे करना चाहते हैं',
-      'retailerTitle': 'रिटेलर / खुदरा विक्रेता',
+      'retailerTitle': 'रिटेलर / थोक विक्रेता',
       'retailerDesc':
-          'अपनी खुदरा दुकान के लिए थोक में उर्वरक, बीज और कृषि रसायन ऑर्डर करें।',
-      'distributorTitle': 'डिस्ट्रीब्यूटर / वितरक',
-      'distributorDesc':
-          'कृषि-इनपुट वितरित करें और थोक संचालन का प्रबंधन करें।',
-      'wholesalerTitle': 'थोक विक्रेता',
-      'wholesalerDesc':
-          'कृषि सामग्री थोक में ऑर्डर करें और थोक संचालन का प्रबंधन करें।',
+          'अपनी दुकान या व्यवसाय के लिए थोक में उर्वरक, बीज और कृषि रसायन ऑर्डर करें।',
       'farmerTitle': 'किसान',
       'farmerDesc': 'व्यक्तिगत खेती के लिए सीधे प्रीमियम जैविक इनपुट खरीदें।',
       'continue': 'जारी रखें',
@@ -62,15 +50,9 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
       'selectUserType': 'பயனர் வகையைத் தேர்ந்தெடுக்கவும்',
       'subtitle':
           'கிருஷி டீலரை எவ்வாறு பயன்படுத்த விரும்புகிறீர்கள் என்பதைத் தேர்வுசெய்க',
-      'retailerTitle': 'சில்லறை விற்பனையாளர்',
+      'retailerTitle': 'சில்லறை / மொத்த விற்பனையாளர்',
       'retailerDesc':
-          'உங்கள் சில்லறை கடைக்கு உரங்கள், விதைகள் மற்றும் வேளாண் இரசாயனங்கள் மொத்தமாக ஆர்டர் செய்யுங்கள்.',
-      'distributorTitle': 'விநியோகஸ்தர்',
-      'distributorDesc':
-          'விவசாய உள்ளீடுகளை விநியோகிக்கவும் மற்றும் மொத்த விற்பனை செயல்பாடுகளை நிர்வகிக்கவும்.',
-      'wholesalerTitle': 'மொத்த விற்பனையாளர்',
-      'wholesalerDesc':
-          'விவசாயப் பொருட்களை மொத்தமாக ஆர்டர் செய்து, மொத்த விற்பனை நடவடிக்கைகளை நிர்வகிக்கவும்.',
+          'உங்கள் சில்லறை அல்லது மொத்த விற்பனை வணிகத்திற்காக உரங்கள், விதைகள் மற்றும் வேளாண் இரசாயனங்கள் மொத்தமாக ஆர்டர் செய்யுங்கள்.',
       'farmerTitle': 'விவசாயி',
       'farmerDesc':
           'தனிப்பட்ட சாகுபடிக்கு நேரடியாக பிரீமியம் கரிம உள்ளீடுகளை வாங்கவும்.',
@@ -80,15 +62,9 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
     'te': {
       'selectUserType': 'యూజర్ రకాన్ని ఎంచుకోండి',
       'subtitle': 'కృషిడీలర్‌ను మీరు ఎలా ఉపయోగించాలనుకుంటున్నారో ఎంచుకోండి',
-      'retailerTitle': 'రిటైలర్',
+      'retailerTitle': 'రిటైలర్ / హోల్‌సేలర్',
       'retailerDesc':
-          'మీ రిటైల్ షాప్ కోసం ఎరువులు, విత్తనాలు & ఆగ్రోకెమికల్స్ బల్క్‌గా ఆర్డర్ చేయండి.',
-      'distributorTitle': 'డిస్ట్రిబ్యూటర్',
-      'distributorDesc':
-          'వ్యవసాయ ఇన్‌పుట్‌లను పంపిణీ చేయండి మరియు హోల్‌సేల్ కార్యకలాపాలను నిర్వహించండి.',
-      'wholesalerTitle': 'హోల్‌సేలర్',
-      'wholesalerDesc':
-          'వ్యవసాయ ఇన్‌పుట్‌లను బల్క్‌గా ఆర్డర్ చేయండి మరియు హోల్‌సేల్ కార్యకలాపాలను నిర్వహించండి.',
+          'మీ రిటైల్ లేదా హోల్‌సేల్ వ్యాపారం కోసం ఎరువులు, విత్తనాలు & ఆగ్రోకెమికల్స్ బల్క్‌గా ఆర్డర్ చేయండి.',
       'farmerTitle': 'రైతు',
       'farmerDesc':
           'వ్యక్తిగత సాగు కోసం ప్రీమియం సేంద్రీయ ఇన్‌పుట్‌లను నేరుగా కొనుగోలు చేయండి.',
@@ -98,15 +74,9 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
     'mr': {
       'selectUserType': 'वापरकर्ता प्रकार निवडा',
       'subtitle': 'तुम्ही कृषीडीलरचा कसा वापर करू इच्छिता ते निवडा',
-      'retailerTitle': 'रिटेलर / किरकोळ विक्रेता',
+      'retailerTitle': 'रिटेलर / घाऊक व्यापारी',
       'retailerDesc':
-          'तुमच्या किरकोळ दुकानासाठी खते, बियाणे आणि कृषी रसायने घाऊक प्रमाणात ordre करा.',
-      'distributorTitle': 'वितरक',
-      'distributorDesc':
-          'कृषी-इनपुट वितरित करा और घाऊक विक्री व्यवस्थापित करा.',
-      'wholesalerTitle': 'घाऊक व्यापारी',
-      'wholesalerDesc':
-          'कृषी उत्पादने घाऊक प्रमाणात ऑर्डर करा आणि घाऊक विक्रीचे व्यवस्थापन करा.',
+          'तुमच्या किरकोळ किंवा घाऊक व्यवसायासाठी खते, बियाणे आणि कृषी रसायने घाऊक प्रमाणात ऑर्डर करा.',
       'farmerTitle': 'शेतकरी',
       'farmerDesc':
           'वैयक्तिक शेतीसाठी थेट प्रीमियम सेंद्रिय उत्पादने खरेदी करा.',
@@ -116,15 +86,9 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
     'kn': {
       'selectUserType': 'ಬಳಕೆದಾರರ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
       'subtitle': 'ಕೃಷಿಡೀಲರ್ ಅನ್ನು ನೀವು ಹೇಗೆ ಬಳಸಲು ಬಯಸುತ್ತೀರಿ ಎಂಬುದನ್ನು ಆರಿಸಿ',
-      'retailerTitle': 'ಚಿಲ್ಲರೆ ವ್ಯಾಪಾರಿ',
+      'retailerTitle': 'ಚಿಲ್ಲರೆ / ಸಗಟು ವ್ಯಾಪಾರಿ',
       'retailerDesc':
-          'ನಿಮ್ಮ ಚಿಲ್ಲರೆ ಅಂಗಡಿಗಾಗಿ ರಸಗೊಬ್ಬರಗಳು, ಬೀಜಗಳು ಮತ್ತು ಕೃಷಿ ರಾಸಾಯನಿಕಗಳನ್ನು ದೊಡ್ಡ ಪ್ರಮಾಣದಲ್ಲಿ ಆರ್ಡರ್ ಮಾಡಿ.',
-      'distributorTitle': 'ವಿತರಕ',
-      'distributorDesc':
-          'ಕೃಷಿ ಪರಿಕರಗಳನ್ನು ವಿತರಿಸಿ ಮತ್ತು ಸಗಟು ಕಾರ್ಯಾಚರಣೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ.',
-      'wholesalerTitle': 'ಸಗಟು ವ್ಯಾಪಾರಿ',
-      'wholesalerDesc':
-          'ಕೃಷಿ ಪರಿಕರಗಳನ್ನು ದೊಡ್ಡ ಪ್ರಮಾಣದಲ್ಲಿ ಆರ್ಡರ್ ಮಾಡಿ ಮತ್ತು ಸಗಟು ಕಾರ್ಯಾಚರಣೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ.',
+          'ನಿಮ್ಮ ಚಿಲ್ಲರೆ ಅಥವಾ ಸಗಟು ವ್ಯಾಪಾರಕ್ಕಾಗಿ ರಸಗೊಬ್ಬರಗಳು, ಬೀಜಗಳು ಮತ್ತು ಕೃಷಿ ರಾಸಾಯನಿಕಗಳನ್ನು ದೊಡ್ಡ ಪ್ರಮಾಣದಲ್ಲಿ ಆರ್ಡರ್ ಮಾಡಿ.',
       'farmerTitle': 'ರೈತ',
       'farmerDesc':
           'ವೈಯಕ್ತಿಕ ಕೃಷಿಗಾಗಿ ಪ್ರೀಮಿಯಂ ಸಾವಯವ ಪರಿಕರಗಳನ್ನು ನೇರವಾಗಿ ಖರೀದಿಸಿ.',
@@ -174,11 +138,6 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
       case 'farmer':
         return const [Color(0xFFE65100), Color(0xFFFF9800)];
       case 'retailer':
-        return const [Color(0xFF2E7D32), Color(0xFF4CAF50)];
-      case 'distributor':
-        return const [Color(0xFF1565C0), Color(0xFF2196F3)];
-      case 'wholesaler':
-        return const [Color(0xFF7B1FA2), Color(0xFF9C27B0)];
       default:
         return const [Color(0xFF2E7D32), Color(0xFF4CAF50)];
     }
@@ -205,20 +164,6 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
         'icon': Icons.storefront_rounded,
         'gradient': const [Color(0xFF2E7D32), Color(0xFF4CAF50)],
       },
-      {
-        'id': 'distributor',
-        'title': _getString('distributorTitle', currentLocale),
-        'desc': _getString('distributorDesc', currentLocale),
-        'icon': Icons.business_center_rounded,
-        'gradient': const [Color(0xFF1565C0), Color(0xFF2196F3)],
-      },
-      {
-        'id': 'wholesaler',
-        'title': _getString('wholesalerTitle', currentLocale),
-        'desc': _getString('wholesalerDesc', currentLocale),
-        'icon': Icons.store_rounded,
-        'gradient': const [Color(0xFF7B1FA2), Color(0xFF9C27B0)],
-      },
     ];
 
     return PopScope(
@@ -242,13 +187,7 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        childAspectRatio: 0.88,
+                      child: Column(
                         children: List.generate(userTypes.length, (index) {
                           final type = userTypes[index];
                           final isSelected = _selectedUserType == type['id'];
@@ -262,27 +201,30 @@ class _ChooseUserTypePageState extends State<ChooseUserTypePage>
                             ),
                           );
 
-                          return AnimatedBuilder(
-                            animation: animation,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(0, 30 * (1 - animation.value)),
-                                child: Opacity(
-                                  opacity: animation.value.clamp(0.0, 1.0),
-                                  child: _UserTypeCard(
-                                    type: type,
-                                    isSelected: isSelected,
-                                    theme: theme,
-                                    onTap: () {
-                                      HapticUtil.light();
-                                      setState(() {
-                                        _selectedUserType = type['id'];
-                                      });
-                                    },
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: AnimatedBuilder(
+                              animation: animation,
+                              builder: (context, child) {
+                                return Transform.translate(
+                                  offset: Offset(0, 30 * (1 - animation.value)),
+                                  child: Opacity(
+                                    opacity: animation.value.clamp(0.0, 1.0),
+                                    child: _UserTypeCard(
+                                      type: type,
+                                      isSelected: isSelected,
+                                      theme: theme,
+                                      onTap: () {
+                                        HapticUtil.light();
+                                        setState(() {
+                                          _selectedUserType = type['id'];
+                                        });
+                                      },
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           );
                         }),
                       ),
@@ -501,7 +443,7 @@ class _UserTypeCardState extends State<_UserTypeCard>
       onTapCancel: () => _pressController.reverse(),
       onTap: widget.onTap,
       child: AnimatedScale(
-        scale: widget.isSelected ? 1.03 : 1.0,
+        scale: widget.isSelected ? 1.02 : 1.0,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         child: ScaleTransition(
@@ -554,86 +496,83 @@ class _UserTypeCardState extends State<_UserTypeCard>
                 borderRadius: BorderRadius.circular(18.2),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                  child: Stack(
-                    children: [
-                      if (widget.isSelected)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Icon(
-                            Icons.check_circle_rounded,
-                            size: 18,
-                            color: type['gradient'][0],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 18,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: type['gradient'],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (type['gradient'][0] as Color)
+                                    .withValues(alpha: 0.3),
+                                blurRadius: widget.isSelected ? 10 : 4,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Icon(
+                              type['icon'],
+                              color: Colors.white,
+                              size: 26,
+                            ),
                           ),
                         ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 14,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                type['title'],
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: widget.isSelected
+                                      ? (type['gradient'][0] as Color)
+                                      : const Color(0xFF1E293B),
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                type['desc'],
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: Colors.grey.shade600,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: type['gradient'],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (type['gradient'][0] as Color)
-                                        .withValues(alpha: 0.3),
-                                    blurRadius: widget.isSelected ? 10 : 4,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  type['icon'],
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              type['title'],
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                color: widget.isSelected
-                                    ? (type['gradient'][0] as Color)
-                                    : const Color(0xFF1E293B),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  type['desc'],
-                                  textAlign: TextAlign.center,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade600,
-                                    height: 1.3,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: 12),
+                        Icon(
+                          widget.isSelected
+                              ? Icons.check_circle_rounded
+                              : CupertinoIcons.chevron_right,
+                          size: 22,
+                          color: widget.isSelected
+                              ? type['gradient'][0]
+                              : Colors.grey.shade400,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -16,6 +16,7 @@ import 'package:krishikranti/screens/cart_screen.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
+import 'package:krishikranti/core/utils/guest_barrier_util.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
@@ -1072,10 +1073,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 children: [
                                                   if (!isKycComplete)
                                                     Text(
-                                                      "KYC Required",
+                                                      Provider.of<ProfileService>(context, listen: false).isGuest
+                                                          ? "Login to view price"
+                                                          : "KYC Required",
                                                       style: TextStyle(
-                                                        color:
-                                                            Colors.red.shade700,
+                                                        color: Provider.of<ProfileService>(context, listen: false).isGuest
+                                                            ? const Color(0xFF2E7D32)
+                                                            : Colors.red.shade700,
                                                         fontWeight:
                                                             FontWeight.w800,
                                                         fontSize: 11.5,
@@ -2962,9 +2966,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     if (!isKycComplete)
                       Expanded(
                         child: _ActionBtn(
-                          label: "Verify KYC to Place Order",
+                          label: Provider.of<ProfileService>(context, listen: false).isGuest
+                              ? "Login to Place Order"
+                              : "Verify KYC to Place Order",
                           onPressed: () {
-                            Navigator.pushNamed(context, '/kyc');
+                            if (Provider.of<ProfileService>(context, listen: false).isGuest) {
+                              GuestBarrierUtil.showGuestLoginDialog(context);
+                            } else {
+                              Navigator.pushNamed(context, '/kyc');
+                            }
                           },
                           color: theme.colorScheme.primary,
                           icon: CupertinoIcons.lock_fill,
@@ -3045,9 +3055,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                       if (!isKycComplete)
                         Text(
-                          "KYC Required",
+                          Provider.of<ProfileService>(context, listen: false).isGuest
+                              ? "Login to view price"
+                              : "KYC Required",
                           style: TextStyle(
-                            color: Colors.red.shade700,
+                            color: Provider.of<ProfileService>(context, listen: false).isGuest
+                                ? const Color(0xFF2E7D32)
+                                : Colors.red.shade700,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),

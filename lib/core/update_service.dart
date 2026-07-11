@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 enum UpdateType { none, optional, force }
 
@@ -14,7 +15,7 @@ class UpdateService {
     try {
       await _remoteConfig.setConfigSettings(RemoteConfigSettings(
         fetchTimeout: const Duration(seconds: 10),
-        minimumFetchInterval: const Duration(hours: 1),
+        minimumFetchInterval: const Duration(seconds: 0),
       ));
       
       // Set defaults
@@ -208,5 +209,52 @@ class UpdateService {
         );
       }
     }
+  }
+
+  static Future<bool> checkAndTriggerPlayStoreUpdate(BuildContext context, UpdateType remoteUpdateType) async {
+    if (!Platform.isAndroid) return false; // Google Play In-App Updates is Android-only
+
+    try {
+      debugPrint("Checking for Google Play in-app updates...");
+      final info = await InAppUpdate.checkForUpdate();
+
+      if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+        final isForce = remoteUpdateType == UpdateType.force && info.immediateUpdateAllowed;
+
+        if (isForce) {
+          debugPrint("Triggering immediate in-app update...");
+          await InAppUpdate.performImmediateUpdate();
+          return true;
+        } else if (info.flexibleUpdateAllowed) {
+          debugPrint("Triggering flexible background in-app update...");
+          await InAppUpdate.startFlexibleUpdate().then((_) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text("Update downloaded! Restart to apply changes."),
+                  duration: const Duration(days: 1),
+                  action: SnackBarAction(
+                    label: "RESTART",
+                    textColor: Colors.white,
+                    onPressed: () async {
+                      await InAppUpdate.completeFlexibleUpdate();
+                    },
+                  ),
+                  backgroundColor: const Color(0xFF2E7D32),
+                ),
+              );
+            }
+          }).catchError((err) {
+            debugPrint("Flexible update download error: $err");
+          });
+          return true;
+        }
+      } else {
+        debugPrint("No Play Store update available.");
+      }
+    } catch (e) {
+      debugPrint("In-app update check failed (normal in debug/simulator mode): $e");
+    }
+    return false;
   }
 }

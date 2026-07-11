@@ -6,6 +6,10 @@ import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/utils/haptic_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/core/network/auth_service.dart';
+import 'package:krishikranti/core/utils/device_utils.dart';
 
 class PhoneVerifyPage extends StatefulWidget {
   const PhoneVerifyPage({super.key});
@@ -76,6 +80,79 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Network error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _loginAsGuest() async {
+    HapticUtil.medium();
+    setState(() => _isLoading = true);
+
+    try {
+      final sendResponse = await HttpService.post(
+        ApiConstants.sendOtp,
+        body: {'phoneNumber': '9999999999'},
+      );
+
+      if (sendResponse.statusCode == 200) {
+        final deviceId = await DeviceUtils.getUniqueId();
+        final verifyResponse = await HttpService.post(
+          ApiConstants.verifyOtp,
+          body: {
+            'phoneNumber': '9999999999',
+            'otp': '123456',
+            'deviceId': deviceId
+          },
+        );
+
+        if (verifyResponse.statusCode == 200) {
+          final data = jsonDecode(verifyResponse.body);
+          if (data['accessToken'] != null && data['refreshToken'] != null) {
+            await AuthService.saveTokens(
+              data['accessToken'],
+              data['refreshToken'],
+            );
+          }
+
+          final user = data['user'];
+          final bool isProfileComplete = user?['isProfileComplete'] ?? false;
+          final bool isKycComplete = user?['isKycComplete'] ?? false;
+
+          await AuthService.saveUserStatus(
+            isProfileComplete: isProfileComplete,
+            isKycComplete: isKycComplete,
+          );
+
+          if (mounted) {
+            Provider.of<ProfileService>(context, listen: false).setGuest(true);
+            HapticUtil.success();
+            Navigator.of(context).pushReplacementNamed('/dashboard');
+          }
+        } else {
+          final data = jsonDecode(verifyResponse.body);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['message'] ?? 'Guest login failed')),
+            );
+          }
+        }
+      } else {
+        final data = jsonDecode(sendResponse.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to initialize guest session')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Network error: $e')),
+        );
       }
     } finally {
       if (mounted) {
@@ -362,6 +439,29 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                                       color: Colors.white,
                                     ),
                               ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: OutlinedButton(
+                        onPressed: _isLoading ? null : _loginAsGuest,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF2E7D32),
+                          side: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Text(
+                          "Browse as Guest",
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontSize: 18,
+                            color: const Color(0xFF2E7D32),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],

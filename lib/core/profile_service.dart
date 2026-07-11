@@ -9,9 +9,21 @@ import 'package:krishikranti/core/network/auth_service.dart';
 class ProfileService extends ChangeNotifier {
   UserModel? _user;
   bool _isLoading = false;
+  bool _isGuest = false;
 
-  UserModel? get user => _user;
+  UserModel? get user {
+    if (_isGuest && _user != null) {
+      return _user!.copyWith(isKycComplete: false);
+    }
+    return _user;
+  }
   bool get isLoading => _isLoading;
+  bool get isGuest => _isGuest;
+
+  void setGuest(bool value) {
+    _isGuest = value;
+    notifyListeners();
+  }
 
   // Fallback getters for legacy code support
   String get name => _user?.name ?? '';
@@ -46,11 +58,15 @@ class ProfileService extends ChangeNotifier {
     final String? userJson = prefs.getString('user_profile_cache');
     if (userJson != null) {
       _user = UserModel.fromJsonString(userJson);
+      if (_user?.phoneNumber == '9999999999') {
+        _isGuest = true;
+      }
       notifyListeners();
     }
   }
 
   Future<void> fetchProfileFromServer() async {
+    if (_isGuest) return;
     // Only show loading if we have NO cached data
     if (_user == null) {
       _isLoading = true;
@@ -62,6 +78,10 @@ class ProfileService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         final newUser = UserModel.fromJson(data);
+
+        if (newUser.phoneNumber == '9999999999') {
+          _isGuest = true;
+        }
 
         if (newUser.isBlocked) {
           await HttpService.forceLogout();

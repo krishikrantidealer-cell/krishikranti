@@ -720,6 +720,8 @@ class _EkycPageState extends State<EkycPage> {
                                                         finalLicensePath,
                                                         targetPath,
                                                         quality: 60,
+                                                        minWidth: 1920,
+                                                        minHeight: 1080,
                                                       );
 
                                                   if (compressedFile != null) {
@@ -746,6 +748,8 @@ class _EkycPageState extends State<EkycPage> {
                                                         finalShopPath,
                                                         targetPath,
                                                         quality: 60,
+                                                        minWidth: 1920,
+                                                        minHeight: 1080,
                                                       );
 
                                                   if (compressedFile != null) {

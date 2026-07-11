@@ -13,6 +13,7 @@ import 'catalogue_screen.dart';
 import 'notification_screen.dart';
 import 'profile_screen.dart';
 import 'package:krishikranti/core/favorite_service.dart';
+import 'package:krishikranti/core/utils/guest_barrier_util.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -207,6 +208,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return Expanded(
       child: GestureDetector(
         onTap: () {
+          if (index == 2 || index == 3) {
+            final isGuest = Provider.of<ProfileService>(context, listen: false).isGuest;
+            if (isGuest) {
+              GuestBarrierUtil.showGuestLoginDialog(context);
+              return;
+            }
+          }
           if (_selectedIndex != index) {
             HapticFeedback.selectionClick();
             setState(() {

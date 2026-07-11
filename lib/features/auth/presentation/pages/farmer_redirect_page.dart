@@ -25,10 +25,10 @@ class _FarmerRedirectPageState extends State<FarmerRedirectPage>
 
   static const Map<String, Map<String, String>> _localizedStrings = {
     'en': {
-      'title': 'Kisan Sewa Kendra',
+      'title': 'Krishi Bhandar',
       'notice': 'Notice for Farmers',
       'desc':
-          'This app is specifically designed for Retailers, Wholesalers, and Distributors to place bulk orders.\n\nFor personal cultivation, purchasing premium organic inputs, and direct delivery, please download our official Kisan Sewa Kendra app.',
+          'This app is specifically designed for Retailers, Wholesalers, and Distributors to place bulk orders.\n\nFor personal cultivation, purchasing premium organic inputs, and direct delivery, please download our official Krishi Bhandar app.',
       'download': 'DOWNLOAD FARMER APP',
       'whatsapp': 'TALK ON WHATSAPP',
       'changeType': 'Change User Type',
@@ -109,7 +109,7 @@ class _FarmerRedirectPageState extends State<FarmerRedirectPage>
     super.dispose();
   }
 
-  Future<void> _launchPlayStore() async {
+  Future<void> launchPlayStore() async {
     HapticUtil.medium();
     MetaAnalyticsService.logContactSupport(
       contactMethod: 'Farmer Play Store Redirect',
@@ -360,11 +360,9 @@ class _FarmerRedirectPageState extends State<FarmerRedirectPage>
                   ),
                 ),
                 const SizedBox(height: 32),
-                // Play Store Button
-                _PlayStoreButton(
-                  onTap: _launchPlayStore,
-                ),
-                const SizedBox(height: 12),
+                // Play Store Button (Commented out for App Store approval)
+                // PlayStoreButton(onTap: launchPlayStore),
+                // const SizedBox(height: 12),
                 // WhatsApp Button
                 _WhatsAppButton(
                   text: _getString('whatsapp', currentLocale),
@@ -498,16 +496,16 @@ class _TopIconButtonState extends State<_TopIconButton>
   }
 }
 
-class _PlayStoreButton extends StatefulWidget {
+class PlayStoreButton extends StatefulWidget {
   final VoidCallback onTap;
 
-  const _PlayStoreButton({required this.onTap});
+  const PlayStoreButton({required this.onTap});
 
   @override
-  State<_PlayStoreButton> createState() => _PlayStoreButtonState();
+  State<PlayStoreButton> createState() => _PlayStoreButtonState();
 }
 
-class _PlayStoreButtonState extends State<_PlayStoreButton>
+class _PlayStoreButtonState extends State<PlayStoreButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
@@ -519,9 +517,10 @@ class _PlayStoreButtonState extends State<_PlayStoreButton>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 1.0,
+      end: 1.05,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -605,7 +604,8 @@ class _WhatsAppButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        height: 54, // Keep it slightly taller than the SVG height to look "same"
+        height:
+            54, // Keep it slightly taller than the SVG height to look "same"
         decoration: BoxDecoration(
           color: const Color(0xFF25D366),
           borderRadius: BorderRadius.circular(10),
@@ -620,11 +620,7 @@ class _WhatsAppButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/whatsapp.png',
-              width: 28,
-              height: 28,
-            ),
+            Image.asset('assets/images/whatsapp.png', width: 28, height: 28),
             const SizedBox(width: 12),
             Text(
               text,

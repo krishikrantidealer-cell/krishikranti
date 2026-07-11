@@ -9,6 +9,7 @@ import 'package:krishikranti/widgets/animated_heart.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:krishikranti/core/utils/guest_barrier_util.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -438,7 +439,16 @@ class _ProductCardState extends State<ProductCard>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (!isKycComplete)
+                                if (profileService.isGuest)
+                                  const Text(
+                                    "Login to view price",
+                                    style: TextStyle(
+                                      color: Color(0xFF2E7D32),
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12,
+                                    ),
+                                  )
+                                else if (!isKycComplete)
                                   Text(
                                     "KYC Required",
                                     style: TextStyle(
@@ -477,7 +487,7 @@ class _ProductCardState extends State<ProductCard>
                               ],
                             ),
                           ),
-                          if (isKycComplete)
+                          if (isKycComplete && !profileService.isGuest)
                             Container(
                               height: 30,
                               width: 30,
@@ -586,8 +596,14 @@ class _ProductCardState extends State<ProductCard>
                       ? 'heart_${widget.heroTag}'
                       : 'heart_product_${widget.category}_${widget.product.id}',
                   child: AnimatedHeart(
-                    isFavorite: widget.isFavorite,
-                    onTap: widget.onFavoriteToggle,
+                    isFavorite: profileService.isGuest ? false : widget.isFavorite,
+                    onTap: () {
+                      if (profileService.isGuest) {
+                        GuestBarrierUtil.showGuestLoginDialog(context);
+                        return;
+                      }
+                      widget.onFavoriteToggle();
+                    },
                     size: 16,
                     backgroundColor: Colors.white.withOpacity(0.85),
                   ),
@@ -842,7 +858,16 @@ class _ProductCardState extends State<ProductCard>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (!isKycComplete)
+                                  if (profileService.isGuest)
+                                    const Text(
+                                      "Login to view price",
+                                      style: TextStyle(
+                                        color: Color(0xFF2E7D32),
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 13,
+                                      ),
+                                    )
+                                  else if (!isKycComplete)
                                     Text(
                                       "KYC Required",
                                       style: TextStyle(
@@ -895,7 +920,7 @@ class _ProductCardState extends State<ProductCard>
                                 ],
                               ),
                             ),
-                            if (isKycComplete)
+                            if (isKycComplete && !profileService.isGuest)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -986,8 +1011,14 @@ class _ProductCardState extends State<ProductCard>
                       ? 'heart_${widget.heroTag}'
                       : 'heart_product_${widget.category}_${widget.product.id}',
                   child: AnimatedHeart(
-                    isFavorite: widget.isFavorite,
-                    onTap: widget.onFavoriteToggle,
+                    isFavorite: profileService.isGuest ? false : widget.isFavorite,
+                    onTap: () {
+                      if (profileService.isGuest) {
+                        GuestBarrierUtil.showGuestLoginDialog(context);
+                        return;
+                      }
+                      widget.onFavoriteToggle();
+                    },
                     size: 16,
                     backgroundColor: Colors.white.withOpacity(0.85),
                   ),
