@@ -18,6 +18,7 @@ class Product {
   final List<String> images;
   final double? minPrice;
   final double? maxPrice;
+  final Map<String, dynamic> customOrders;
 
   Product({
     required this.id,
@@ -37,6 +38,7 @@ class Product {
     this.images = const [],
     this.minPrice,
     this.maxPrice,
+    this.customOrders = const {},
   });
 
   // Helper to get minimum price (uses backend value if available, else calculates)
@@ -147,6 +149,9 @@ class Product {
       maxPrice: json['maxPrice'] != null
           ? _parseDouble(json['maxPrice'])
           : null,
+      customOrders: json['customOrders'] is Map
+          ? Map<String, dynamic>.from(json['customOrders'])
+          : {},
     );
   }
 }

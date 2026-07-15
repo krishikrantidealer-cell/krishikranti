@@ -26,6 +26,7 @@ import 'package:krishikranti/features/auth/presentation/pages/otp_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/register_page.dart';
 import 'package:krishikranti/features/auth/presentation/pages/ekyc_page.dart';
 import 'package:krishikranti/screens/main_screen.dart';
+import 'package:krishikranti/screens/search_screen.dart';
 import 'package:krishikranti/screens/cart_screen.dart';
 import 'package:krishikranti/screens/contact_us_screen.dart';
 import 'package:krishikranti/core/cart_service.dart';
@@ -43,8 +44,9 @@ void downloadCallback(String id, int status, int progress) {
     );
     send?.send([id, status, progress]);
   } catch (e) {
-    if (kDebugMode)
+    if (kDebugMode) {
       debugPrint('=== ERROR in top-level downloadCallback: $e ===');
+    }
   }
 }
 
@@ -71,8 +73,8 @@ void main() async {
   // Initialize Notification Service
   await NotificationService.initialize();
 
-  // Initialize Meta/Facebook SDK for app event tracking and ad attribution
-  await MetaAnalyticsService.initialize();
+  // Initialize Meta/Facebook SDK in background to avoid blocking main thread
+  MetaAnalyticsService.initialize();
 
   // Set global system UI style
   SystemChrome.setSystemUIOverlayStyle(
@@ -139,6 +141,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/kyc': (context) => const EkycPage(),
         '/dashboard': (context) => const MainScreen(),
+        '/search': (context) => const SearchScreen(),
         '/language-select': (context) =>
             const ChooseLanguagePage(isSettings: true),
         '/contact': (context) => const ContactUsScreen(),

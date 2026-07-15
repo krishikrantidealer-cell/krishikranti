@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:krishikranti/l10n/app_localizations.dart';
-import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/widgets/product_card.dart';
@@ -20,6 +19,7 @@ class ProductListScreen extends StatefulWidget {
   final Category? categoryData;
   final String? collection;
   final bool isCollection;
+  final bool? isFeatured;
   final List<Product>? initialProducts;
 
   const ProductListScreen({
@@ -29,6 +29,7 @@ class ProductListScreen extends StatefulWidget {
     this.categoryData,
     this.collection,
     this.isCollection = false,
+    this.isFeatured,
     this.initialProducts,
   });
 
@@ -126,13 +127,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
         categoryId: widget.categoryId,
         subCategoryId: subId,
         collection: widget.collection,
-        limit: 20,
+        isFeatured: widget.isFeatured,
+        limit: 500,
         forceRefresh: forceRefresh,
       );
 
       if (mounted) {
         setState(() {
-          _products = result['products'];
+          final List<Product> rawList = result['products'] as List<Product>;
+          final List<Product> uniqueList = [];
+          final Set<String> seenIds = {};
+          for (final p in rawList) {
+            if (p.id.isNotEmpty && !seenIds.contains(p.id)) {
+              seenIds.add(p.id);
+              uniqueList.add(p);
+            }
+          }
+          _products = uniqueList;
           _nextCursor = result['nextCursor'];
           _isLoading = false;
         });
@@ -143,13 +154,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
           categoryId: widget.categoryId,
           subCategoryId: subId,
           collection: widget.collection,
-          limit: 20,
+          isFeatured: widget.isFeatured,
+          limit: 500,
           forceRefresh: true,
         );
 
         if (mounted && freshResult['isFromCache'] == false) {
           setState(() {
-            _products = freshResult['products'];
+            final List<Product> rawList = freshResult['products'] as List<Product>;
+            final List<Product> uniqueList = [];
+            final Set<String> seenIds = {};
+            for (final p in rawList) {
+              if (p.id.isNotEmpty && !seenIds.contains(p.id)) {
+                seenIds.add(p.id);
+                uniqueList.add(p);
+              }
+            }
+            _products = uniqueList;
             _nextCursor = freshResult['nextCursor'];
           });
         }
@@ -180,12 +201,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
         categoryId: widget.categoryId,
         subCategoryId: subId,
         collection: widget.collection,
+        isFeatured: widget.isFeatured,
         cursor: _nextCursor,
-        limit: 20,
+        limit: 500,
       );
       if (mounted) {
         setState(() {
-          _products.addAll(result['products'] as List<Product>);
+          final List<Product> newProducts = result['products'] as List<Product>;
+          for (final p in newProducts) {
+            if (!_products.any((existing) => existing.id == p.id)) {
+              _products.add(p);
+            }
+          }
           _nextCursor = result['nextCursor'];
           _isLoadingMore = false;
         });
@@ -251,6 +278,27 @@ class _ProductListScreenState extends State<ProductListScreen> {
       items.sort((a, b) => b.price.compareTo(a.price));
     } else if (_selectedSort == "Top Rated") {
       items.sort((a, b) => b.averageRating.compareTo(a.averageRating));
+    } else if (_selectedSort == "Popularity" || _selectedSort.isEmpty) {
+      // Sort by customOrders from categories/subcategories reordering
+      String? subId;
+      if (_selectedMenuIndex > 0 &&
+          _selectedMenuIndex <= _subCategories.length) {
+        subId = _subCategories[_selectedMenuIndex - 1].id;
+      }
+      final String? activeContextId = subId ?? widget.categoryId ?? widget.collection;
+      if (activeContextId != null && activeContextId.isNotEmpty) {
+        final String safeKey = activeContextId.replaceAll('.', '_dot_');
+        items.sort((a, b) {
+          final orderA = int.tryParse(a.customOrders[safeKey]?.toString() ?? '') ?? 1000000;
+          final orderB = int.tryParse(b.customOrders[safeKey]?.toString() ?? '') ?? 1000000;
+          
+          if (orderA != orderB) {
+            return orderA.compareTo(orderB);
+          }
+          // Secondary sort by title
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+      }
     }
 
     return items;
