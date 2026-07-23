@@ -204,6 +204,7 @@ class Variant {
   final double packVolume;
   final String? basePacking;
   // Canonical base unit: 'lit', 'kg', or 'pcs' — used for rate suffix display
+  final double farmerPrice;
   final String basePackingUnit;
   final List<PriceTier> priceTiers;
   final Map<String, String> rates;
@@ -213,6 +214,7 @@ class Variant {
     required this.size,
     required this.price,
     required this.compareAtPrice,
+    this.farmerPrice = 0.0,
     this.price10_30 = 0.0,
     this.price30_50 = 0.0,
     this.price50_plus = 0.0,
@@ -222,6 +224,31 @@ class Variant {
     this.priceTiers = const [],
     this.rates = const {},
   });
+
+  /// Effective Farmer Price per unit:
+  /// Uses explicit `farmerPrice` if > 0;
+  /// otherwise falls back to `compareAtPrice` or `price + 200`.
+  double get effectiveFarmerPrice {
+    if (farmerPrice > 0) return farmerPrice;
+    if (compareAtPrice > 0) return compareAtPrice;
+    return price > 0 ? price + 200 : 0.0;
+  }
+
+  /// Calculates retailer margin amount for a given unit dealer price
+  double getMarginAmount(double unitDealerPrice) {
+    final fp = effectiveFarmerPrice;
+    if (fp <= 0) return 0.0;
+    return fp - unitDealerPrice;
+  }
+
+  /// Calculates retailer margin percentage for a given unit dealer price:
+  /// Margin % = ((Farmer Price - Dealer Price) / Farmer Price) * 100
+  double getMarginPercent(double unitDealerPrice) {
+    final fp = effectiveFarmerPrice;
+    if (fp <= 0) return 0.0;
+    final diff = fp - unitDealerPrice;
+    return (diff / fp) * 100;
+  }
 
   factory Variant.fromJson(Map<String, dynamic> json) {
     final double basePrice = Product._parseDouble(json['price']);
@@ -250,6 +277,9 @@ class Variant {
       size: sizeStr,
       price: basePrice,
       compareAtPrice: Product._parseDouble(json['compareAtPrice']),
+      farmerPrice: json['farmerPrice'] != null
+          ? Product._parseDouble(json['farmerPrice'])
+          : (json['farmer_price'] != null ? Product._parseDouble(json['farmer_price']) : 0.0),
       price10_30: json['price10_30'] != null
           ? Product._parseDouble(json['price10_30'])
           : basePrice,
@@ -362,9 +392,9 @@ class Variant {
 
   double getTierUnitPriceForVolume(double totalVolume) {
     if (priceTiers.isEmpty || rates.isEmpty) {
-      if (totalVolume > 50.0 && price50_plus > 0) {
+      if (totalVolume >= 50.0 && price50_plus > 0) {
         return price50_plus;
-      } else if (totalVolume > 30.0 && price30_50 > 0) {
+      } else if (totalVolume >= 30.0 && price30_50 > 0) {
         return price30_50;
       } else if (totalVolume >= 10.0 && price10_30 > 0) {
         return price10_30;
@@ -388,9 +418,9 @@ class Variant {
     }
 
     if (parsedTiers.isEmpty) {
-      if (totalVolume > 50.0 && price50_plus > 0) {
+      if (totalVolume >= 50.0 && price50_plus > 0) {
         return price50_plus;
-      } else if (totalVolume > 30.0 && price30_50 > 0) {
+      } else if (totalVolume >= 30.0 && price30_50 > 0) {
         return price30_50;
       } else if (totalVolume >= 10.0 && price10_30 > 0) {
         return price10_30;
@@ -404,31 +434,13 @@ class Variant {
       return aMin.compareTo(bMin);
     });
 
-    for (int i = 0; i < parsedTiers.length; i++) {
+    // Check from highest tier downwards to find the first one that matches the volume threshold.
+    // This handles both continuous and discrete tiers correctly at boundaries.
+    for (int i = parsedTiers.length - 1; i >= 0; i--) {
       final tier = parsedTiers[i];
-      final min = tier.min;
-      final max = tier.max;
-
-      if (i == 0 && min != null && totalVolume < min) {
-        return price;
+      if (tier.min != null && totalVolume >= tier.min!) {
+        return tier.rate;
       }
-
-      if (min != null) {
-        if (max != null) {
-          if (totalVolume >= min && totalVolume < max) {
-            return tier.rate;
-          }
-        } else {
-          if (totalVolume >= min) {
-            return tier.rate;
-          }
-        }
-      }
-    }
-
-    final lastTier = parsedTiers.last;
-    if (lastTier.min != null && totalVolume >= lastTier.min!) {
-      return lastTier.rate;
     }
 
     return price;
@@ -460,31 +472,12 @@ class Variant {
       return aMin.compareTo(bMin);
     });
 
-    for (int i = 0; i < parsedTiers.length; i++) {
+    // Highest unlocked tier wins
+    for (int i = parsedTiers.length - 1; i >= 0; i--) {
       final tier = parsedTiers[i];
-      final min = tier.min;
-      final max = tier.max;
-
-      if (i == 0 && min != null && totalVolume < min) {
-        return "";
+      if (tier.min != null && totalVolume >= tier.min!) {
+        return tier.id;
       }
-
-      if (min != null) {
-        if (max != null) {
-          if (totalVolume >= min && totalVolume < max) {
-            return tier.id;
-          }
-        } else {
-          if (totalVolume >= min) {
-            return tier.id;
-          }
-        }
-      }
-    }
-
-    final lastTier = parsedTiers.last;
-    if (lastTier.min != null && totalVolume >= lastTier.min!) {
-      return lastTier.id;
     }
 
     return "";
@@ -492,8 +485,8 @@ class Variant {
 
   String getActiveTierName(double totalVolume) {
     if (priceTiers.isEmpty || rates.isEmpty) {
-      if (totalVolume > 50.0 && price50_plus > 0) return "50L+ Tier";
-      if (totalVolume > 30.0 && price30_50 > 0) return "30-50L Tier";
+      if (totalVolume >= 50.0 && price50_plus > 0) return "50L+ Tier";
+      if (totalVolume >= 30.0 && price30_50 > 0) return "30-50L Tier";
       if (totalVolume >= 10.0 && price10_30 > 0) return "10-30L Tier";
       return "";
     }

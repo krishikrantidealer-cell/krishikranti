@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/utils/device_utils.dart';
+import 'package:krishikranti/core/websocket_service.dart';
 
 class PhoneVerifyPage extends StatefulWidget {
   const PhoneVerifyPage({super.key});
@@ -129,6 +130,8 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
 
           if (mounted) {
             Provider.of<ProfileService>(context, listen: false).setGuest(true);
+            // Connect WS even for guest (so order status updates still work)
+            WebSocketService.instance.connect();
             HapticUtil.success();
             Navigator.of(context).pushReplacementNamed('/dashboard');
           }

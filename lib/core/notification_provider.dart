@@ -5,22 +5,33 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:krishikranti/core/notification_service.dart';
 
-class NotificationProvider extends ChangeNotifier {
+class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   static final NotificationProvider _instance = NotificationProvider._internal();
   factory NotificationProvider() => _instance;
 
   NotificationProvider._internal() {
     _loadSavedNotifications();
+    WidgetsBinding.instance.addObserver(this);
 
     // Listen for new notifications in real-time
     _notificationSub = NotificationService.onNewNotification.listen((newNotif) {
       // Check if notification already exists to prevent duplication
       final index = _notifications.indexWhere((n) => n.id == newNotif.id);
       if (index == -1) {
-        _notifications.insert(0, newNotif);
+        _notifications.add(newNotif);
+        // Always sort by timestamp to ensure latest is on top
+        _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         notifyListeners();
       }
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint("NotificationProvider: App resumed, refreshing notifications...");
+      refreshNotifications();
+    }
   }
 
   List<NotificationModel> _notifications = [];
@@ -40,6 +51,10 @@ class NotificationProvider extends ChangeNotifier {
       _notifications = savedList.map((str) {
         return NotificationModel.fromJson(jsonDecode(str));
       }).toList();
+
+      // Sort by timestamp (newest first)
+      _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -88,6 +103,7 @@ class NotificationProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _notificationSub?.cancel();
     super.dispose();
   }

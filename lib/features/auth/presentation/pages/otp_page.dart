@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
+import 'package:krishikranti/core/websocket_service.dart';
 
 class OtpPage extends StatefulWidget {
   const OtpPage({super.key});
@@ -69,6 +70,9 @@ class _OtpPageState extends State<OtpPage> {
 
         // Sync FCM token immediately now that the user is logged in
         NotificationService.syncToken();
+
+        // Start WebSocket connection for real-time order status updates
+        WebSocketService.instance.connect();
 
         // Log login to Meta SDK
         MetaAnalyticsService.logLogin(loginMethod: 'OTP');

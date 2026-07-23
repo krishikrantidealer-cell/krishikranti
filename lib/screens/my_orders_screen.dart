@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,9 @@ import 'package:krishikranti/screens/order_detail_screen.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:krishikranti/core/notification_service.dart';
+import 'package:krishikranti/core/notification_model.dart';
+import 'package:krishikranti/core/websocket_service.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -25,11 +29,36 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   final OrderRepository _orderRepository = OrderRepository();
   List<Order> _orders = [];
   bool _isLoading = true;
+  StreamSubscription? _notificationSubscription;
+  StreamSubscription? _wsSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchOrders();
+
+    // FCM notification listener
+    _notificationSubscription = NotificationService.onNewNotification.listen((newNotif) {
+      if (newNotif.category == NotificationCategory.order ||
+          newNotif.title.toLowerCase().contains('order') ||
+          newNotif.description.toLowerCase().contains('order')) {
+        _fetchOrders(forceRefresh: true);
+      }
+    });
+
+    // WebSocket real-time listener — refresh list when any order status changes
+    _wsSubscription = WebSocketService.instance.messages.listen((msg) {
+      if (msg['type'] == 'ORDER_STATUS_UPDATE') {
+        _fetchOrders(forceRefresh: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    _wsSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchOrders({bool forceRefresh = false}) async {

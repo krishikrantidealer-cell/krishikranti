@@ -20,6 +20,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 
 // Background message handler must be a top-level function
@@ -29,23 +30,22 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint("Handling a background message: ${message.messageId}");
 
+  // Save to local inbox history first to ensure it's recorded
+  final newNotif = await NotificationService.saveNotificationToLocal(message);
+
   // If it's a data-only message with no system notification, trigger a local one
   // so that images and banners show up based on our showNotification logic.
-  if (message.notification == null && message.data.isNotEmpty) {
-    String? imageUrl = message.data['image'];
+  if (message.notification == null && message.data.isNotEmpty && newNotif != null) {
     await NotificationService.showNotification(
-      title: message.data['title'] ?? "New Alert",
-      body: message.data['body'] ?? "",
-      payload: jsonEncode(message.data),
-      imageUrl: imageUrl,
-      category:
-          message.data['category'] == 'marketing'
-              ? NotificationCategory.marketing
-              : NotificationCategory.utility,
+      title: newNotif.title,
+      body: newNotif.description,
+      payload: newNotif.payload,
+      imageUrl: newNotif.imageUrl,
+      category: newNotif.category,
+      notificationId: message.messageId.hashCode,
+      saveToHistory: false, // Already saved by saveNotificationToLocal above
     );
   }
-
-  await NotificationService.saveNotificationToLocal(message);
 }
 
 class NotificationService {
@@ -143,15 +143,19 @@ class NotificationService {
 
     // 5. Listen to Foreground Messages (When app is active on screen)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      debugPrint("Received Foreground Message: ${message.notification?.title}");
+      final String? titleStr = message.notification?.title ?? message.data['title'];
+      final String? bodyStr = message.notification?.body ?? message.data['body'];
+      
+      debugPrint("Received Foreground Message: $titleStr");
 
-      if (message.notification != null) {
-        final title = (message.notification!.title ?? "").toLowerCase();
-        final body = (message.notification!.body ?? "").toLowerCase();
-        if (title.contains('blocked') ||
-            title.contains('suspended') ||
-            body.contains('blocked') ||
-            body.contains('suspended')) {
+      if (titleStr != null || bodyStr != null) {
+        final titleLower = (titleStr ?? "").toLowerCase();
+        final bodyLower = (bodyStr ?? "").toLowerCase();
+        
+        if (titleLower.contains('blocked') ||
+            titleLower.contains('suspended') ||
+            bodyLower.contains('blocked') ||
+            bodyLower.contains('suspended')) {
           await HttpService.forceLogout();
           return;
         }
@@ -166,8 +170,8 @@ class NotificationService {
 
         // Use our unified showNotification utility
         showNotification(
-          title: message.notification!.title ?? "Update",
-          body: message.notification!.body ?? "",
+          title: titleStr ?? "Update",
+          body: bodyStr ?? "",
           payload: jsonEncode(message.data),
           imageUrl: imageUrl,
           category: message.data['category'] == 'marketing'
@@ -175,10 +179,10 @@ class NotificationService {
               : NotificationCategory.utility,
         );
 
-        if (title.contains('kyc') ||
-            title.contains('verification') ||
-            body.contains('kyc') ||
-            body.contains('verification')) {
+        if (titleLower.contains('kyc') ||
+            titleLower.contains('verification') ||
+            bodyLower.contains('kyc') ||
+            bodyLower.contains('verification')) {
           if (navigatorKey.currentContext != null) {
             try {
               Provider.of<ProfileService>(
@@ -195,17 +199,23 @@ class NotificationService {
 
     // 6. Handle Tap on Notification when app is running in the Background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      saveNotificationToLocal(message).then((newNotif) {
+        if (newNotif != null) _notificationStreamController.add(newNotif);
+      });
       handleNotificationTap(jsonEncode(message.data));
     });
 
     // 7. Handle Tap on Notification when app is completely Terminated
-    RemoteMessage? initialMessage = await _firebaseMessaging
-        .getInitialMessage();
-    if (initialMessage != null) {
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        handleNotificationTap(jsonEncode(initialMessage.data));
-      });
-    }
+    _firebaseMessaging.getInitialMessage().then((RemoteMessage? initialMessage) {
+      if (initialMessage != null) {
+        saveNotificationToLocal(initialMessage).then((newNotif) {
+          if (newNotif != null) _notificationStreamController.add(newNotif);
+        });
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          handleNotificationTap(jsonEncode(initialMessage.data));
+        });
+      }
+    });
 
     // 8. Get FCM Token and sync with server
     syncToken();
@@ -248,18 +258,49 @@ class NotificationService {
     if (token != null) {
       debugPrint("📱 Firebase Messaging Token: $token");
 
-      if (navigatorKey.currentContext != null) {
-        try {
-          final profileService = Provider.of<ProfileService>(
-            navigatorKey.currentContext!,
-            listen: false,
-          );
-          await profileService.updateFcmToken(token);
-        } catch (e) {
-          debugPrint("Note: ProfileService not yet available for token sync.");
-        }
+      try {
+        await HttpService.post(
+          ApiConstants.fcmToken,
+          body: {"fcmToken": token},
+        );
+        debugPrint("✅ FCM Token successfully synced with server.");
+      } catch (e) {
+        debugPrint("❌ Error syncing FCM Token: $e");
       }
     }
+  }
+
+  /// Helper to determine category from content
+  static NotificationCategory _determineCategory(String title, String body, Map<String, dynamic> data) {
+    final String? dataCat = data['category'];
+    if (dataCat != null) {
+      final match = NotificationCategory.values.firstWhere(
+        (e) => e.name == dataCat,
+        orElse: () => NotificationCategory.utility,
+      );
+      if (match != NotificationCategory.utility) return match;
+    }
+
+    final t = title.toLowerCase();
+    final b = body.toLowerCase();
+
+    if (t.contains('kyc') || b.contains('kyc') || t.contains('verification') || b.contains('verification') || t.contains('documents') || b.contains('approved') || t.contains('license') || b.contains('license') || t.contains('photo') || b.contains('photo')) {
+      return NotificationCategory.kyc;
+    }
+    if (t.contains('cart') || b.contains('cart')) {
+      return NotificationCategory.cart;
+    }
+    if (t.contains('order') || b.contains('order') || t.contains('payment') || b.contains('payment') || t.contains('delivery') || b.contains('dispatch')) {
+      return NotificationCategory.order;
+    }
+    if (t.contains('wholesale') || b.contains('wholesale') || t.contains('price') || b.contains('price') || t.contains('offer') || b.contains('surprise')) {
+      return NotificationCategory.marketing;
+    }
+    if (t.contains('season') || b.contains('season') || t.contains('kharif') || b.contains('kharif')) {
+      return NotificationCategory.seasonal;
+    }
+
+    return NotificationCategory.utility;
   }
 
   /// Manually trigger a local notification and save it to history
@@ -267,13 +308,14 @@ class NotificationService {
     required String title,
     required String body,
     String? payload,
-    NotificationCategory category = NotificationCategory.utility,
+    NotificationCategory? category,
     int? notificationId,
     bool showProgress = false,
     int? progress,
     int? maxProgress,
     bool indeterminate = false,
     String? imageUrl,
+    bool saveToHistory = true,
   }) async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'krishikranti_high_importance_channel',
@@ -281,28 +323,53 @@ class NotificationService {
       importance: Importance.high,
     );
 
+    final resolvedCategory = category ?? _determineCategory(title, body, payload != null ? jsonDecode(payload) : {});
+
     // Only save progress notification to local inbox history when it is at start (0) or completion (100 or completed state)
-    final shouldSaveToHistory = !showProgress || progress == 0 || progress == 100;
+    final shouldSaveToHistory = saveToHistory && (!showProgress || progress == 0 || progress == 100);
 
     if (shouldSaveToHistory) {
+      // Determine UI elements based on category
+      IconData icon;
+      Color color;
+
+      switch (resolvedCategory) {
+        case NotificationCategory.kyc:
+          icon = CupertinoIcons.shield_fill;
+          color = Colors.blue;
+          break;
+        case NotificationCategory.order:
+          icon = CupertinoIcons.cube_box_fill;
+          color = const Color(0xFF2E7D32);
+          break;
+        case NotificationCategory.cart:
+          icon = CupertinoIcons.cart_fill;
+          color = Colors.orange;
+          break;
+        case NotificationCategory.marketing:
+          icon = CupertinoIcons.bolt_fill;
+          color = Colors.orange;
+          break;
+        case NotificationCategory.seasonal:
+          icon = CupertinoIcons.clear_fill;
+          color = Colors.lightGreen;
+          break;
+        default:
+          icon = CupertinoIcons.bell_fill;
+          color = const Color(0xFF2E7D32);
+      }
+
       final newNotif = NotificationModel(
         id:
             notificationId?.toString() ??
             DateTime.now().millisecondsSinceEpoch.toString(),
         title: title,
         description: body,
-        time: "Just now",
-        icon:
-            category == NotificationCategory.marketing
-                ? CupertinoIcons.bolt_fill
-                : CupertinoIcons.cube_box_fill,
-        color:
-            category == NotificationCategory.marketing
-                ? Colors.orange
-                : const Color(0xFF2E7D32),
+        timestamp: DateTime.now(),
+        icon: icon,
+        color: color,
         isUnread: true,
-        group: "Today",
-        category: category,
+        category: resolvedCategory,
         payload: payload,
         imageUrl: imageUrl,
       );
@@ -413,22 +480,56 @@ class NotificationService {
       final List<String> existingNotifs =
           prefs.getStringList('local_notifications') ?? [];
 
-      // Parse payload
-      final String categoryStr = message.data['category'] ?? 'utility';
-      final NotificationCategory category =
-          categoryStr == 'marketing'
-              ? NotificationCategory.marketing
-              : NotificationCategory.utility;
+      final String title = message.notification?.title ?? message.data['title'] ?? "Alert";
+      final String body = message.notification?.body ?? message.data['body'] ?? "New Update";
+      
+      final String id = message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+      // Check for duplicates
+      final bool alreadyExists = existingNotifs.any((n) {
+        try {
+          return jsonDecode(n)['id'] == id;
+        } catch (_) {
+          return false;
+        }
+      });
+      if (alreadyExists) {
+        debugPrint("Notification $id already exists in local history. Skipping save.");
+        return null;
+      }
+
+      // Determine category based on content
+      final NotificationCategory category = _determineCategory(title, body, message.data);
 
       // Determine UI elements based on category
-      final IconData icon =
-          category == NotificationCategory.marketing
-              ? CupertinoIcons.bolt_fill
-              : CupertinoIcons.cube_box_fill;
-      final Color color =
-          category == NotificationCategory.marketing
-              ? Colors.orange
-              : const Color(0xFF2E7D32);
+      IconData icon;
+      Color color;
+
+      switch (category) {
+        case NotificationCategory.kyc:
+          icon = CupertinoIcons.shield_fill;
+          color = Colors.blue;
+          break;
+        case NotificationCategory.order:
+          icon = CupertinoIcons.cube_box_fill;
+          color = const Color(0xFF2E7D32);
+          break;
+        case NotificationCategory.cart:
+          icon = CupertinoIcons.cart_fill;
+          color = Colors.orange;
+          break;
+        case NotificationCategory.marketing:
+          icon = CupertinoIcons.bolt_fill;
+          color = Colors.orange;
+          break;
+        case NotificationCategory.seasonal:
+          icon = CupertinoIcons.clear_fill;
+          color = Colors.lightGreen;
+          break;
+        default:
+          icon = CupertinoIcons.bell_fill;
+          color = const Color(0xFF2E7D32);
+      }
 
       String? imageUrl;
       if (Platform.isAndroid) {
@@ -440,17 +541,13 @@ class NotificationService {
 
       // Create model
       final NotificationModel newNotif = NotificationModel(
-        id:
-            message.messageId ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
-        title: message.notification?.title ?? message.data['title'] ?? "Alert",
-        description:
-            message.notification?.body ?? message.data['body'] ?? "New Update",
-        time: "Just now",
+        id: id,
+        title: title,
+        description: body,
+        timestamp: message.sentTime ?? DateTime.now(),
         icon: icon,
         color: color,
         isUnread: true,
-        group: "Today",
         category: category,
         imageUrl: imageUrl,
         payload: jsonEncode(message.data),
@@ -548,7 +645,7 @@ class NotificationService {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       description: body,
-      time: "Just now",
+      timestamp: DateTime.now(),
       icon: category == NotificationCategory.marketing
           ? CupertinoIcons.bolt_fill
           : CupertinoIcons.cube_box_fill,
@@ -556,7 +653,6 @@ class NotificationService {
           ? Colors.orange
           : const Color(0xFF2E7D32),
       isUnread: true,
-      group: "Today",
       category: category,
       payload: payload,
     );
@@ -601,11 +697,10 @@ class NotificationService {
             id: notificationId.toString(),
             title: '$categoryName Catalogue Ready',
             description: 'Tap to view the downloaded $categoryName catalogue.',
-            time: "Just now",
+            timestamp: DateTime.now(),
             icon: CupertinoIcons.cube_box_fill,
             color: const Color(0xFF2E7D32),
             isUnread: true,
-            group: "Today",
             category: NotificationCategory.utility,
             payload: jsonEncode(payloadData),
           );
@@ -636,11 +731,10 @@ class NotificationService {
             id: notificationId.toString(),
             title: '$categoryName Download Failed',
             description: 'Could not download the catalogue PDF.',
-            time: "Just now",
+            timestamp: DateTime.now(),
             icon: CupertinoIcons.cube_box_fill,
             color: Colors.red,
             isUnread: true,
-            group: "Today",
             category: NotificationCategory.utility,
           );
 

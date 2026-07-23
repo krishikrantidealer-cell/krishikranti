@@ -13,6 +13,7 @@ import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/core/update_service.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
+import 'package:krishikranti/core/websocket_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -73,6 +74,8 @@ class _SplashPageState extends State<SplashPage> {
               listen: false,
             );
             await profileService.fetchProfileFromServer();
+            // Connect WebSocket so order status updates arrive in real-time
+            WebSocketService.instance.connect();
           } catch (e) {
             debugPrint("Splash profile fetch error: $e");
           }

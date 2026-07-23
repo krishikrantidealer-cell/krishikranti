@@ -90,7 +90,7 @@ class Order {
           ? DateTime.parse(json['placedAt']).toLocal()
           : null,
       processingAt: json['processingAt'] != null
-          ? DateTime.parse(json['placedAt'] ?? json['processingAt']).toLocal()
+          ? DateTime.parse(json['processingAt']).toLocal()
           : null,
       shippedAt: json['shippedAt'] != null
           ? DateTime.parse(json['shippedAt']).toLocal()

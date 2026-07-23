@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -22,12 +23,18 @@ class _NotificationScreenState extends State<NotificationScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _showSwipeTip = false;
+  late Timer _timer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _checkTipStatus();
+
+    // Refresh the UI every 60 seconds to update relative times (e.g., "Just now" to "1m ago")
+    _timer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _checkTipStatus() async {
@@ -61,6 +68,7 @@ class _NotificationScreenState extends State<NotificationScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _timer.cancel();
     super.dispose();
   }
 
@@ -69,31 +77,21 @@ class _NotificationScreenState extends State<NotificationScreen>
     int tabIndex,
   ) {
     if (tabIndex == 1) {
+      // Tab Orders: Show Order, Cart, and KYC notifications
       return allNotifications.where((n) {
-        final titleLower = n.title.toLowerCase();
-        final descLower = n.description.toLowerCase();
-        final isCatalogue =
-            titleLower.contains('catalogue') || descLower.contains('catalogue');
-        final isDownload =
-            titleLower.contains('download') || descLower.contains('download');
-        final isKyc =
-            titleLower.contains('kyc') ||
-            titleLower.contains('verification') ||
-            descLower.contains('kyc') ||
-            descLower.contains('verification') ||
-            (n.payload != null &&
-                (n.payload!.toLowerCase().contains('profile') ||
-                    n.payload!.toLowerCase().contains('kyc')));
-        return n.category == NotificationCategory.utility &&
-            !isCatalogue &&
-            !isDownload &&
-            !isKyc;
+        return n.category == NotificationCategory.order || 
+               n.category == NotificationCategory.cart ||
+               n.category == NotificationCategory.kyc ||
+               n.category == NotificationCategory.utility;
       }).toList();
     } else if (tabIndex == 2) {
-      return allNotifications
-          .where((n) => n.category == NotificationCategory.marketing)
-          .toList();
+      // Tab Offers: Show Marketing and Seasonal notifications
+      return allNotifications.where((n) {
+        return n.category == NotificationCategory.marketing || 
+               n.category == NotificationCategory.seasonal;
+      }).toList();
     }
+    // Tab All: show everything
     return allNotifications;
   }
 
@@ -533,13 +531,13 @@ class _NotificationScreenState extends State<NotificationScreen>
 
   Widget _buildIconContainer(NotificationModel notification) {
     final isUnread = notification.isUnread;
-    final List<Color> gradientColors =
-        notification.category == NotificationCategory.marketing
-        ? [
-            const Color(0xFFFF9F43),
-            const Color(0xFFFF5252),
-          ] // Warm orange gradient
-        : [const Color(0xFF10B981), const Color(0xFF059669)]; // Green gradient
+    
+    // Use the color from the model, but create a gradient
+    final baseColor = notification.color;
+    final List<Color> gradientColors = [
+      baseColor.withValues(alpha: 0.9),
+      baseColor,
+    ];
 
     return Container(
       width: 38,
@@ -556,7 +554,7 @@ class _NotificationScreenState extends State<NotificationScreen>
         boxShadow: isUnread
             ? [
                 BoxShadow(
-                  color: gradientColors.last.withValues(alpha: 0.25),
+                  color: baseColor.withValues(alpha: 0.25),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),

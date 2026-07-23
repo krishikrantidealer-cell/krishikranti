@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
+import 'package:krishikranti/core/websocket_service.dart';
 
 import 'package:krishikranti/main.dart'; // Import navigatorKey
 
@@ -13,6 +14,7 @@ class HttpService {
 
   static Future<void> forceLogout() async {
     await AuthService.logout();
+    WebSocketService.instance.disconnect();
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
       '/choose-user-type',
       (route) => false,

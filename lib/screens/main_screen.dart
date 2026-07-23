@@ -14,6 +14,9 @@ import 'notification_screen.dart';
 import 'profile_screen.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/utils/guest_barrier_util.dart';
+import 'package:krishikranti/core/websocket_service.dart';
+import 'package:krishikranti/core/network/http_service.dart';
+import 'dart:async';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -25,6 +28,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   DateTime? _lastBackPressed;
+  StreamSubscription? _wsGlobalSubscription;
 
   @override
   void initState() {
@@ -39,11 +43,29 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         homeRepo.getHomeDiscovery(); // Background fetch
       }
     });
+
+    // ── Global WebSocket event handler ───────────────────────────────────────
+    // Handles system-level WS events that apply app-wide, regardless of screen.
+    _wsGlobalSubscription = WebSocketService.instance.messages.listen((msg) {
+      final type = msg['type'] as String?;
+
+      // Admin remotely blocked/logged out this user
+      if (type == 'FORCE_LOGOUT') {
+        HttpService.forceLogout();
+        return;
+      }
+
+      // A new notification arrived — refresh badge count in real-time
+      if (type == 'NOTIFICATION_RECEIVED' && mounted) {
+        context.read<NotificationProvider>().refreshNotifications();
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _wsGlobalSubscription?.cancel();
     super.dispose();
   }
 
@@ -53,6 +75,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       context.read<ProfileService>().fetchProfileFromServer().catchError(
         (_) => null,
       );
+      // Reconnect WebSocket if it dropped while app was in the background
+      WebSocketService.instance.connect();
     }
   }
 

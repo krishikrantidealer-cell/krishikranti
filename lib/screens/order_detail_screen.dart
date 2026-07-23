@@ -1,4 +1,6 @@
 import 'dart:ui';
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +11,9 @@ import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/features/orders/data/models/order_model.dart';
 import 'package:intl/intl.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:krishikranti/core/notification_service.dart';
+import 'package:krishikranti/core/websocket_service.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Order? order;
@@ -33,6 +38,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   bool _isLoading = false;
   bool _isCancelling = false;
   String? _error;
+  StreamSubscription? _notificationSubscription;
+  StreamSubscription? _wsSubscription;
 
   @override
   void initState() {
@@ -53,20 +60,54 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
     if (_currentOrder != null) {
       _startAnimations();
+      _fetchOrderDetails(isSilent: true);
     } else if (widget.orderId != null) {
       _fetchOrderDetails();
     }
+
+    // FCM notification listener — fires when app is in foreground
+    _notificationSubscription = NotificationService.onNewNotification.listen((newNotif) {
+      if (_currentOrder != null) {
+        try {
+          if (newNotif.payload != null) {
+            final data = jsonDecode(newNotif.payload!);
+            final route = data['action_route'] as String?;
+            if (route != null && (route == '/order_details/${_currentOrder!.id}' || route == '/order_details/${_currentOrder!.orderId}')) {
+              _fetchOrderDetails(isSilent: true);
+            }
+          }
+        } catch (e) {
+          debugPrint("Error parsing notification payload: $e");
+        }
+      }
+    });
+
+    // WebSocket real-time listener — zero polling, instant server push
+    _wsSubscription = WebSocketService.instance.messages.listen((msg) {
+      final type = msg['type'] as String?;
+      if (type == 'ORDER_STATUS_UPDATE' && _currentOrder != null) {
+        final orderId = msg['orderId']?.toString();
+        if (orderId == _currentOrder!.id || orderId == _currentOrder!.orderId) {
+          _fetchOrderDetails(isSilent: true);
+        }
+      }
+    });
   }
 
-  Future<void> _fetchOrderDetails() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _fetchOrderDetails({bool isSilent = false}) async {
+    final targetId = widget.orderId ?? _currentOrder?.id;
+    if (targetId == null) return;
+
+    if (!isSilent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       final orderRepo = OrderRepository();
-      final order = await orderRepo.getOrderDetails(widget.orderId!);
+      final order = await orderRepo.getOrderDetails(targetId);
       if (mounted) {
         setState(() {
           _currentOrder = order;
@@ -75,7 +116,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         _startAnimations();
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !isSilent) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
@@ -114,6 +155,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     _entranceController.dispose();
     _pulseController.dispose();
     _timelineController.dispose();
+    _notificationSubscription?.cancel();
+    _wsSubscription?.cancel();
     super.dispose();
   }
 
@@ -745,7 +788,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     SizedBox(
                       height: 32,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           HapticFeedback.mediumImpact();
                           if (_currentOrder!.trackingUrl?.isNotEmpty == true) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -756,21 +799,36 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
+                            final uri = Uri.tryParse(_currentOrder!.trackingUrl!);
+                            if (uri != null) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
                           } else if (_currentOrder!.awbNumber?.isNotEmpty ==
                               true) {
+                            final courier = _currentOrder!.courierName?.toLowerCase() ?? '';
+                            final String url;
+                            if (courier.contains('delhivery')) {
+                              url = 'https://www.delhivery.com/track/package/${_currentOrder!.awbNumber!}';
+                            } else {
+                              url = 'https://shiprocket.co/tracking/${_currentOrder!.awbNumber!}';
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  "Redirecting to https://shiprocket.co/tracking/${_currentOrder!.awbNumber!}...",
+                                  "Redirecting to $url...",
                                 ),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
+                            final uri = Uri.tryParse(url);
+                            if (uri != null) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  "Live Shiprocket tracking will activate once AWB is assigned.",
+                                  "Live tracking will activate once AWB is assigned.",
                                 ),
                                 behavior: SnackBarBehavior.floating,
                               ),
