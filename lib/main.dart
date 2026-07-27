@@ -64,8 +64,8 @@ void main() async {
   await UpdateService.init();
 
   // Initialize FlutterDownloader (WorkManager-backed background downloads)
-  // await FlutterDownloader.initialize(debug: kDebugMode);
-  // FlutterDownloader.registerCallback(downloadCallback);
+  await FlutterDownloader.initialize(debug: kDebugMode);
+  FlutterDownloader.registerCallback(downloadCallback);
 
   // Initialize Language Service (load saved locale synchronously before startup)
   await LanguageService.initialize();

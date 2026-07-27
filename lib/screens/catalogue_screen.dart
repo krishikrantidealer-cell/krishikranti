@@ -769,6 +769,11 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       saveDir = '/storage/emulated/0/Download';
     }
 
+    final directory = Directory(saveDir);
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
     final safeFileName =
         '${categoryName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_catalogue.pdf';
     final savePath = '$saveDir/$safeFileName';
@@ -1223,51 +1228,105 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
             ],
           ),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              // Circular logo icon
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.06),
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(6),
-                child: Image.asset(
-                  assetIcon,
-                  fit: BoxFit.contain,
-                  cacheWidth: 150,
-                  errorBuilder: (context, error, stackTrace) => Icon(
-                    widget.icon,
-                    color: theme.colorScheme.primary,
-                    size: 20,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Circular logo icon
+                  Center(
+                    child: Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.06),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: Image.asset(
+                        assetIcon,
+                        fit: BoxFit.contain,
+                        cacheWidth: 150,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          widget.icon,
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Category Title
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      displayName,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontFamily: 'Poppins',
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (widget.onDownloadTap != null)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.isDownloaded)
+                        _buildActionButton(
+                          icon: Icons.menu_book_rounded,
+                          color: Colors.blue.shade700,
+                          onTap: widget.onDownloadTap!,
+                        ),
+                      if (widget.isDownloaded) const SizedBox(width: 4),
+                      _buildActionButton(
+                        icon: widget.isDownloaded
+                            ? Icons.file_download_done_rounded
+                            : Icons.download_for_offline_rounded,
+                        color: widget.isDownloaded
+                            ? Colors.green.shade700
+                            : theme.colorScheme.primary,
+                        onTap: widget.onDownloadTap!,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              // Category Title
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  displayName,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    fontFamily: 'Poppins',
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 14, color: color),
       ),
     );
   }

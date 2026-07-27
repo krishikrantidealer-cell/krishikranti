@@ -17,3 +17,6 @@
 -keep class com.facebook.** { *; }
 -dontwarn com.facebook.**
 
+# Flutter Downloader
+-keep class vn.hunghd.flutterdownloader.** { *; }
+
