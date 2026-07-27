@@ -1,4 +1,5 @@
 import 'package:krishikranti/core/constants/api_constants.dart';
+import 'package:krishikranti/core/utils/html_utils.dart';
 
 class Product {
   final String id;
@@ -540,17 +541,26 @@ class ProductDetail {
   });
 
   factory ProductDetail.fromJson(Map<String, dynamic> json) {
+    final rawDesc = json['description'] ?? '';
+    final Map<String, dynamic> rawSpecs = Map<String, dynamic>.from(json['specifications'] ?? {});
+    final Map<String, dynamic> unescapedSpecs = {};
+    rawSpecs.forEach((k, v) {
+      final keyStr = unescapeHtml(k);
+      final valStr = v is String ? unescapeHtml(v) : v;
+      unescapedSpecs[keyStr] = valStr;
+    });
+
     return ProductDetail(
       id: Product._parseId(json['_id']),
       productId: Product._parseId(json['productId']),
-      description: json['description'] ?? '',
+      description: unescapeHtml(rawDesc),
       mediumImages: List<String>.from(
         json['images']?['medium'] ?? [],
       ).map((img) => Product._resolveImageUrl(img)).toList(),
       originalImages: List<String>.from(
         json['images']?['original'] ?? [],
       ).map((img) => Product._resolveImageUrl(img)).toList(),
-      specifications: json['specifications'] ?? {},
+      specifications: unescapedSpecs,
     );
   }
 }

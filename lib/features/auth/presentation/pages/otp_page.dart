@@ -32,6 +32,7 @@ class _OtpPageState extends State<OtpPage> {
   String? _errorText;
   bool _initialized = false;
   late final SmsRetriever smsRetriever;
+  Key _pinputKey = UniqueKey(); // Used to restart SMS listener on resend
 
   void _verifyOtp(String phoneNumber) async {
     final otp = _pinController.text;
@@ -124,6 +125,11 @@ class _OtpPageState extends State<OtpPage> {
         final newCooldown = data['cooldown'] ?? 60;
         _startTimer(newCooldown);
         if (mounted) {
+          setState(() {
+            _pinputKey = UniqueKey(); // Re-trigger SMS listener
+            _pinController.clear();
+            _errorText = null;
+          });
           HapticUtil.success();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('OTP Resent Successfully')),
@@ -331,9 +337,11 @@ class _OtpPageState extends State<OtpPage> {
 
                     // High-End 6-Digit Pinput
                     Pinput(
+                      key: _pinputKey,
                       length: 6,
                       controller: _pinController,
                       focusNode: _pinFocusNode,
+                      autofocus: true,
                       defaultPinTheme: defaultPinTheme,
                       focusedPinTheme: focusedPinTheme,
                       submittedPinTheme: submittedPinTheme,
@@ -351,6 +359,19 @@ class _OtpPageState extends State<OtpPage> {
                       hapticFeedbackType: HapticFeedbackType.lightImpact,
                       showCursor: true,
                     ),
+
+                    if (Theme.of(context).platform == TargetPlatform.android)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          'Waiting for OTP...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
 
                     const SizedBox(height: 24),
 
@@ -497,18 +518,25 @@ class SmsRetrieverImpl implements SmsRetriever {
 
   @override
   Future<String?> getSmsCode() async {
-    final signature = await smartAuth.getAppSignature();
-    debugPrint(
-      '[SMS-RETRIEVER] Android App Signature Hash (Retriever): $signature',
-    );
+    try {
+      // 1. Try SMS Retriever API (Silent, high-end experience)
+      // Note: Requires App Signature Hash at the end of SMS message
+      final res = await smartAuth.getSmsWithRetrieverApi();
+      if (res.hasData && res.requireData.code != null) {
+        debugPrint('[SMS-RETRIEVER] Code received via Retriever: ${res.requireData.code}');
+        return res.requireData.code;
+      }
 
-    final res = await smartAuth.getSmsWithRetrieverApi();
-    if (res.hasData) {
-      final code = res.requireData.code;
-      debugPrint('[SMS-RETRIEVER] SMS code received: $code');
-      return code;
+      // 2. Fallback to User Consent API if Retriever times out or fails
+      // This shows a native bottom sheet prompt to the user
+      final consentRes = await smartAuth.getSmsWithUserConsentApi();
+      if (consentRes.hasData && consentRes.requireData.code != null) {
+        debugPrint('[SMS-RETRIEVER] Code received via User Consent: ${consentRes.requireData.code}');
+        return consentRes.requireData.code;
+      }
+    } catch (e) {
+      debugPrint('[SMS-RETRIEVER] Exception: $e');
     }
-    debugPrint('[SMS-RETRIEVER] SMS Retriever failed or timed out: $res');
     return null;
   }
 }

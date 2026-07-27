@@ -24,6 +24,7 @@ import 'package:krishikranti/features/products/data/repositories/product_reposit
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/core/dynamic_translation_service.dart';
+import 'package:krishikranti/core/utils/html_utils.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
@@ -2439,19 +2440,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           commitBlock();
         }
       } else {
-        final text = token
-            .replaceAll('&nbsp;', ' ')
-            .replaceAll('&amp;', '&')
-            .replaceAll('&lt;', '<')
-            .replaceAll('&gt;', '>')
-            .replaceAll('&quot;', '"')
-            .replaceAll('&#39;', "'");
+        final text = unescapeHtml(token);
 
         if (text.isNotEmpty) {
           final List<TextDecoration> decorations = [];
-          if (isUnderline || currentLinkUrl != null)
+          if (isUnderline || currentLinkUrl != null) {
             decorations.add(TextDecoration.underline);
-          if (isStrike) decorations.add(TextDecoration.lineThrough);
+          }
+          if (isStrike) {
+            decorations.add(TextDecoration.lineThrough);
+          }
 
           TextStyle textStyle;
           if (fontStack.isNotEmpty) {
@@ -2814,7 +2812,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget _buildCollapsibleDescription(String rawText) {
     const int maxCollapsedLines = 4;
 
-    String text = rawText
+    String text = unescapeHtml(rawText)
         // Strip style/script blocks so CSS/JS doesn't appear as plain text
         .replaceAll(
           RegExp(
@@ -2835,8 +2833,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         .replaceAll(RegExp(r"<\/?p[^>]*>", caseSensitive: false), '\n\n')
         .replaceAll(RegExp(r"<br\s*\/?>", caseSensitive: false), '\n')
         .replaceAll(RegExp(r"<li>", caseSensitive: false), '\n• ')
-        .replaceAll(RegExp(r"<\/?div[^>]*>", caseSensitive: false), '\n\n')
-        .replaceAll('&nbsp;', ' ');
+        .replaceAll(RegExp(r"<\/?div[^>]*>", caseSensitive: false), '\n\n');
     text = text.replaceAll(RegExp(r"<[^>]*>", multiLine: true), '').trim();
     text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
 

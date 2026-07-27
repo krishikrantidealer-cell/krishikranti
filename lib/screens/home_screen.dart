@@ -35,6 +35,7 @@ import 'package:krishikranti/widgets/home/home_banner_section.dart';
 import 'package:krishikranti/widgets/home/home_section_title.dart';
 import 'package:krishikranti/widgets/home/home_category_section.dart';
 import 'package:krishikranti/widgets/home/home_collection_row.dart';
+import 'package:krishikranti/widgets/home/home_collection_product_grid.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1010,7 +1011,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
+    final Collection? dealerFirstChoice = () {
+      for (final c in _collections) {
+        final name = c.name.toLowerCase().trim();
+        final slug = c.slug.toLowerCase().trim();
+        if (name == 'dealer first choice' ||
+            name == 'dealer\'s first choice' ||
+            name == 'dealer’s first choice' ||
+            name == 'dealers first choice' ||
+            slug == 'dealer-first-choice' ||
+            slug == 'dealer-s-first-choice') {
+          return c;
+        }
+      }
+      return null;
+    }();
+
     final activeCollections = _collections.where((c) {
+      final name = c.name.toLowerCase().trim();
+      final slug = c.slug.toLowerCase().trim();
+      if (name == 'dealer first choice' ||
+          name == 'dealer\'s first choice' ||
+          name == 'dealer’s first choice' ||
+          name == 'dealers first choice' ||
+          slug == 'dealer-first-choice' ||
+          slug == 'dealer-s-first-choice') {
+        return false;
+      }
       return c.subCollections.where((s) => s.isActive).isNotEmpty;
     }).toList();
 
@@ -1019,26 +1046,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _categoryProducts[cat.id]!.isNotEmpty;
     }).toList();
 
-    if (activeCollections.isEmpty && activeCategories.isEmpty) {
+    if (activeCollections.isEmpty && activeCategories.isEmpty && dealerFirstChoice == null) {
       return const SizedBox.shrink();
     }
 
     final List<Widget> children = [];
-    final maxLen = activeCollections.length > activeCategories.length
-        ? activeCollections.length
-        : activeCategories.length;
 
-    for (int i = 0; i < maxLen; i++) {
-      if (i < activeCollections.length) {
-        children.add(HomeCollectionRow(collection: activeCollections[i]));
+    // 1. Add first active collection (Shop by Crop)
+    bool hasAddedFirstCollection = false;
+    if (activeCollections.isNotEmpty) {
+      children.add(HomeCollectionRow(collection: activeCollections[0]));
+      hasAddedFirstCollection = true;
+    }
+
+    // 2. Add Dealer First Choice right under the first collection
+    if (dealerFirstChoice != null && dealerFirstChoice.products.isNotEmpty) {
+      if (children.isNotEmpty) {
+        children.add(const SizedBox(height: 36));
       }
+      children.add(
+        HomeCollectionProductGrid(
+          collection: dealerFirstChoice,
+          favoriteService: _favoriteService,
+          isDealerFirstChoice: true,
+        ),
+      );
+    }
 
-      if (i < activeCollections.length && i < activeCategories.length) {
-        children.add(const SizedBox(height: 16));
-      }
+    // 3. Alternate the rest of the collections and categories
+    int catIdx = 0;
+    int colIdx = hasAddedFirstCollection ? 1 : 0;
 
-      if (i < activeCategories.length) {
-        final cat = activeCategories[i];
+    while (catIdx < activeCategories.length || colIdx < activeCollections.length) {
+      // Add a category
+      if (catIdx < activeCategories.length) {
+        if (children.isNotEmpty) {
+          children.add(const SizedBox(height: 36));
+        }
+        final cat = activeCategories[catIdx];
         children.add(
           HomeCategorySection(
             category: cat,
@@ -1047,10 +1092,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             localizedTitle: _getLocalizedCategoryName(cat.name, l10n),
           ),
         );
+        catIdx++;
       }
 
-      if (i < maxLen - 1) {
-        children.add(const SizedBox(height: 36));
+      // Add a collection
+      if (colIdx < activeCollections.length) {
+        if (children.isNotEmpty) {
+          children.add(const SizedBox(height: 36));
+        }
+        children.add(HomeCollectionRow(collection: activeCollections[colIdx]));
+        colIdx++;
       }
     }
 
