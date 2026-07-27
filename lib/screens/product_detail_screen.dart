@@ -1389,21 +1389,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                         color: Colors.blueGrey.shade800,
                                                       ),
                                                       const SizedBox(width: 4),
-                                                      Text(
-                                                        "Farmer Price: ",
-                                                        style: TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight: FontWeight.w700,
-                                                          color: Colors.blueGrey.shade700,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        "₹${v.effectiveFarmerPrice.toStringAsFixed(0)}",
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight.w900,
-                                                          color: Colors.blueGrey.shade900,
-                                                        ),
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            "Farmer Price: ₹${(v.effectiveFarmerPrice * v.packVolume).toStringAsFixed(0)}",
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.w900,
+                                                              color: Colors.blueGrey.shade900,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            "Per Price: ₹${v.effectiveFarmerPrice.toStringAsFixed(0)}/$unitSuffix",
+                                                            style: TextStyle(
+                                                              fontSize: 9,
+                                                              fontWeight: FontWeight.w700,
+                                                              color: Colors.blueGrey.shade600,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ],
                                                   ),
@@ -1476,7 +1482,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                           borderRadius: BorderRadius.circular(4),
                                                         ),
                                                         child: Text(
-                                                          "+₹${(v.effectiveFarmerPrice - unitPrice).clamp(0.0, double.infinity).toStringAsFixed(0)}",
+                                                          "+₹${((v.effectiveFarmerPrice - unitPrice) * v.packVolume).clamp(0.0, double.infinity).toStringAsFixed(0)}",
                                                           style: const TextStyle(
                                                             fontSize: 10,
                                                             fontWeight: FontWeight.w800,
