@@ -10,6 +10,7 @@ import 'package:krishikranti/core/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:krishikranti/core/utils/haptic_util.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
+import 'package:country_state_city/country_state_city.dart' as csc;
 import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
@@ -22,8 +23,13 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoadingLocation = false;
+  bool _isPincodeLoading = false;
   bool _isLoading = false;
   String _selectedAddressType = 'Shop'; // Default
+  List<csc.State> _statesList = [];
+  List<csc.City> _citiesList = [];
+  csc.State? _selectedStateObj;
+  csc.City? _selectedCityObj;
 
   // Controllers for all fields
   final TextEditingController _firstNameController = TextEditingController();
@@ -33,6 +39,99 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _cityController = TextEditingController();
   final TextEditingController _stateController = TextEditingController();
   final TextEditingController _pincodeController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStates();
+    _pincodeController.addListener(_onPincodeChanged);
+  }
+
+  void _onPincodeChanged() {
+    final text = _pincodeController.text;
+    if (text.length == 6) {
+      _lookupPincode(text);
+    }
+  }
+
+  Future<void> _lookupPincode(String pincode) async {
+    setState(() => _isPincodeLoading = true);
+    try {
+      // Using a public API for Indian Pincodes
+      final response = await HttpService.get(
+        'https://api.postalpincode.in/pincode/$pincode',
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (data.isNotEmpty && data[0]['Status'] == 'Success') {
+          final postOffice = data[0]['PostOffice'][0];
+          final String stateName = postOffice['State'];
+          final String cityName = postOffice['District'];
+
+          // 1. Match State
+          final foundState = _statesList.firstWhere(
+            (s) => s.name.toLowerCase() == stateName.toLowerCase(),
+            orElse: () => _statesList.firstWhere(
+              (s) => stateName.toLowerCase().contains(s.name.toLowerCase()),
+              orElse: () =>
+                  csc.State(name: stateName, countryCode: 'IN', isoCode: ''),
+            ),
+          );
+
+          if (foundState.isoCode.isNotEmpty) {
+            setState(() {
+              _selectedStateObj = foundState;
+              _stateController.text = foundState.name;
+            });
+
+            // 2. Load Cities for this state
+            await _loadCities(foundState.isoCode);
+
+            // 3. Match City
+            final foundCity = _citiesList.firstWhere(
+              (c) => c.name.toLowerCase() == cityName.toLowerCase(),
+              orElse: () => csc.City(
+                name: cityName,
+                countryCode: 'IN',
+                stateCode: foundState.isoCode,
+              ),
+            );
+
+            setState(() {
+              _selectedCityObj = foundCity;
+              _cityController.text = foundCity.name;
+            });
+            HapticUtil.success(); // Stronger feedback for successful auto-fill
+          }
+        }
+      }
+    } catch (e) {
+      // Silent error for UX
+    } finally {
+      if (mounted) setState(() => _isPincodeLoading = false);
+    }
+  }
+
+  Future<void> _loadStates() async {
+    final states = await csc.getStatesOfCountry('IN');
+    if (mounted) {
+      setState(() {
+        _statesList = states;
+      });
+    }
+  }
+
+  Future<void> _loadCities(String stateCode) async {
+    final cities = await csc.getStateCities('IN', stateCode);
+    if (mounted) {
+      setState(() {
+        _citiesList = cities;
+        _selectedCityObj = null;
+        _cityController.text = '';
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -85,9 +184,40 @@ class _RegisterPageState extends State<RegisterPage> {
         Placemark place = placemarks[0];
         setState(() {
           _villageController.text = place.subLocality ?? place.name ?? '';
-          _cityController.text = place.locality ?? '';
-          _stateController.text = place.administrativeArea ?? '';
           _pincodeController.text = place.postalCode ?? '';
+
+          String? stateName = place.administrativeArea;
+          String? cityName = place.locality;
+
+          if (stateName != null) {
+            final foundState = _statesList.firstWhere(
+              (s) => s.name.toLowerCase() == stateName.toLowerCase(),
+              orElse: () => _statesList.firstWhere(
+                (s) => stateName.toLowerCase().contains(s.name.toLowerCase()),
+                orElse: () => csc.State(name: stateName, countryCode: 'IN', isoCode: ''),
+              ),
+            );
+
+            if (foundState.isoCode.isNotEmpty) {
+              _selectedStateObj = foundState;
+              _stateController.text = foundState.name;
+              _loadCities(foundState.isoCode).then((_) {
+                if (cityName != null) {
+                  final foundCity = _citiesList.firstWhere(
+                    (c) => c.name.toLowerCase() == cityName.toLowerCase(),
+                    orElse: () => csc.City(name: cityName, countryCode: 'IN', stateCode: foundState.isoCode),
+                  );
+                  setState(() {
+                    _selectedCityObj = foundCity;
+                    _cityController.text = foundCity.name;
+                  });
+                }
+              });
+            } else {
+              _stateController.text = stateName;
+              _cityController.text = cityName ?? '';
+            }
+          }
         });
       }
     } catch (e) {
@@ -102,10 +232,6 @@ class _RegisterPageState extends State<RegisterPage> {
       HapticUtil.error();
       return;
     }
-
-    HapticUtil.medium();
-    setState(() => _isLoading = true);
-    final l10n = AppLocalizations.of(context)!;
 
     final installSource = await MetaAnalyticsService.getInstallSource();
     final deepLinkUrl = await MetaAnalyticsService.getDeepLinkUrl();
@@ -312,6 +438,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 _firstNameController,
                                 hint: "First",
                                 prefixIcon: Icons.person_outline_rounded,
+                                autofillHints: [AutofillHints.givenName],
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -321,6 +448,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 _lastNameController,
                                 hint: "Last",
                                 prefixIcon: Icons.person_outline_rounded,
+                                autofillHints: [AutofillHints.familyName],
                               ),
                             ),
                           ],
@@ -347,6 +475,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           _villageController,
                           hint: l10n.addressHint,
                           prefixIcon: Icons.map_outlined,
+                          autofillHints: [AutofillHints.streetAddressLine1],
                         ),
                         const SizedBox(height: 10),
 
@@ -357,39 +486,60 @@ class _RegisterPageState extends State<RegisterPage> {
                           hint: l10n.address2Hint,
                           prefixIcon: Icons.map_outlined,
                           isOptional: true,
+                          autofillHints: [AutofillHints.streetAddressLine2],
                         ),
                         const SizedBox(height: 10),
 
-                        // 4. Regional Row (City | Pincode)
+                        // 4. State (Full Width)
+                        _buildDropdownField<csc.State>(
+                          l10n.state,
+                          _selectedStateObj,
+                          _statesList,
+                          (state) => state.name,
+                          Icons.map_sharp,
+                          (val) {
+                            if (val != null) {
+                              _selectedStateObj = val;
+                              _stateController.text = val.name;
+                              _loadCities(val.isoCode);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 10),
+
+                        // 5. Regional Row (City | Pincode)
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                l10n.cityDistrict,
-                                _cityController,
-                                hint: "Pune",
-                                prefixIcon: Icons.location_city_rounded,
+                                "${l10n.pincode} ✨",
+                                _pincodeController,
+                                hint: "411001",
+                                prefixIcon: Icons.pin_drop_outlined,
+                                keyboardType: TextInputType.number,
+                                autofillHints: [AutofillHints.postalCode],
+                                helperText: "Auto-fills City/State",
+                                isSearching: _isPincodeLoading,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _buildTextField(
-                                l10n.pincode,
-                                _pincodeController,
-                                hint: "411001",
-                                prefixIcon: Icons.pin_drop_outlined,
+                              child: _buildDropdownField<csc.City>(
+                                l10n.cityDistrict,
+                                _selectedCityObj,
+                                _citiesList,
+                                (city) => city.name,
+                                Icons.location_city_rounded,
+                                (val) {
+                                  setState(() {
+                                    _selectedCityObj = val;
+                                    _cityController.text = val?.name ?? '';
+                                  });
+                                },
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 10),
-
-                        // 5. State (Full Width)
-                        _buildTextField(
-                          l10n.state,
-                          _stateController,
-                          hint: "Maharashtra",
-                          prefixIcon: Icons.map_sharp,
                         ),
                         const SizedBox(height: 14),
 
@@ -508,6 +658,10 @@ class _RegisterPageState extends State<RegisterPage> {
     String? hint,
     IconData? prefixIcon,
     bool isOptional = false,
+    TextInputType? keyboardType,
+    Iterable<String>? autofillHints,
+    String? helperText,
+    bool isSearching = false,
   }) {
     final l10n = AppLocalizations.of(context)!;
     return Column(
@@ -524,11 +678,15 @@ class _RegisterPageState extends State<RegisterPage> {
         const SizedBox(height: 3),
         TextFormField(
           controller: controller,
+          keyboardType: keyboardType,
+          autofillHints: autofillHints,
+          textInputAction: TextInputAction.next,
           validator: (value) {
             if (isOptional) return null;
             if (value == null || value.isEmpty) return l10n.fieldRequired;
-            if (label == l10n.pincode && value.length != 6)
+            if (label.contains(l10n.pincode) && value.length != 6) {
               return l10n.invalidPincode;
+            }
             return null;
           },
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -541,10 +699,103 @@ class _RegisterPageState extends State<RegisterPage> {
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, color: const Color(0xFF2E7D32), size: 16)
                 : null,
+            suffixIcon: isSearching
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF2E7D32),
+                      ),
+                    ),
+                  )
+                : null,
             hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Colors.grey.shade400,
               fontSize: 12,
             ),
+            helperText: helperText,
+            helperStyle: const TextStyle(
+              fontSize: 9,
+              color: Color(0xFF2E7D32),
+              fontWeight: FontWeight.w500,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: Color(0xFF2E7D32),
+                width: 1.2,
+              ),
+            ),
+            errorStyle: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontSize: 10),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownField<T>(
+    String label,
+    T? value,
+    List<T> items,
+    String Function(T) itemLabel,
+    IconData prefixIcon,
+    void Function(T?) onChanged,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 3),
+        DropdownButtonFormField<T>(
+          value: items.contains(value) ? value : null,
+          isExpanded: true,
+          icon: const Icon(Icons.arrow_drop_down, size: 20),
+          items: items.map((T item) {
+            return DropdownMenuItem<T>(
+              value: item,
+              child: Text(
+                itemLabel(item),
+                style: const TextStyle(fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+          validator: (value) => value == null ? l10n.fieldRequired : null,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            prefixIcon: Icon(prefixIcon, color: const Color(0xFF2E7D32), size: 16),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,

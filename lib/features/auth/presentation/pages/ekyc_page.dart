@@ -907,15 +907,18 @@ class _EkycPageState extends State<EkycPage> {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              Text(
-                                                l10n.completeVerification,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .labelLarge
-                                                    ?.copyWith(
-                                                      fontSize: 18,
-                                                      color: Colors.white,
-                                                    ),
+                                              Flexible(
+                                                child: Text(
+                                                  l10n.completeVerification,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelLarge
+                                                      ?.copyWith(
+                                                        fontSize: 16,
+                                                        color: Colors.white,
+                                                      ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
                                               const SizedBox(width: 8),
                                               const Icon(
