@@ -46,9 +46,16 @@ class _OtpPageState extends State<OtpPage> {
 
     try {
       final deviceId = await DeviceUtils.getUniqueId();
+      final installSource = await MetaAnalyticsService.getInstallSource();
+      
       final response = await HttpService.post(
         ApiConstants.verifyOtp,
-        body: {'phoneNumber': phoneNumber, 'otp': otp, 'deviceId': deviceId},
+        body: {
+          'phoneNumber': phoneNumber,
+          'otp': otp,
+          'deviceId': deviceId,
+          'source': installSource,
+        },
       );
 
       if (response.statusCode == 200) {
