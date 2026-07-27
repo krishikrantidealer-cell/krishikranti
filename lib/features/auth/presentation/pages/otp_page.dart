@@ -519,23 +519,15 @@ class SmsRetrieverImpl implements SmsRetriever {
   @override
   Future<String?> getSmsCode() async {
     try {
-      // 1. Try SMS Retriever API (Silent, high-end experience)
-      // Note: Requires App Signature Hash at the end of SMS message
-      final res = await smartAuth.getSmsWithRetrieverApi();
+      // Using User Consent API as the primary method for DLT compatibility.
+      // This shows the native Google "Allow" bottom sheet when the SMS arrives.
+      final res = await smartAuth.getSmsWithUserConsentApi();
       if (res.hasData && res.requireData.code != null) {
-        debugPrint('[SMS-RETRIEVER] Code received via Retriever: ${res.requireData.code}');
+        debugPrint('[SMS-RETRIEVER] Code received via User Consent: ${res.requireData.code}');
         return res.requireData.code;
       }
-
-      // 2. Fallback to User Consent API if Retriever times out or fails
-      // This shows a native bottom sheet prompt to the user
-      final consentRes = await smartAuth.getSmsWithUserConsentApi();
-      if (consentRes.hasData && consentRes.requireData.code != null) {
-        debugPrint('[SMS-RETRIEVER] Code received via User Consent: ${consentRes.requireData.code}');
-        return consentRes.requireData.code;
-      }
     } catch (e) {
-      debugPrint('[SMS-RETRIEVER] Exception: $e');
+      debugPrint('[SMS-RETRIEVER] User Consent API Error: $e');
     }
     return null;
   }
