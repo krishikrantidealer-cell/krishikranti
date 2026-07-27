@@ -23,6 +23,13 @@ class HomeDiscovery {
   });
 
   factory HomeDiscovery.fromJson(Map<String, dynamic> json) {
+    final List<Product> featured = (json['featuredProducts'] as List? ?? [])
+        .map((item) => Product.fromJson(item))
+        .toList();
+        
+    // Apply custom sorting for featured products
+    Product.sortProducts(featured, 'featured');
+
     return HomeDiscovery(
       banners: (json['banners'] as List? ?? [])
           .map((item) => BannerModel.fromJson(item))
@@ -39,9 +46,7 @@ class HomeDiscovery {
       categories: (json['categories'] as List? ?? [])
           .map((item) => Category.fromJson(item))
           .toList(),
-      featuredProducts: (json['featuredProducts'] as List? ?? [])
-          .map((item) => Product.fromJson(item))
-          .toList(),
+      featuredProducts: featured,
       collections: (json['collections'] as List? ?? [])
           .map((item) => Collection.fromJson(item))
           .toList(),

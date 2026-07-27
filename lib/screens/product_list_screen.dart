@@ -287,17 +287,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
       }
       final String? activeContextId = subId ?? widget.categoryId ?? widget.collection;
       if (activeContextId != null && activeContextId.isNotEmpty) {
-        final String safeKey = activeContextId.replaceAll('.', '_dot_');
-        items.sort((a, b) {
-          final orderA = int.tryParse(a.customOrders[safeKey]?.toString() ?? '') ?? 1000000;
-          final orderB = int.tryParse(b.customOrders[safeKey]?.toString() ?? '') ?? 1000000;
-          
-          if (orderA != orderB) {
-            return orderA.compareTo(orderB);
-          }
-          // Secondary sort by title
-          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-        });
+        Product.sortProducts(items, activeContextId);
+      } else if (widget.isFeatured == true) {
+        Product.sortProducts(items, 'featured');
       }
     }
 

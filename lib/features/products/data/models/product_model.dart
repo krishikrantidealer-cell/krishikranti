@@ -20,6 +20,7 @@ class Product {
   final double? minPrice;
   final double? maxPrice;
   final Map<String, dynamic> customOrders;
+  final int order;
 
   Product({
     required this.id,
@@ -40,6 +41,7 @@ class Product {
     this.minPrice,
     this.maxPrice,
     this.customOrders = const {},
+    this.order = 0,
   });
 
   // Helper to get minimum price (uses backend value if available, else calculates)
@@ -153,7 +155,35 @@ class Product {
       customOrders: json['customOrders'] is Map
           ? Map<String, dynamic>.from(json['customOrders'])
           : {},
+      order: json['order'] ?? 0,
     );
+  }
+
+  /// Sorts a list of products based on the custom rank assigned in the admin panel
+  /// for a specific category, subcategory, or collection.
+  static void sortProducts(List<Product> products, String? contextId) {
+    if (contextId == null || contextId.isEmpty) return;
+    
+    // The keys in customOrders are the IDs of categories/collections,
+    // but dots are escaped as "_dot_" (e.g., "cat.123" -> "cat_dot_123")
+    final String safeKey = contextId.replaceAll('.', '_dot_');
+    
+    products.sort((a, b) {
+      final orderA = int.tryParse(a.customOrders[safeKey]?.toString() ?? '') ?? 1000000;
+      final orderB = int.tryParse(b.customOrders[safeKey]?.toString() ?? '') ?? 1000000;
+      
+      if (orderA != orderB) {
+        return orderA.compareTo(orderB);
+      }
+      
+      // Secondary sort by global 'order' field (just like the backend)
+      if (a.order != b.order) {
+        return a.order.compareTo(b.order);
+      }
+
+      // Fallback to title sorting for consistent UI
+      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    });
   }
 }
 

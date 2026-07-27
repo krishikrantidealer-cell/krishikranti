@@ -70,16 +70,24 @@ class Collection {
 
   factory Collection.fromJson(Map<String, dynamic> json) {
     final rawBanner = json['bannerImage'] as String?;
+    final String id = json['_id'] ?? '';
+    
+    final List<Product> products = (json['products'] as List?)
+            ?.map((p) => Product.fromJson(p))
+            .toList() ??
+        [];
+    
+    // Automatically sort products based on their position in this collection
+    // as defined in the admin panel.
+    Product.sortProducts(products, id);
+
     return Collection(
-      id: json['_id'] ?? '',
+      id: id,
       name: json['name'] ?? '',
       slug: json['slug'] ?? '',
       description: json['description'],
       bannerImage: rawBanner != null && rawBanner.isNotEmpty ? _resolveImageUrl(rawBanner) : null,
-      products: (json['products'] as List?)
-              ?.map((p) => Product.fromJson(p))
-              .toList() ??
-          [],
+      products: products,
       subCollections: (json['subCollections'] as List?)
               ?.map((s) => SubCollection.fromJson(s))
               .toList() ??

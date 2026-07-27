@@ -143,13 +143,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       try {
         final result = await _productRepository.getProducts(
           categoryId: cat.id,
-          limit: 4,
+          limit: 10, // Fetch more than 4 to allow sorting to work properly if needed
         );
-        final List<Product> products =
-            (result['products'] as List<Product>? ?? []).take(4).toList();
-        if (products.isNotEmpty && mounted) {
+        final List<Product> allProducts =
+            (result['products'] as List<Product>? ?? []);
+        
+        // Sort according to admin panel order for this category
+        Product.sortProducts(allProducts, cat.id);
+        
+        final displayProducts = allProducts.take(4).toList();
+
+        if (displayProducts.isNotEmpty && mounted) {
           setState(() {
-            _categoryProducts = {..._categoryProducts, cat.id: products};
+            _categoryProducts = {..._categoryProducts, cat.id: displayProducts};
           });
         }
       } catch (_) {
