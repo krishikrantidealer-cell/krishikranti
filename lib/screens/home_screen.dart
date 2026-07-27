@@ -16,7 +16,6 @@ import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/core/utils/guest_barrier_util.dart';
 import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
-import 'package:krishikranti/widgets/breathing_mic_icon.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/screens/profile_screen.dart';
@@ -563,69 +562,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 );
               },
-              child: Consumer<FavoriteService>(
-                builder: (context, favService, child) {
-                  final hasFavorites = favService.favorites.isNotEmpty;
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white,
-                              Colors.white.withValues(alpha: 0.8),
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(2),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                          child: Center(
-                            child: TranslatableText(
-                              profile.isGuest ? 'G' : profile.avatarLetter,
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (hasFavorites)
-                        Positioned(
-                          right: -1,
-                          top: -1,
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF20823C),
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                        ),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white,
+                      Colors.white.withValues(alpha: 0.8),
                     ],
-                  );
-                },
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(2),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
+                  child: Center(
+                    child: TranslatableText(
+                      profile.isGuest ? 'G' : profile.avatarLetter,
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -672,9 +644,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
             const SizedBox(width: 8),
+            _buildFavoriteButton(context, theme),
             const SizedBox(width: 8),
             _buildCartButton(context, theme),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFavoriteButton(BuildContext context, ThemeData theme) {
+    return Consumer<FavoriteService>(
+      builder: (context, favService, child) {
+        final count = favService.favorites.length;
+        return IconButton.filled(
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FavoritesScreen()),
+            );
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white.withValues(alpha: 0.25),
+            padding: const EdgeInsets.all(8),
+          ),
+          icon: count == 0
+              ? const Icon(
+                  Icons.favorite_border_rounded,
+                  color: Colors.white,
+                  size: 22,
+                )
+              : Badge(
+                  label: Text(count > 99 ? '99+' : count.toString()),
+                  backgroundColor: Colors.redAccent,
+                  child: const Icon(
+                    Icons.favorite_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
         );
       },
     );
@@ -796,28 +805,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         letterSpacing: -0.2,
                       ),
                     ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 20,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: Colors.grey.withValues(alpha: 0.2),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.mediumImpact();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const SearchScreen(startVoiceSearch: true),
-                      ),
-                    );
-                  },
-                  child: BreathingMicIcon(
-                    color: theme.colorScheme.primary,
-                    size: 20,
                   ),
                 ),
               ],

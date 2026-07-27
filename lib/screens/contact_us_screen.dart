@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class ContactUsScreen extends StatefulWidget {
   const ContactUsScreen({super.key});
@@ -903,6 +904,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
           ],
         ),
       ),
+      floatingActionButton: const WhatsAppFab(mini: true),
     );
   }
 

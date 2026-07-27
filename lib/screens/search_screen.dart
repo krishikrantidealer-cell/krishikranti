@@ -14,14 +14,13 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:lottie/lottie.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'dart:ui';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class SearchScreen extends StatefulWidget {
-  final bool startVoiceSearch;
-  const SearchScreen({super.key, this.startVoiceSearch = false});
+  const SearchScreen({super.key});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -32,7 +31,6 @@ class _SearchScreenState extends State<SearchScreen>
   final TextEditingController _searchController = TextEditingController();
   final ProductRepository _productRepository = ProductRepository();
   final FavoriteService _favoriteService = FavoriteService();
-  final SpeechToText _speechToText = SpeechToText();
 
   Timer? _debounce;
   List<Product> _searchResults = [];
@@ -41,12 +39,6 @@ class _SearchScreenState extends State<SearchScreen>
   String? _errorMessage;
 
   List<String> _recentSearches = [];
-  bool _isVoiceSearching = false;
-  bool _isSpeechInitialized = false;
-  static const platform = MethodChannel(
-    'com.krishi.dealer.retailer/voice_search',
-  );
-
   List<Category> _allCategories = [];
   List<Category> _randomCategories = [];
 
@@ -55,12 +47,6 @@ class _SearchScreenState extends State<SearchScreen>
     super.initState();
     _loadRecentSearches();
     _loadRandomCategories();
-
-    if (widget.startVoiceSearch) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showBlinkitVoiceSearch();
-      });
-    }
   }
 
   Future<void> _loadRandomCategories() async {
@@ -188,85 +174,6 @@ class _SearchScreenState extends State<SearchScreen>
         ],
       ),
     );
-  }
-
-  Future<void> _showBlinkitVoiceSearch() async {
-    // 1. Android Native Implementation (Uses system dialog)
-    if (Theme.of(context).platform == TargetPlatform.android) {
-      try {
-        final String? result = await platform.invokeMethod('startVoiceSearch');
-        if (result != null && result.isNotEmpty) {
-          setState(() {
-            _searchController.text = result;
-            _onSearchChanged(result);
-          });
-          _saveRecentSearch(result);
-        }
-        return;
-      } on PlatformException catch (e) {
-        debugPrint("Android native voice search failed: '${e.message}'. Falling back to plugin.");
-      }
-    }
-
-    // 2. iOS / Cross-platform Plugin Implementation (Using speech_to_text)
-    try {
-      if (!_isSpeechInitialized) {
-        _isSpeechInitialized = await _speechToText.initialize(
-          onError: (error) {
-            debugPrint('Speech Error: ${error.errorMsg}');
-            setState(() => _isVoiceSearching = false);
-          },
-          onStatus: (status) {
-            debugPrint('Speech Status: $status');
-            if (status == 'done' || status == 'notListening') {
-              setState(() => _isVoiceSearching = false);
-            }
-          },
-        );
-      }
-
-      if (_isSpeechInitialized) {
-        setState(() => _isVoiceSearching = true);
-
-        // Show a simple SnackBar or HUD on iOS to indicate listening
-        if (Theme.of(context).platform == TargetPlatform.iOS) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Row(
-                children: [
-                  Icon(CupertinoIcons.mic_fill, color: Colors.white, size: 20),
-                  SizedBox(width: 12),
-                  Text("Listening..."),
-                ],
-              ),
-              duration: Duration(seconds: 4),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Color(0xFF2E7D32),
-            ),
-          );
-        }
-
-        await _speechToText.listen(
-          onResult: (result) {
-            setState(() {
-              _searchController.text = result.recognizedWords;
-              if (result.finalResult) {
-                _isVoiceSearching = false;
-                _onSearchChanged(result.recognizedWords);
-                _saveRecentSearch(result.recognizedWords);
-              }
-            });
-          },
-          listenFor: const Duration(seconds: 10),
-          pauseFor: const Duration(seconds: 3),
-        );
-      } else {
-        debugPrint("Speech recognition not available or permission denied.");
-      }
-    } catch (e) {
-      debugPrint("Error during voice search: $e");
-      setState(() => _isVoiceSearching = false);
-    }
   }
 
   @override
@@ -442,7 +349,7 @@ class _SearchScreenState extends State<SearchScreen>
                     child: TextField(
                       cursorColor: theme.colorScheme.primary,
                       controller: _searchController,
-                      autofocus: !widget.startVoiceSearch,
+                      autofocus: true,
                       onChanged: _onSearchChanged,
                       onSubmitted: (value) => _saveRecentSearch(value),
                       textInputAction: TextInputAction.search,
@@ -486,18 +393,6 @@ class _SearchScreenState extends State<SearchScreen>
                         ),
                       ),
                     ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _showBlinkitVoiceSearch,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      child: Icon(
-                        CupertinoIcons.mic_fill,
-                        size: 20,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -576,6 +471,7 @@ class _SearchScreenState extends State<SearchScreen>
               ],
             ),
           ),
+        floatingActionButton: const WhatsAppFab(mini: true),
       ),
     );
   }

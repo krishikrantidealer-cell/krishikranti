@@ -16,6 +16,7 @@ import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/utils/guest_barrier_util.dart';
 import 'package:krishikranti/core/websocket_service.dart';
 import 'package:krishikranti/core/network/http_service.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 import 'dart:async';
 
 class MainScreen extends StatefulWidget {
@@ -148,6 +149,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               return const SizedBox.shrink();
             }),
           ),
+          floatingActionButton: const WhatsAppFab(),
           bottomNavigationBar: Container(
             height: 64 + MediaQuery.of(context).padding.bottom,
             decoration: BoxDecoration(

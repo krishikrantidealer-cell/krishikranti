@@ -27,6 +27,7 @@ import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/core/utils/html_utils.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -423,6 +424,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             if (_showSuccessAnimation) _buildSuccessAnimationOverlay(),
           ],
         ),
+        floatingActionButton: const WhatsAppFab(
+          mini: true,
+          padding: EdgeInsets.only(bottom: 60),
+        ),
       ),
     );
   }
@@ -608,19 +613,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               color: Colors.black,
             ),
           ),
-          if (_product.technicalName?.isNotEmpty ?? false) ...[
-            const SizedBox(height: 4),
-            TranslatableText(
-              _product.technicalName!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
           const SizedBox(height: 10),
           Row(
             children: [

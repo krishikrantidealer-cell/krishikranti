@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class ProductListScreen extends StatefulWidget {
   final String category;
@@ -1138,6 +1139,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
               ),
             ),
           ),
+          floatingActionButton: const WhatsAppFab(mini: true),
         ),
       ),
     );

@@ -15,6 +15,7 @@ import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:krishikranti/core/websocket_service.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -253,6 +254,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
           ),
         ],
       ),
+      floatingActionButton: const WhatsAppFab(mini: true),
     );
   }
 

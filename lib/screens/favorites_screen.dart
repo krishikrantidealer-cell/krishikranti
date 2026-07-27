@@ -14,6 +14,7 @@ import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/widgets/animated_heart.dart';
 import 'package:krishikranti/widgets/progressive_image.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -106,6 +107,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               );
             },
           ),
+          floatingActionButton: const WhatsAppFab(mini: true),
         ),
       ),
     );

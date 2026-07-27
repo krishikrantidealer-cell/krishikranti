@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:krishikranti/screens/my_orders_screen.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class OrderSuccessScreen extends StatefulWidget {
   const OrderSuccessScreen({super.key});
@@ -169,6 +170,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
             ),
           ],
         ),
+        floatingActionButton: const WhatsAppFab(mini: true, padding: EdgeInsets.only(bottom: 70)),
       ),
     );
   }

@@ -21,11 +21,11 @@ import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
-import 'package:krishikranti/widgets/breathing_mic_icon.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class CatalogueScreen extends StatefulWidget {
   final bool isShowingCollections;
@@ -342,6 +342,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF8),
+      floatingActionButton: const WhatsAppFab(mini: true),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.dark,
         child: CustomScrollView(
@@ -462,31 +463,6 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                                   fontSize: 15,
                                   fontWeight: FontWeight.w400,
                                 ),
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.mediumImpact();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SearchScreen(
-                                    startVoiceSearch: true,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              margin: const EdgeInsets.only(left: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: BreathingMicIcon(
-                                size: 20,
-                                color: Colors.grey.shade500,
                               ),
                             ),
                           ),

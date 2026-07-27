@@ -16,6 +16,7 @@ import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
+import 'package:krishikranti/widgets/whatsapp_fab.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -423,6 +424,10 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                     ),
                 ],
               ),
+            ),
+            floatingActionButton: const WhatsAppFab(
+              mini: true,
+              padding: EdgeInsets.only(bottom: 70),
             ),
           ),
         );
