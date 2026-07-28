@@ -697,6 +697,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildDosageSection() {
+    if (_product.dosage == null) return const SizedBox.shrink();
+    final dosage = _product.dosage!;
+    final hasLiter = dosage.perLiterWater != null && dosage.perLiterWater!.isNotEmpty;
+    final hasAcre = dosage.perAcre != null && dosage.perAcre!.isNotEmpty;
+    final hasMethod = dosage.method != null && dosage.method!.isNotEmpty;
+
+    if (!hasLiter && !hasAcre && !hasMethod) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Container(
@@ -710,23 +718,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildCompactDosageItem(
-              Icons.water_drop_outlined,
-              "0.3–0.5 gm",
-              "Per Litre",
-            ),
-            _buildDosageVerticalDivider(),
-            _buildCompactDosageItem(
-              Icons.landscape_outlined,
-              "100–120 gm",
-              "Per Acre",
-            ),
-            _buildDosageVerticalDivider(),
-            _buildCompactDosageItem(
-              Icons.grain_outlined,
-              "Foliar",
-              "Spray Method",
-            ),
+            if (hasLiter)
+              _buildCompactDosageItem(
+                Icons.water_drop_outlined,
+                dosage.perLiterWater!,
+                "Per Litre",
+              ),
+            if (hasLiter && (hasAcre || hasMethod)) _buildDosageVerticalDivider(),
+            if (hasAcre)
+              _buildCompactDosageItem(
+                Icons.landscape_outlined,
+                dosage.perAcre!,
+                "Per Acre",
+              ),
+            if (hasAcre && hasMethod) _buildDosageVerticalDivider(),
+            if (hasMethod)
+              _buildCompactDosageItem(
+                Icons.grain_outlined,
+                dosage.method!,
+                "Spray Method",
+              ),
           ],
         ),
       ),

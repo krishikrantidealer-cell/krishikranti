@@ -147,12 +147,16 @@ class _ProductCardState extends State<ProductCard>
                 color: Colors.grey.shade600,
               ),
               const SizedBox(width: 3),
-              TranslatableText(
-                displayDetail,
-                style: TextStyle(
-                  color: Colors.grey.shade700,
-                  fontSize: isGridView ? 8.5 : 9.5,
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: TranslatableText(
+                  displayDetail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontSize: isGridView ? 8.5 : 9.5,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],

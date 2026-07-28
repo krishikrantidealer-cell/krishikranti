@@ -16,6 +16,7 @@ class Product {
   final String? subCategoryId;
   final List<String> tags;
   final ProductDetail? details;
+  final Dosage? dosage;
   final List<String> images;
   final double? minPrice;
   final double? maxPrice;
@@ -37,6 +38,7 @@ class Product {
     this.subCategoryId,
     this.tags = const [],
     this.details,
+    this.dosage,
     this.images = const [],
     this.minPrice,
     this.maxPrice,
@@ -119,6 +121,7 @@ class Product {
       categoryId: _parseId(json['categoryId']),
       subCategoryId: _parseId(json['subCategoryId']),
       tags: List<String>.from(json['tags'] ?? []),
+      dosage: json['dosage'] != null ? Dosage.fromJson(json['dosage']) : null,
       images:
           (json['images'] as List?)
               ?.map((img) => _resolveImageUrl(img.toString()))
@@ -184,6 +187,22 @@ class Product {
       // Fallback to title sorting for consistent UI
       return a.title.toLowerCase().compareTo(b.title.toLowerCase());
     });
+  }
+}
+
+class Dosage {
+  final String? perLiterWater;
+  final String? perAcre;
+  final String? method;
+
+  Dosage({this.perLiterWater, this.perAcre, this.method});
+
+  factory Dosage.fromJson(Map<String, dynamic> json) {
+    return Dosage(
+      perLiterWater: json['perLiterWater']?.toString(),
+      perAcre: json['perAcre']?.toString(),
+      method: json['method']?.toString(),
+    );
   }
 }
 
