@@ -59,6 +59,7 @@ dependencies:
   flutter_image_compress: ^2.4.0
   path_provider: ^2.1.5
   carousel_slider: ^5.1.2
+  infinite_carousel: ^1.1.1
   cached_network_image: ^3.4.1
   flutter_staggered_animations: ^1.0.0
   firebase_core: ^4.7.0

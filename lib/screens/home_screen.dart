@@ -35,6 +35,7 @@ import 'package:krishikranti/widgets/home/home_section_title.dart';
 import 'package:krishikranti/widgets/home/home_category_section.dart';
 import 'package:krishikranti/widgets/home/home_collection_row.dart';
 import 'package:krishikranti/widgets/home/home_collection_product_grid.dart';
+import 'package:krishikranti/widgets/home/home_featured_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,21 +62,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Category-wise products for the "Shop by Category" section
   Map<String, List<Product>> _categoryProducts = {};
 
-  static const int _numSearchHints = 6;
-
-  List<String> _getSearchHints(AppLocalizations l10n) {
-    return [
-      l10n.searchHintFungicides,
-      l10n.searchHintInsecticides,
-      l10n.searchHintHerbicides,
-      l10n.searchHintBioProducts,
-      l10n.searchHintPgrs,
-      l10n.searchHintFertilizers,
-    ];
-  }
-
-  int _currentHintIndex = 0;
-  Timer? _hintTimer;
   bool _routeIsCurrent = true;
 
   @override
@@ -83,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fetchDiscoveryData();
-    _startHintRotation();
   }
 
   @override
@@ -138,39 +123,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// All categories are fetched in parallel and applied in a single setState to avoid
   /// multiple rebuilds that cause scroll flicker.
   Future<void> _fetchCategoryProducts(List<Category> categories) async {
-    for (final cat in categories) {
+    final Map<String, List<Product>> newCategoryProducts = {};
+    
+    await Future.wait(categories.map((cat) async {
       try {
         final result = await _productRepository.getProducts(
           categoryId: cat.id,
-          limit: 10, // Fetch more than 4 to allow sorting to work properly if needed
+          limit: 10,
         );
-        final List<Product> allProducts =
-            (result['products'] as List<Product>? ?? []);
-        
-        // Sort according to admin panel order for this category
+        final List<Product> allProducts = (result['products'] as List<Product>? ?? []);
         Product.sortProducts(allProducts, cat.id);
-        
         final displayProducts = allProducts.take(4).toList();
 
-        if (displayProducts.isNotEmpty && mounted) {
-          setState(() {
-            _categoryProducts = {..._categoryProducts, cat.id: displayProducts};
-          });
+        if (displayProducts.isNotEmpty) {
+          newCategoryProducts[cat.id] = displayProducts;
         }
-      } catch (_) {
-        // Silently continue
-      }
-    }
-  }
+      } catch (_) {}
+    }));
 
-  void _startHintRotation() {
-    _hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
-        setState(() {
-          _currentHintIndex = (_currentHintIndex + 1) % _numSearchHints;
-        });
-      }
-    });
+    if (mounted && newCategoryProducts.isNotEmpty) {
+      setState(() {
+        _categoryProducts = {..._categoryProducts, ...newCategoryProducts};
+      });
+    }
   }
 
   Future<void> _fetchDiscoveryData({bool forceRefresh = false}) async {
@@ -402,7 +377,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _currentBanner.dispose();
     _currentOfferBanner.dispose();
-    _hintTimer?.cancel();
     super.dispose();
   }
 
@@ -512,12 +486,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             l10n,
                           ),
                         ),
-
-                        // Best Offers (commented out)
-                        // const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                        // SliverToBoxAdapter(
-                        //   child: _buildBestOffers(context, theme, l10n),
-                        // ),
 
                         // Combined Trust & Footer Section
                         const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -735,92 +703,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: GestureDetector(
-          onTap: () {
-            HapticFeedback.mediumImpact();
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SearchScreen()),
-            );
-          },
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.5),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                Icon(
-                  CupertinoIcons.search,
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    transitionBuilder:
-                        (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position:
-                                  Tween<Offset>(
-                                    begin: const Offset(0.0, 0.5),
-                                    end: Offset.zero,
-                                  ).animate(
-                                    CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeOutCubic,
-                                    ),
-                                  ),
-                              child: child,
-                            ),
-                          );
-                        },
-                    child: TranslatableText(
-                      _getSearchHints(l10n)[_currentHintIndex],
-                      key: ValueKey<int>(_currentHintIndex),
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return _RotatingSearchBar(l10n: l10n, theme: theme);
   }
-
-  // ── _buildBanner replaced by HomeBannerSection widget ────────────────────
-  // Use HomeBannerSection(banners: _banners, currentBanner: _currentBanner)
-  // directly in the widget tree instead.
-
-  // ── _sectionTitle replaced by HomeSectionTitle widget ────────────────────
-  // Use HomeSectionTitle(...) directly in the widget tree instead.
 
   Widget _buildCategories(BuildContext context, ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
@@ -913,75 +797,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_isDiscoveryLoading) return const SizedBox.shrink();
     if (_featuredProducts.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 28, 16, 8),
-          child: HomeSectionTitle(
-            theme: theme,
-            title: l10n.featuredProducts,
-            onSeeAll: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ProductListScreen(
-                    category: 'Featured',
-                    isCollection: false,
-                    isFeatured: true,
-                  ),
-                ),
-              );
-            },
-            seeAllLabel: l10n.seeAll,
-            subtitle: l10n.premiumFarmingEssentials,
-          ),
-        ),
-        SizedBox(
-          height: 275,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: _featuredProducts.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 14),
-            itemBuilder: (context, index) {
-              final product = _featuredProducts[index];
-              return SizedBox(
-                width: 170,
-                child: ProductCard(
-                  key: ValueKey(product.id),
-                  product: product,
-                  category: 'Featured',
-                  isFavorite: _favoriteService.isFavorite(product.id),
-                  onFavoriteToggle: () {
-                    _favoriteService.toggleFavorite(
-                      FavoriteProduct(
-                        id: product.id,
-                        name: product.title,
-                        category: product.brandName ?? 'Product',
-                        price: product.price.toStringAsFixed(0),
-                        imageUrl: product.thumbnail,
-                        weight: product.variants.isNotEmpty
-                            ? product.variants.first.size
-                            : 'N/A',
-                      ),
-                    );
-                  },
-                  index: index,
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+    return HomeFeaturedSection(
+      products: _featuredProducts,
+      favoriteService: _favoriteService,
     );
   }
-
-  // ── _buildSingleCollection replaced by HomeCollectionRow widget ──────────
-  // Use HomeCollectionRow(collection: collection) directly in the widget tree.
-
-  // ── _buildSingleCategory replaced by HomeCategorySection widget ──────────
-  // Use HomeCategorySection(...) directly in the widget tree.
 
   Widget _buildAlternatingSections(
     BuildContext context,
@@ -1103,168 +923,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       children: children,
     );
   }
-
-  // Widget _buildBestOffers(
-  //   BuildContext context,
-  //   ThemeData theme,
-  //   AppLocalizations l10n,
-  // ) {
-  //   final List<Map<String, String>> offers = _bestOffersBanners.isNotEmpty
-  //       ? _bestOffersBanners
-  //             .map((b) => {'title': b.title, 'image': b.imageUrl})
-  //             .toList()
-  //       : [
-  //           {
-  //             'title': 'Buy 1 Get 1',
-  //             'image':
-  //                 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600',
-  //           },
-  //           {
-  //             'title': 'Flat 20% OFF',
-  //             'image':
-  //                 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=600',
-  //           },
-  //           {
-  //             'title': 'Limited Time Deal',
-  //             'image':
-  //                 'https://images.unsplash.com/photo-1595113316349-9fa4eb24f884?auto=format&fit=crop&q=80&w=600',
-  //           },
-  //         ];
-
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Padding(
-  //         padding: const EdgeInsets.symmetric(horizontal: 16),
-  //         child: _sectionTitle(
-  //           theme,
-  //           l10n.bestOffers,
-  //           () {
-  //             Navigator.push(
-  //               context,
-  //               MaterialPageRoute(
-  //                 builder: (context) =>
-  //                     const ProductListScreen(category: "Offers"),
-  //               ),
-  //             );
-  //           },
-  //           l10n,
-  //           subtitle: l10n.exclusiveDeals,
-  //         ),
-  //       ),
-  //       const SizedBox(height: 8),
-  //       CarouselSlider.builder(
-  //         key: ValueKey(offers.length),
-  //         itemCount: offers.length,
-  //         itemBuilder: (context, index, realIndex) {
-  //           final offer = offers[index];
-  //           return Padding(
-  //             padding: const EdgeInsets.symmetric(horizontal: 16),
-  //             child: GestureDetector(
-  //               onTap: () {
-  //                 HapticFeedback.lightImpact();
-  //                 Navigator.push(
-  //                   context,
-  //                   MaterialPageRoute(
-  //                     builder: (context) =>
-  //                         const ProductListScreen(category: "Offers"),
-  //                   ),
-  //                 );
-  //               },
-  //               child: Container(
-  //                 decoration: BoxDecoration(
-  //                   borderRadius: BorderRadius.circular(20),
-  //                   boxShadow: [
-  //                     BoxShadow(
-  //                       color: Colors.black.withValues(alpha: 0.1),
-  //                       blurRadius: 12,
-  //                       offset: const Offset(0, 6),
-  //                     ),
-  //                   ],
-  //                 ),
-  //                 child: ClipRRect(
-  //                   borderRadius: BorderRadius.circular(20),
-  //                   child: CachedNetworkImage(
-  //                     imageUrl: offer['image']!,
-  //                     fit: BoxFit.cover,
-  //                     width: double.infinity,
-  //                     fadeInDuration: const Duration(milliseconds: 300),
-  //                     placeholder: (context, url) => Container(
-  //                       color: Colors.grey[100],
-  //                       child: const Center(
-  //                         child: CircularProgressIndicator.adaptive(
-  //                           strokeWidth: 2.5,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                     errorWidget: (context, url, error) => Container(
-  //                       color: theme.colorScheme.primary.withValues(alpha: 0.1),
-  //                       child: Center(
-  //                         child: Icon(
-  //                           Icons.local_offer_outlined,
-  //                           color: theme.colorScheme.primary,
-  //                           size: 40,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ),
-  //             ),
-  //           );
-  //         },
-  //         options: CarouselOptions(
-  //           height: 180,
-  //           aspectRatio: 16 / 9,
-  //           viewportFraction: 1.0,
-  //           autoPlay: offers.length > 1,
-  //           autoPlayInterval: const Duration(seconds: 5),
-  //           autoPlayAnimationDuration: const Duration(milliseconds: 800),
-  //           autoPlayCurve: Curves.easeInOutCubic,
-  //           enableInfiniteScroll: offers.length > 1,
-  //           pauseAutoPlayOnTouch: true,
-  //           pauseAutoPlayOnManualNavigate: true,
-  //           scrollPhysics: const BouncingScrollPhysics(),
-  //           onPageChanged: (index, reason) {
-  //             _currentOfferBanner.value = index;
-  //           },
-  //         ),
-  //       ),
-  //       ValueListenableBuilder<int>(
-  //         valueListenable: _currentOfferBanner,
-  //         builder: (context, currentIndex, child) {
-  //           if (offers.length <= 1) return const SizedBox.shrink();
-  //           final int safeIndex = currentIndex < offers.length
-  //               ? currentIndex
-  //               : 0;
-  //           return Column(
-  //             children: [
-  //               const SizedBox(height: 10),
-  //               Row(
-  //                 mainAxisAlignment: MainAxisAlignment.center,
-  //                 children: List.generate(
-  //                   offers.length,
-  //                   (i) => AnimatedContainer(
-  //                     duration: const Duration(milliseconds: 300),
-  //                     margin: const EdgeInsets.symmetric(horizontal: 3),
-  //                     width: safeIndex == i ? 20 : 6,
-  //                     height: 6,
-  //                     decoration: BoxDecoration(
-  //                       color: safeIndex == i
-  //                           ? theme.colorScheme.primary
-  //                           : theme.colorScheme.primary.withValues(alpha: 0.2),
-  //                       borderRadius: BorderRadius.circular(3),
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ),
-  //             ],
-  //           );
-  //         },
-  //       ),
-  //     ],
-  //   );
-  // }
 
   Widget _buildFooter(
     BuildContext context,
@@ -1525,6 +1183,132 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           width: 32,
           height: 32,
           fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+class _RotatingSearchBar extends StatefulWidget {
+  final AppLocalizations l10n;
+  final ThemeData theme;
+
+  const _RotatingSearchBar({required this.l10n, required this.theme});
+
+  @override
+  State<_RotatingSearchBar> createState() => _RotatingSearchBarState();
+}
+
+class _RotatingSearchBarState extends State<_RotatingSearchBar> {
+  int _currentHintIndex = 0;
+  Timer? _hintTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentHintIndex = (_currentHintIndex + 1) % 6;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _hintTimer?.cancel();
+    super.dispose();
+  }
+
+  List<String> _getSearchHints(AppLocalizations l10n) {
+    return [
+      l10n.searchHintFungicides,
+      l10n.searchHintInsecticides,
+      l10n.searchHintHerbicides,
+      l10n.searchHintBioProducts,
+      l10n.searchHintPgrs,
+      l10n.searchHintFertilizers,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SearchScreen()),
+            );
+          },
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Icon(
+                  CupertinoIcons.search,
+                  color: widget.theme.colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position:
+                                  Tween<Offset>(
+                                    begin: const Offset(0.0, 0.5),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeOutCubic,
+                                    ),
+                                  ),
+                              child: child,
+                            ),
+                          );
+                        },
+                    child: TranslatableText(
+                      _getSearchHints(widget.l10n)[_currentHintIndex],
+                      key: ValueKey<int>(_currentHintIndex),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

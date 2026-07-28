@@ -45,6 +45,14 @@ class DynamicTranslationService extends ChangeNotifier {
   final LinkedHashMap<String, String> _memCache = LinkedHashMap();
   static const int _maxMemCacheEntries = 1000;
 
+  Timer? _notifyTimer;
+  void _debouncedNotify() {
+    _notifyTimer?.cancel();
+    _notifyTimer = Timer(const Duration(milliseconds: 800), () {
+      notifyListeners();
+    });
+  }
+
   // ── In-flight deduplication ──────────────────────────────────────────────
   final Set<String> _inFlight = {};
 
@@ -309,8 +317,8 @@ class DynamicTranslationService extends ChangeNotifier {
               '[DTS] Error/timeout in background pre-download for $langCode: $e',
             );
           }
-          // Small delay before next task inside the queue to avoid immediate reuse of the native channel
-          await Future.delayed(const Duration(seconds: 4));
+          // Large delay before next task inside the queue to avoid immediate reuse of the native channel
+          await Future.delayed(const Duration(seconds: 10));
         }
       }
     } finally {
@@ -368,7 +376,7 @@ class DynamicTranslationService extends ChangeNotifier {
         debugPrint('[DTS] Translation successful: "$text" -> "$result"');
         _writeCache(key, result);
         _inFlight.remove(key);
-        notifyListeners();
+        _debouncedNotify();
         return result;
       } finally {
         _activeCalls[translator] = (_activeCalls[translator] ?? 0) - 1;

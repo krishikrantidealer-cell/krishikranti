@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
@@ -9,29 +8,21 @@ import 'package:krishikranti/widgets/home/home_section_title.dart';
 import 'package:krishikranti/widgets/product_card.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 
-class HomeCategoryProductRow extends StatefulWidget {
-  final Category category;
+class HomeFeaturedSection extends StatefulWidget {
   final List<Product> products;
   final FavoriteService favoriteService;
-  final String premiumSubtitle;
-  final String seeAllLabel;
-  final String localizedTitle;
 
-  const HomeCategoryProductRow({
+  const HomeFeaturedSection({
     super.key,
-    required this.category,
     required this.products,
     required this.favoriteService,
-    required this.premiumSubtitle,
-    required this.seeAllLabel,
-    required this.localizedTitle,
   });
 
   @override
-  State<HomeCategoryProductRow> createState() => _HomeCategoryProductRowState();
+  State<HomeFeaturedSection> createState() => _HomeFeaturedSectionState();
 }
 
-class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with SingleTickerProviderStateMixin {
+class _HomeFeaturedSectionState extends State<HomeFeaturedSection> with SingleTickerProviderStateMixin {
   late ScrollController _scrollController;
   Ticker? _ticker;
   Timer? _resumeTimer;
@@ -39,12 +30,11 @@ class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with Si
   double _lastElapsedMs = 0;
   
   static const double _itemFullWidth = 184.0;
-  static const double _pixelsPerMs = 0.035; // ~35 pixels per second
+  static const double _pixelsPerMs = 0.035;
 
   @override
   void initState() {
     super.initState();
-    // Start at a very large middle offset for virtual infinity
     _scrollController = ScrollController(initialScrollOffset: 1000 * _itemFullWidth);
     
     _ticker = createTicker(_onTick);
@@ -82,8 +72,7 @@ class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with Si
     _resumeTimer?.cancel();
     _resumeTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
-        // Reset the last elapsed time to avoid a huge "jump" after the pause
-        _lastElapsedMs = 0; 
+        _lastElapsedMs = 0;
         setState(() => _isUserInteracting = false);
       }
     });
@@ -100,30 +89,31 @@ class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with Si
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     if (widget.products.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 28, 16, 8),
           child: HomeSectionTitle(
             theme: theme,
-            title: widget.localizedTitle,
+            title: l10n.featuredProducts,
             onSeeAll: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ProductListScreen(
-                    category: widget.category.name,
-                    categoryId: widget.category.id,
-                    categoryData: widget.category,
+                  builder: (_) => const ProductListScreen(
+                    category: 'Featured',
+                    isCollection: false,
+                    isFeatured: true,
                   ),
                 ),
               );
             },
-            seeAllLabel: widget.seeAllLabel,
-            subtitle: widget.premiumSubtitle,
+            seeAllLabel: l10n.seeAll,
+            subtitle: l10n.premiumFarmingEssentials,
           ),
         ),
         SizedBox(
@@ -138,23 +128,23 @@ class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with Si
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
               itemExtent: _itemFullWidth,
-              itemCount: 10000, 
+              itemCount: 10000,
               cacheExtent: 1500,
               itemBuilder: (context, index) {
                 final product = widget.products[index % widget.products.length];
                 return Padding(
                   padding: const EdgeInsets.only(right: 14),
                   child: ProductCard(
-                    key: ValueKey('cat_${widget.category.id}_${product.id}_$index'),
+                    key: ValueKey('featured_${product.id}_$index'),
                     product: product,
-                    category: widget.category.name,
+                    category: 'Featured',
                     animateEntrance: false,
                     isFavorite: widget.favoriteService.isFavorite(product.id),
                     onFavoriteToggle: () => widget.favoriteService.toggleFavorite(
                       FavoriteProduct(
                         id: product.id,
                         name: product.title,
-                        category: product.brandName ?? widget.category.name,
+                        category: product.brandName ?? 'Product',
                         price: product.price.toStringAsFixed(0),
                         imageUrl: product.thumbnail,
                         weight: product.variants.isNotEmpty
@@ -170,87 +160,6 @@ class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with Si
           ),
         ),
       ],
-    );
-  }
-}
-
-class HomeCategoryProductRowSkeleton extends StatelessWidget {
-  const HomeCategoryProductRowSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 5,
-                height: 28,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [theme.colorScheme.primary, const Color(0xFF38B058)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 140,
-                height: 22,
-                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(6)),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 275,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: 4,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (_, __) => Container(
-              width: 170,
-              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20)),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class HomeCategorySection extends StatelessWidget {
-  final Category category;
-  final List<Product> products;
-  final FavoriteService favoriteService;
-  final String localizedTitle;
-
-  const HomeCategorySection({
-    super.key,
-    required this.category,
-    required this.products,
-    required this.favoriteService,
-    required this.localizedTitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return HomeCategoryProductRow(
-      category: category,
-      products: products,
-      favoriteService: favoriteService,
-      premiumSubtitle: l10n.premiumFarmingEssentials,
-      seeAllLabel: l10n.seeAll,
-      localizedTitle: localizedTitle,
     );
   }
 }

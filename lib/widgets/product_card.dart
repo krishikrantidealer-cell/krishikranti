@@ -20,6 +20,7 @@ class ProductCard extends StatefulWidget {
   final VoidCallback onFavoriteToggle;
   final bool isGridView;
   final String? heroTag;
+  final bool animateEntrance;
 
   const ProductCard({
     super.key,
@@ -31,6 +32,7 @@ class ProductCard extends StatefulWidget {
     required this.onFavoriteToggle,
     this.isGridView = true,
     this.heroTag,
+    this.animateEntrance = true,
   });
 
   @override
@@ -188,12 +190,16 @@ class _ProductCardState extends State<ProductCard>
       ),
     );
 
-    final delay = (widget.index % 6) * 60; // 60ms delay per index
-    Future.delayed(Duration(milliseconds: delay), () {
-      if (mounted) {
-        _appearController.forward();
-      }
-    });
+    if (widget.animateEntrance) {
+      final delay = (widget.index % 6) * 60; // 60ms delay per index
+      Future.delayed(Duration(milliseconds: delay), () {
+        if (mounted) {
+          _appearController.forward();
+        }
+      });
+    } else {
+      _appearController.value = 1.0;
+    }
   }
 
   @override
@@ -206,58 +212,92 @@ class _ProductCardState extends State<ProductCard>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AnimatedBuilder(
-      animation: _appearController,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _fadeAnimation.value,
-          child: Transform.scale(scale: _scaleAnimation.value, child: child),
-        );
-      },
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Navigator.push(
-            context,
-            PageRouteBuilder(
-              transitionDuration: const Duration(milliseconds: 500),
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  ProductDetailScreen(
-                    product: widget.product,
-                    thumbnailUrl: widget.product.thumbnail,
-                    heroTag:
-                        widget.heroTag ??
-                        'product_${widget.category}_${widget.product.id}',
-                  ),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-            ),
-          );
-        },
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            return FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.95, end: 1.0).animate(animation),
-                child: child,
+    // Optimization: Skip animation layers for Marquee
+    if (!widget.animateEntrance) {
+      return RepaintBoundary(
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                transitionDuration: const Duration(milliseconds: 500),
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    ProductDetailScreen(
+                      product: widget.product,
+                      thumbnailUrl: widget.product.thumbnail,
+                      heroTag:
+                          widget.heroTag ??
+                          'product_${widget.category}_${widget.product.id}',
+                    ),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
               ),
             );
           },
-          child: widget.isGridView
-              ? KeyedSubtree(
-                  key: const ValueKey('grid_card_layout'),
-                  child: _buildGridCard(context, theme),
-                )
-              : KeyedSubtree(
-                  key: const ValueKey('list_card_layout'),
-                  child: _buildListCard(context, theme),
+          child: widget.isGridView 
+              ? _buildGridCard(context, theme) 
+              : _buildListCard(context, theme),
+        ),
+      );
+    }
+
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _appearController,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _fadeAnimation.value,
+            child: Transform.scale(scale: _scaleAnimation.value, child: child),
+          );
+        },
+        child: GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                transitionDuration: const Duration(milliseconds: 500),
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    ProductDetailScreen(
+                      product: widget.product,
+                      thumbnailUrl: widget.product.thumbnail,
+                      heroTag:
+                          widget.heroTag ??
+                          'product_${widget.category}_${widget.product.id}',
+                    ),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+              ),
+            );
+          },
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(animation),
+                  child: child,
                 ),
+              );
+            },
+            child: widget.isGridView
+                ? KeyedSubtree(
+                    key: const ValueKey('grid_card_layout'),
+                    child: _buildGridCard(context, theme),
+                  )
+                : KeyedSubtree(
+                    key: const ValueKey('list_card_layout'),
+                    child: _buildListCard(context, theme),
+                  ),
+          ),
         ),
       ),
     );
@@ -308,7 +348,7 @@ class _ProductCardState extends State<ProductCard>
                       children: [
                         Center(
                           child: HeroMode(
-                            enabled: !widget.isPopping,
+                            enabled: widget.animateEntrance && !widget.isPopping,
                             child: Hero(
                               tag:
                                   widget.heroTag ??
@@ -320,6 +360,7 @@ class _ProductCardState extends State<ProductCard>
                                     : widget.product.thumbnail,
                                 fit: BoxFit.contain,
                                 padding: 12.0,
+                                animate: widget.animateEntrance,
                               ),
                             ),
                           ),
@@ -594,7 +635,7 @@ class _ProductCardState extends State<ProductCard>
               top: 8,
               right: 8,
               child: HeroMode(
-                enabled: !widget.isPopping,
+                enabled: widget.animateEntrance && !widget.isPopping,
                 child: Hero(
                   tag: widget.heroTag != null
                       ? 'heart_${widget.heroTag}'
@@ -667,7 +708,7 @@ class _ProductCardState extends State<ProductCard>
                     children: [
                       Center(
                         child: HeroMode(
-                          enabled: !widget.isPopping,
+                          enabled: widget.animateEntrance && !widget.isPopping,
                           child: Hero(
                             tag:
                                 widget.heroTag ??
@@ -679,6 +720,7 @@ class _ProductCardState extends State<ProductCard>
                                   : widget.product.thumbnail,
                               fit: BoxFit.contain,
                               padding: 10.0,
+                              animate: widget.animateEntrance,
                             ),
                           ),
                         ),
@@ -1009,7 +1051,7 @@ class _ProductCardState extends State<ProductCard>
               top: 8,
               right: 8,
               child: HeroMode(
-                enabled: !widget.isPopping,
+                enabled: widget.animateEntrance && !widget.isPopping,
                 child: Hero(
                   tag: widget.heroTag != null
                       ? 'heart_${widget.heroTag}'
