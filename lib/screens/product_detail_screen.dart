@@ -394,7 +394,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         children: [
                           _buildPremiumInfoSection(),
-                          _buildExpertAnalysis(),
+                          _buildDosageSection(),
                           _buildConfigurationCard(),
                           _buildProductDescription(),
                         ],
@@ -696,38 +696,36 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildExpertAnalysis() {
+  Widget _buildDosageSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [const Color(0xFFF1F8F5), Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: const Color(0xFFF1F8F5),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: primaryGreen.withOpacity(0.12), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: primaryGreen.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1.2),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildTrustFeature(Icons.verified_user_rounded, l10n.expertChoice),
-            _buildTrustDivider(),
-            _buildTrustFeature(Icons.bolt_rounded, l10n.fastActing),
-            _buildTrustDivider(),
-            _buildTrustFeature(
-              Icons.security_rounded,
-              l10n.hundredPercentOriginal,
+            _buildCompactDosageItem(
+              Icons.water_drop_outlined,
+              "0.3–0.5 gm",
+              "Per Litre",
+            ),
+            _buildDosageVerticalDivider(),
+            _buildCompactDosageItem(
+              Icons.landscape_outlined,
+              "100–120 gm",
+              "Per Acre",
+            ),
+            _buildDosageVerticalDivider(),
+            _buildCompactDosageItem(
+              Icons.grain_outlined,
+              "Foliar",
+              "Spray Method",
             ),
           ],
         ),
@@ -735,35 +733,43 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildTrustDivider() {
+  Widget _buildDosageVerticalDivider() {
     return Container(
-      width: 1,
+      width: 1.2,
       height: 28,
       color: primaryGreen.withOpacity(0.15),
     );
   }
 
-  Widget _buildTrustFeature(IconData icon, String title) {
+  Widget _buildCompactDosageItem(IconData icon, String value, String label) {
     return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: primaryGreen.withOpacity(0.08),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: primaryGreen, size: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: primaryGreen),
+              const SizedBox(width: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              color: Colors.black,
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: Colors.grey.shade600,
+              letterSpacing: 0.2,
             ),
           ),
         ],
