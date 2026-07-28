@@ -53,9 +53,29 @@ class Order {
     this.courierStatus,
   });
 
+  static String _parseId(dynamic id) {
+    if (id == null) return '';
+    if (id is String) return id;
+    if (id is Map && id.containsKey('\$oid')) return id['\$oid'].toString();
+    return id.toString();
+  }
+
+  static DateTime? _parseDate(dynamic date) {
+    if (date == null) return null;
+    if (date is String) return DateTime.tryParse(date)?.toLocal();
+    if (date is Map && date.containsKey('\$date')) {
+      final dateVal = date['\$date'];
+      if (dateVal is String) return DateTime.tryParse(dateVal)?.toLocal();
+      if (dateVal is num) {
+        return DateTime.fromMillisecondsSinceEpoch(dateVal.toInt()).toLocal();
+      }
+    }
+    return null;
+  }
+
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['_id'] ?? '',
+      id: _parseId(json['_id']),
       orderId: json['orderId'] ?? '',
       items:
           (json['items'] as List?)
@@ -74,39 +94,28 @@ class Order {
       paymentMethod: json['paymentMethod'] ?? 'Online',
       paymentStatus: json['paymentStatus'] ?? 'Pending',
       orderStatus: json['orderStatus'] ?? 'Processing',
-      createdAt: DateTime.parse(
-        json['createdAt'] ?? DateTime.now().toIso8601String(),
-      ).toLocal(),
+      createdAt:
+          _parseDate(json['createdAt']) ??
+          _parseDate(json['placedAt']) ??
+          DateTime.now(),
       awbNumber: json['awbNumber'],
       courierName: json['courierName'],
       trackingUrl: json['trackingUrl'],
-      advanceAmount: json['advanceAmount'] != null
-          ? (json['advanceAmount'] as num).toDouble()
-          : null,
-      remainingAmount: json['remainingAmount'] != null
-          ? (json['remainingAmount'] as num).toDouble()
-          : null,
-      placedAt: json['placedAt'] != null
-          ? DateTime.parse(json['placedAt']).toLocal()
-          : null,
-      processingAt: json['processingAt'] != null
-          ? DateTime.parse(json['processingAt']).toLocal()
-          : null,
-      shippedAt: json['shippedAt'] != null
-          ? DateTime.parse(json['shippedAt']).toLocal()
-          : null,
-      outForDeliveryAt: json['outForDeliveryAt'] != null
-          ? DateTime.parse(json['outForDeliveryAt']).toLocal()
-          : null,
-      deliveredAt: json['deliveredAt'] != null
-          ? DateTime.parse(json['deliveredAt']).toLocal()
-          : null,
-      cancelledAt: json['cancelledAt'] != null
-          ? DateTime.parse(json['cancelledAt']).toLocal()
-          : null,
-      rtoAt: json['rtoAt'] != null
-          ? DateTime.parse(json['rtoAt']).toLocal()
-          : null,
+      advanceAmount:
+          json['advanceAmount'] != null
+              ? (json['advanceAmount'] as num).toDouble()
+              : null,
+      remainingAmount:
+          json['remainingAmount'] != null
+              ? (json['remainingAmount'] as num).toDouble()
+              : null,
+      placedAt: _parseDate(json['placedAt']),
+      processingAt: _parseDate(json['processingAt']),
+      shippedAt: _parseDate(json['shippedAt']),
+      outForDeliveryAt: _parseDate(json['outForDeliveryAt']),
+      deliveredAt: _parseDate(json['deliveredAt']),
+      cancelledAt: _parseDate(json['cancelledAt']),
+      rtoAt: _parseDate(json['rtoAt']),
       courierStatus: json['courierStatus'],
     );
   }
@@ -133,21 +142,14 @@ class OrderItem {
     required this.variant,
   });
 
-  static String _parseId(dynamic id) {
-    if (id == null) return '';
-    if (id is String) return id;
-    if (id is Map && id.containsKey('\$oid')) return id['\$oid'].toString();
-    return id.toString();
-  }
-
   factory OrderItem.fromJson(Map<String, dynamic> json) {
-    final vId = _parseId(json['variantId']);
+    final vId = Order._parseId(json['variantId']);
     String variantName = json['variant'] ?? 'Standard';
 
     if ((variantName == 'Standard' || variantName.isEmpty) && json['product'] is Map && json['product']['variants'] != null) {
       final variants = json['product']['variants'] as List;
       final v = variants.firstWhere(
-        (v) => v is Map && _parseId(v['_id']) == vId,
+        (v) => v is Map && Order._parseId(v['_id']) == vId,
         orElse: () => null,
       );
       if (v != null && v is Map) {
@@ -156,10 +158,10 @@ class OrderItem {
     }
 
     return OrderItem(
-      id: _parseId(json['_id']),
+      id: Order._parseId(json['_id']),
       productId: json['product'] is Map
-          ? _parseId(json['product']['_id'])
-          : _parseId(json['product']),
+          ? Order._parseId(json['product']['_id'])
+          : Order._parseId(json['product']),
       variantId: vId,
       title: json['title'] ?? '',
       image: json['image'],

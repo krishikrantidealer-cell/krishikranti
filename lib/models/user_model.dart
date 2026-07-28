@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 class UserModel {
+  final String? id;
   final String name;
   final String shopName;
   final String phoneNumber;
@@ -14,6 +15,7 @@ class UserModel {
   final bool isBlocked;
 
   UserModel({
+    this.id,
     required this.name,
     required this.shopName,
     required this.phoneNumber,
@@ -38,6 +40,7 @@ class UserModel {
     final String fullName = fName.isNotEmpty ? "$fName $lName".trim() : (user['name'] ?? '');
 
     return UserModel(
+      id: user['_id']?.toString() ?? user['id']?.toString(),
       name: fullName,
       shopName: user['shopName'] ?? user['storeName'] ?? '',
       phoneNumber: user['phoneNumber'] ?? user['phone'] ?? '',
@@ -54,6 +57,8 @@ class UserModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
+      '_id': id,
       'name': name,
       'shopName': shopName,
       'phoneNumber': phoneNumber,
@@ -74,6 +79,7 @@ class UserModel {
       UserModel.fromJson(jsonDecode(source));
 
   UserModel copyWith({
+    String? id,
     String? name,
     String? shopName,
     String? phoneNumber,
@@ -87,6 +93,7 @@ class UserModel {
     bool? isBlocked,
   }) {
     return UserModel(
+      id: id ?? this.id,
       name: name ?? this.name,
       shopName: shopName ?? this.shopName,
       phoneNumber: phoneNumber ?? this.phoneNumber,

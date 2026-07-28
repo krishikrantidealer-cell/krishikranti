@@ -4,6 +4,16 @@ import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/features/orders/data/models/order_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class ApiException implements Exception {
+  final String message;
+  final int statusCode;
+
+  ApiException(this.message, this.statusCode);
+
+  @override
+  String toString() => message;
+}
+
 class OrderRepository {
   static final Map<String, Future<List<Order>>> _ordersCache = {};
   static final Map<String, DateTime> _cacheTimestamps = {};
@@ -112,7 +122,10 @@ class OrderRepository {
         return Map<String, dynamic>.from(data['razorpayOrder']);
       } else {
         final data = jsonDecode(response.body);
-        throw Exception(data['message'] ?? 'Failed to initialize payment');
+        throw ApiException(
+          data['message'] ?? 'Failed to initialize payment',
+          response.statusCode,
+        );
       }
     } catch (e) {
       rethrow;
@@ -148,7 +161,10 @@ class OrderRepository {
         return Order.fromJson(data['order']);
       } else {
         final data = jsonDecode(response.body);
-        throw Exception(data['message'] ?? 'Failed to place order');
+        throw ApiException(
+          data['message'] ?? 'Failed to place order',
+          response.statusCode,
+        );
       }
     } catch (e) {
       rethrow;

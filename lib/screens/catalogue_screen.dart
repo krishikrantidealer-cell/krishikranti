@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
@@ -12,7 +11,6 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
 import 'package:krishikranti/screens/search_screen.dart';
-import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/models/collection_model.dart';
@@ -53,6 +51,11 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   final Set<String> _downloadedCategories = {};
   StreamSubscription<NotificationModel>? _notificationSubscription;
 
+  // --- Download Progress Tracking ---
+  final ReceivePort _port = ReceivePort();
+  final Map<String, int> _downloadProgress = {}; // categoryName -> progress (0-100)
+  final Map<String, String> _taskIdToCategory = {}; // taskId -> categoryName
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +66,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       _fetchCategories();
     }
     _startHintTimer();
+
+    _setupDownloadListener();
 
     _notificationSubscription = NotificationService.onNewNotification.listen((
       notif,
@@ -79,6 +84,42 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       if (mounted) {
         setState(() {
           _currentHintIndex = (_currentHintIndex + 1) % _searchHintCount;
+        });
+      }
+    });
+  }
+
+  void _setupDownloadListener() {
+    IsolateNameServer.registerPortWithName(
+      _port.sendPort,
+      'downloader_send_port',
+    );
+    _port.listen((dynamic data) async {
+      final String taskId = data[0];
+      final int status = data[1];
+      final int progress = data[2];
+
+      String? categoryName = _taskIdToCategory[taskId];
+
+      if (categoryName == null) {
+        // Fallback to SharedPreferences if memory map is lost
+        final prefs = await SharedPreferences.getInstance();
+        categoryName = prefs.getString('download_task_$taskId');
+        if (categoryName != null) {
+          _taskIdToCategory[taskId] = categoryName;
+        }
+      }
+
+      if (categoryName != null && mounted) {
+        setState(() {
+          if (status == 2) { // 2 = DownloadTaskStatus.running
+            _downloadProgress[categoryName!] = progress;
+          } else if (status == 3) { // 3 = DownloadTaskStatus.complete
+            _downloadProgress.remove(categoryName);
+            _checkDownloadedCatalogues();
+          } else if (status == 4 || status == 5) { // 4 = failed, 5 = canceled
+            _downloadProgress.remove(categoryName);
+          }
         });
       }
     });
@@ -332,6 +373,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     WidgetsBinding.instance.removeObserver(this);
     _hintTimer?.cancel();
     _notificationSubscription?.cancel();
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
+    _port.close();
     super.dispose();
   }
 
@@ -536,37 +579,32 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                     ),
                   ),
 
-                  // COMPACT 3-COLUMN GRID
+                  // COMPACT LIST VIEW
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 0,
+                      vertical: 8,
                     ),
                     child: _isLoading
-                        ? _buildShimmerGrid()
-                        : GridView.builder(
+                        ? _buildShimmerList()
+                        : ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: widget.isShowingCollections
                                 ? _collections.length
                                 : _categories.length,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  mainAxisSpacing: 12,
-                                  crossAxisSpacing: 12,
-                                  childAspectRatio: 0.82,
-                                ),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               return _StaggeredEntrance(
                                 index: index,
                                 child: widget.isShowingCollections
-                                    ? _buildCompactCollectionCard(
+                                    ? _buildCollectionListTile(
                                         context,
                                         _collections[index],
                                         theme,
                                       )
-                                    : _buildRectangularCategoryCard(
+                                    : _buildCategoryListTile(
                                         context,
                                         _categories[index],
                                         theme,
@@ -700,20 +738,15 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     );
   }
 
-  Widget _buildShimmerGrid() {
-    final isCol = widget.isShowingCollections;
-    return GridView.builder(
+  Widget _buildShimmerList() {
+    return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 6,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.82,
-      ),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         return Container(
+          height: 80,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -814,6 +847,9 @@ class _CatalogueScreenState extends State<CatalogueScreen>
 
       if (taskId == null) throw Exception('Failed to enqueue download');
 
+      // Save the mapping locally and to SharedPreferences
+      _taskIdToCategory[taskId] = categoryName;
+
       // Save the mapping to SharedPreferences so the callback can access it on completion/failure
       await prefs.setString('download_task_$taskId', categoryName);
       await prefs.setString('download_path_$taskId', savePath);
@@ -849,7 +885,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     }
   }
 
-  Widget _buildRectangularCategoryCard(
+  Widget _buildCategoryListTile(
     BuildContext context,
     Category category,
     ThemeData theme,
@@ -857,12 +893,13 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   ) {
     final imageUrl = _getImageForCategory(category, index);
 
-    return RectangularCategoryCard(
+    return CategoryListTile(
       category: category,
       imageUrl: imageUrl,
       fallbackImage: _getFallbackImageForCategory(category.name),
       icon: _getIconForCategory(category.name),
       isDownloaded: _downloadedCategories.contains(category.name),
+      downloadProgress: _downloadProgress[category.name],
       onDownloadTap:
           (category.cataloguePdf != null && category.cataloguePdf!.isNotEmpty)
           ? () => _downloadCataloguePdf(
@@ -893,7 +930,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     );
   }
 
-  Widget _buildCompactCollectionCard(
+  Widget _buildCollectionListTile(
     BuildContext context,
     Collection collection,
     ThemeData theme,
@@ -914,10 +951,12 @@ class _CatalogueScreenState extends State<CatalogueScreen>
         );
       },
       child: Container(
+        height: 80,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade100, width: 0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade100, width: 0.8),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -926,8 +965,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
             Container(
               width: 52,
@@ -957,31 +995,39 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                       ),
               ),
             ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                collection.name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                  color: Colors.black,
-                  letterSpacing: -0.2,
-                ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    collection.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: Colors.black,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    AppLocalizations.of(context)!.cropsCollection,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              AppLocalizations.of(context)!.cropsCollection,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade400,
-              ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: Colors.grey.shade400,
             ),
           ],
         ),
@@ -1094,7 +1140,7 @@ class _StaggeredEntranceState extends State<_StaggeredEntrance>
   }
 }
 
-class RectangularCategoryCard extends StatefulWidget {
+class CategoryListTile extends StatefulWidget {
   final Category category;
   final String imageUrl;
   final String fallbackImage;
@@ -1102,8 +1148,9 @@ class RectangularCategoryCard extends StatefulWidget {
   final VoidCallback onTap;
   final VoidCallback? onDownloadTap;
   final bool isDownloaded;
+  final int? downloadProgress;
 
-  const RectangularCategoryCard({
+  const CategoryListTile({
     super.key,
     required this.category,
     required this.imageUrl,
@@ -1112,14 +1159,14 @@ class RectangularCategoryCard extends StatefulWidget {
     required this.onTap,
     this.onDownloadTap,
     this.isDownloaded = false,
+    this.downloadProgress,
   });
 
   @override
-  State<RectangularCategoryCard> createState() =>
-      _RectangularCategoryCardState();
+  State<CategoryListTile> createState() => _CategoryListTileState();
 }
 
-class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
+class _CategoryListTileState extends State<CategoryListTile> {
   bool _isPressed = false;
 
   String _getCategoryAssetIcon(String name) {
@@ -1183,9 +1230,10 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
       onTapCancel: () => setState(() => _isPressed = false),
       onTap: widget.onTap,
       child: AnimatedScale(
-        scale: _isPressed ? 0.96 : 1.0,
+        scale: _isPressed ? 0.98 : 1.0,
         duration: const Duration(milliseconds: 100),
         child: Container(
+          height: 80,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -1196,77 +1244,76 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.01),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-          child: Stack(
-            clipBehavior: Clip.none,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
             children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Circular logo icon
-                  Center(
-                    child: Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.06),
-                        shape: BoxShape.circle,
-                      ),
-                      padding: const EdgeInsets.all(6),
-                      child: Image.asset(
-                        assetIcon,
-                        fit: BoxFit.contain,
-                        cacheWidth: 150,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          widget.icon,
-                          color: theme.colorScheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                    ),
+              // Circular logo icon
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.06),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(6),
+                child: Image.asset(
+                  assetIcon,
+                  fit: BoxFit.contain,
+                  cacheWidth: 150,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    widget.icon,
+                    color: theme.colorScheme.primary,
+                    size: 24,
                   ),
-                  const SizedBox(height: 10),
-                  // Category Title
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      displayName,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        fontFamily: 'Poppins',
-                        letterSpacing: -0.2,
-                      ),
-                    ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Category Title
+              Expanded(
+                child: Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    fontFamily: 'Poppins',
+                    letterSpacing: -0.2,
                   ),
-                ],
+                ),
               ),
               if (widget.onDownloadTap != null)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.downloadProgress != null &&
+                        widget.downloadProgress! > 0 &&
+                        widget.downloadProgress! < 100)
+                      Container(
+                        width: 28,
+                        height: 28,
+                        padding: const EdgeInsets.all(4),
+                        child: CircularProgressIndicator(
+                          value: widget.downloadProgress! / 100,
+                          strokeWidth: 3,
+                          backgroundColor: theme.colorScheme.primary
+                              .withValues(alpha: 0.1),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.primary,
+                          ),
+                        ),
+                      )
+                    else ...[
                       if (widget.isDownloaded)
                         _buildActionButton(
                           icon: Icons.menu_book_rounded,
                           color: Colors.blue.shade700,
                           onTap: widget.onDownloadTap!,
                         ),
-                      if (widget.isDownloaded) const SizedBox(width: 4),
+                      if (widget.isDownloaded) const SizedBox(width: 8),
                       _buildActionButton(
                         icon: widget.isDownloaded
                             ? Icons.file_download_done_rounded
@@ -1277,7 +1324,13 @@ class _RectangularCategoryCardState extends State<RectangularCategoryCard> {
                         onTap: widget.onDownloadTap!,
                       ),
                     ],
-                  ),
+                  ],
+                )
+              else
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: Colors.grey.shade400,
                 ),
             ],
           ),

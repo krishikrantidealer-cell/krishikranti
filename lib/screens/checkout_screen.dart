@@ -263,10 +263,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       debugPrint(
         "Secure payment initialization succeeded: order_id=$razorpayOrderId, amount=$amountInPaise",
       );
-    } catch (e) {
-      // Self-healing fallback if the backend route isn't deployed on the active base URL yet
+    } on ApiException catch (e) {
+      // If it's a 400-level error (like KYC), we SHOULD NOT fall back
+      if (e.statusCode >= 400 && e.statusCode < 500) {
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      // For other errors (500, network, etc.), we can try the fallback
       debugPrint(
-        "Secure initialization failed/unsupported on remote server: $e. Falling back to direct client-side integration.",
+        "Secure initialization failed with ${e.statusCode}: ${e.message}. Falling back.",
+      );
+      final double amountToPay = selectedPaymentMethod == 'online'
+          ? finalTotal
+          : advanceAmount;
+      amountInPaise = (amountToPay * 100).toInt();
+      razorpayOrderId = null;
+    } catch (e) {
+      // Self-healing fallback for unexpected non-API errors
+      debugPrint(
+        "Secure initialization failed/unsupported: $e. Falling back to direct client-side integration.",
       );
 
       final double amountToPay = selectedPaymentMethod == 'online'
@@ -312,6 +335,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             : 'Booking Deposit Advance',
         'currency': 'INR',
         'prefill': {'contact': contactNumber, 'email': email},
+        'notes': {
+          'userId': user?.id ?? 'unknown',
+          'cartTotal': finalTotal.toString(),
+          'paymentType': selectedPaymentMethod,
+        }
       };
 
       try {

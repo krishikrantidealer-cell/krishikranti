@@ -59,7 +59,7 @@ void main() {
     expect(tapped, isTrue);
   });
 
-  testWidgets('RectangularCategoryCard Widget Test - Tap Trigger and Render', (WidgetTester tester) async {
+  testWidgets('CategoryListTile Widget Test - Tap Trigger and Render', (WidgetTester tester) async {
     bool tapped = false;
     final testCategory = Category(
       id: 'cat_insecticides',
@@ -69,7 +69,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: RectangularCategoryCard(
+          body: CategoryListTile(
             category: testCategory,
             imageUrl: 'https://storage.googleapis.com/krishi-product-images/categorycardbanners/Insecticides.webp',
             fallbackImage: 'https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?auto=format&fit=crop&q=80&w=400',
@@ -83,10 +83,10 @@ void main() {
     );
 
     // Verify elements are present
-    expect(find.byType(RectangularCategoryCard), findsOneWidget);
+    expect(find.byType(CategoryListTile), findsOneWidget);
 
     // Tap the card and verify action is executed
-    await tester.tap(find.byType(RectangularCategoryCard));
+    await tester.tap(find.byType(CategoryListTile));
     await tester.pumpAndSettle();
 
     expect(tapped, isTrue);
