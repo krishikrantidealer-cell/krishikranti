@@ -20,11 +20,11 @@ class OrderDetailScreen extends StatefulWidget {
   final Order? order;
   final String? orderId;
 
-  const OrderDetailScreen({
-    super.key,
-    this.order,
-    this.orderId,
-  }) : assert(order != null || orderId != null, 'Either order or orderId must be provided');
+  const OrderDetailScreen({super.key, this.order, this.orderId})
+    : assert(
+        order != null || orderId != null,
+        'Either order or orderId must be provided',
+      );
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
@@ -67,13 +67,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     }
 
     // FCM notification listener — fires when app is in foreground
-    _notificationSubscription = NotificationService.onNewNotification.listen((newNotif) {
+    _notificationSubscription = NotificationService.onNewNotification.listen((
+      newNotif,
+    ) {
       if (_currentOrder != null) {
         try {
           if (newNotif.payload != null) {
             final data = jsonDecode(newNotif.payload!);
             final route = data['action_route'] as String?;
-            if (route != null && (route == '/order_details/${_currentOrder!.id}' || route == '/order_details/${_currentOrder!.orderId}')) {
+            if (route != null &&
+                (route == '/order_details/${_currentOrder!.id}' ||
+                    route == '/order_details/${_currentOrder!.orderId}')) {
               _fetchOrderDetails(isSilent: true);
             }
           }
@@ -223,9 +227,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           elevation: 0,
           backgroundColor: Colors.white,
         ),
-        body: const Center(
-          child: CupertinoActivityIndicator(radius: 15),
-        ),
+        body: const Center(child: CupertinoActivityIndicator(radius: 15)),
       );
     }
 
@@ -244,11 +246,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(CupertinoIcons.exclamationmark_triangle,
-                    size: 48, color: Colors.red),
+                const Icon(
+                  CupertinoIcons.exclamationmark_triangle,
+                  size: 48,
+                  color: Colors.red,
+                ),
                 const SizedBox(height: 16),
-                Text(_error ?? "Failed to load order",
-                    textAlign: TextAlign.center),
+                Text(
+                  _error ?? "Failed to load order",
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _fetchOrderDetails,
@@ -804,30 +811,39 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
-                            final uri = Uri.tryParse(_currentOrder!.trackingUrl!);
+                            final uri = Uri.tryParse(
+                              _currentOrder!.trackingUrl!,
+                            );
                             if (uri != null) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
                             }
                           } else if (_currentOrder!.awbNumber?.isNotEmpty ==
                               true) {
-                            final courier = _currentOrder!.courierName?.toLowerCase() ?? '';
+                            final courier =
+                                _currentOrder!.courierName?.toLowerCase() ?? '';
                             final String url;
                             if (courier.contains('delhivery')) {
-                              url = 'https://www.delhivery.com/track/package/${_currentOrder!.awbNumber!}';
+                              url =
+                                  'https://www.delhivery.com/track/package/${_currentOrder!.awbNumber!}';
                             } else {
-                              url = 'https://shiprocket.co/tracking/${_currentOrder!.awbNumber!}';
+                              url =
+                                  'https://shiprocket.co/tracking/${_currentOrder!.awbNumber!}';
                             }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  "Redirecting to $url...",
-                                ),
+                                content: Text("Redirecting to $url..."),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
                             final uri = Uri.tryParse(url);
                             if (uri != null) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
                             }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -902,7 +918,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.zero,
-            itemCount: _currentOrder!.items.length + _currentOrder!.freeItems.length,
+            itemCount:
+                _currentOrder!.items.length + _currentOrder!.freeItems.length,
             separatorBuilder: (context, index) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Divider(height: 1, color: Colors.grey.shade100),
@@ -1163,7 +1180,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         _currentOrder!.shippingAddress.state?.isNotEmpty == true
                             ? _currentOrder!.shippingAddress.state!
                             : "Maharashtra",
-                        if (_currentOrder!.shippingAddress.pincode?.isNotEmpty ==
+                        if (_currentOrder!
+                                .shippingAddress
+                                .pincode
+                                ?.isNotEmpty ==
                             true)
                           "Pin: ${_currentOrder!.shippingAddress.pincode!}",
                       ].join(", "),
@@ -1174,7 +1194,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         height: 1.3,
                       ),
                     ),
-                    if (_currentOrder!.shippingAddress.phoneNumber?.isNotEmpty ==
+                    if (_currentOrder!
+                            .shippingAddress
+                            .phoneNumber
+                            ?.isNotEmpty ==
                         true) ...[
                       const SizedBox(height: 4),
                       Text(

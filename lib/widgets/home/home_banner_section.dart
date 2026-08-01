@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/screens/product_list_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Displays the hero banner carousel with dot indicators.
 ///
@@ -32,23 +34,40 @@ class HomeBannerSection extends StatelessWidget {
           itemCount: imagesToDisplay.length,
           itemBuilder: (context, index, realIndex) {
             final imageUrl = imagesToDisplay[index];
+            final banner = index < banners.length ? banners[index] : null;
+            final bannerTitle = banner?.title.trim() ?? '';
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GestureDetector(
-                onTap: () {
+                onTap: () async {
                   HapticFeedback.lightImpact();
                   if (index < banners.length) {
                     final banner = banners[index];
+                    final target = banner.redirectTarget?.trim();
+
                     if (banner.redirectType == 'category' &&
-                        banner.redirectTarget != null) {
+                        target != null &&
+                        target.isNotEmpty) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ProductListScreen(
-                            category: banner.redirectTarget!,
+                            category: target,
                           ),
                         ),
                       );
+                      return;
+                    } else if (banner.redirectType == 'external' &&
+                        target != null &&
+                        target.isNotEmpty) {
+                      try {
+                        final uri = Uri.parse(target);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      } catch (_) {}
+                      return;
+                    } else if (banner.redirectType == 'none') {
                       return;
                     }
                   }
@@ -73,26 +92,32 @@ class HomeBannerSection extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: imageUrl.startsWith('http')
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            memCacheWidth: 800,
-                            placeholder: (_, __) =>
-                                Container(color: Colors.grey[200]),
-                            errorWidget: (_, __, ___) => const Center(
-                              child: Icon(
-                                Icons.image_outlined,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                        : Image.asset(
-                            imageUrl,
-                            fit: BoxFit.fill,
-                            width: double.infinity,
-                          ),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: imageUrl.startsWith('http')
+                              ? CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  memCacheWidth: 800,
+                                  placeholder: (_, __) =>
+                                      Container(color: Colors.grey[200]),
+                                  errorWidget: (_, __, ___) => const Center(
+                                    child: Icon(
+                                      Icons.image_outlined,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                )
+                              : Image.asset(
+                                  imageUrl,
+                                  fit: BoxFit.fill,
+                                  width: double.infinity,
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -55,6 +55,7 @@ class Collection {
   final String slug;
   final String? description;
   final String? bannerImage;
+  final String? bannerTitle;
   final List<Product> products;
   final List<SubCollection> subCollections;
 
@@ -64,6 +65,7 @@ class Collection {
     required this.slug,
     this.description,
     this.bannerImage,
+    this.bannerTitle,
     this.products = const [],
     this.subCollections = const [],
   });
@@ -87,6 +89,9 @@ class Collection {
       slug: json['slug'] ?? '',
       description: json['description'],
       bannerImage: rawBanner != null && rawBanner.isNotEmpty ? _resolveImageUrl(rawBanner) : null,
+      bannerTitle: (json['bannerTitle'] as String?)?.trim().isNotEmpty == true
+          ? json['bannerTitle']
+          : json['name'] ?? '',
       products: products,
       subCollections: (json['subCollections'] as List?)
               ?.map((s) => SubCollection.fromJson(s))

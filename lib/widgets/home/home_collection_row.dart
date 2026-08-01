@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/features/products/data/models/collection_model.dart';
+import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/core/dynamic_translation_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
@@ -15,8 +16,13 @@ import 'package:krishikranti/screens/sub_collections_screen.dart';
 /// of the collection title and subtitle.
 class HomeCollectionRow extends StatelessWidget {
   final Collection collection;
+  final BannerModel? stripBanner;
 
-  const HomeCollectionRow({super.key, required this.collection});
+  const HomeCollectionRow({
+    super.key,
+    required this.collection,
+    this.stripBanner,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +37,11 @@ class HomeCollectionRow extends StatelessWidget {
     return ListenableBuilder(
       listenable: DynamicTranslationService(),
       builder: (context, _) {
-        final titleStr = collection.name.isNotEmpty
-            ? collection.name
+        final rawTitle = (collection.bannerTitle != null && collection.bannerTitle!.trim().isNotEmpty)
+            ? collection.bannerTitle!
+            : collection.name;
+        final titleStr = rawTitle.isNotEmpty
+            ? rawTitle
             : l10n.collections;
         final translatedTitle = titleStr == l10n.collections
             ? titleStr
@@ -73,6 +82,7 @@ class HomeCollectionRow extends StatelessWidget {
                 },
                 seeAllLabel: l10n.seeAll,
                 subtitle: translatedSubtitle,
+                stripBanner: stripBanner,
               ),
             ),
             const SizedBox(height: 8),

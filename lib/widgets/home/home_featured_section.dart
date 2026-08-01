@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/widgets/home/home_section_title.dart';
@@ -11,11 +12,13 @@ import 'package:krishikranti/screens/product_list_screen.dart';
 class HomeFeaturedSection extends StatefulWidget {
   final List<Product> products;
   final FavoriteService favoriteService;
+  final BannerModel? stripBanner;
 
   const HomeFeaturedSection({
     super.key,
     required this.products,
     required this.favoriteService,
+    this.stripBanner,
   });
 
   @override
@@ -114,6 +117,7 @@ class _HomeFeaturedSectionState extends State<HomeFeaturedSection> with SingleTi
             },
             seeAllLabel: l10n.seeAll,
             subtitle: l10n.premiumFarmingEssentials,
+            stripBanner: widget.stripBanner,
           ),
         ),
         SizedBox(

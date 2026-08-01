@@ -17,6 +17,7 @@ import 'package:krishikranti/features/products/data/models/collection_model.dart
 import 'package:krishikranti/features/products/data/repositories/home_repository.dart';
 import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/core/notification_service.dart';
@@ -685,18 +686,24 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: CachedNetworkImage(
-                    imageUrl: banner.imageUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    memCacheWidth: 800,
-                    fadeInDuration: const Duration(milliseconds: 300),
-                    placeholder: (context, url) =>
-                        Container(color: const Color(0xFFF5F5F5)),
-                    errorWidget: (context, url, error) => const Center(
-                      child: Icon(Icons.image_outlined, color: Colors.grey),
-                    ),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: CachedNetworkImage(
+                          imageUrl: banner.imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          memCacheWidth: 800,
+                          fadeInDuration: const Duration(milliseconds: 300),
+                          placeholder: (context, url) =>
+                              Container(color: const Color(0xFFF5F5F5)),
+                          errorWidget: (context, url, error) => const Center(
+                            child: Icon(Icons.image_outlined, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1258,15 +1265,34 @@ class _CategoryListTileState extends State<CategoryListTile> {
                   shape: BoxShape.circle,
                 ),
                 padding: const EdgeInsets.all(6),
-                child: Image.asset(
-                  assetIcon,
-                  fit: BoxFit.contain,
-                  cacheWidth: 150,
-                  errorBuilder: (context, error, stackTrace) => Icon(
-                    widget.icon,
-                    color: theme.colorScheme.primary,
-                    size: 24,
-                  ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  child: (widget.category.iconImage != null &&
+                          widget.category.iconImage!.isNotEmpty)
+                      ? CachedNetworkImage(
+                          imageUrl: widget.category.iconImage!,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Image.asset(
+                            assetIcon,
+                            fit: BoxFit.contain,
+                            cacheWidth: 150,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              widget.icon,
+                              color: theme.colorScheme.primary,
+                              size: 24,
+                            ),
+                          ),
+                        )
+                      : Image.asset(
+                          assetIcon,
+                          fit: BoxFit.contain,
+                          cacheWidth: 150,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            widget.icon,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 16),

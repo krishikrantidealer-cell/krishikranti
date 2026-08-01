@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/widgets/home/home_section_title.dart';
@@ -16,6 +17,7 @@ class HomeCategoryProductRow extends StatefulWidget {
   final String premiumSubtitle;
   final String seeAllLabel;
   final String localizedTitle;
+  final BannerModel? stripBanner;
 
   const HomeCategoryProductRow({
     super.key,
@@ -25,6 +27,7 @@ class HomeCategoryProductRow extends StatefulWidget {
     required this.premiumSubtitle,
     required this.seeAllLabel,
     required this.localizedTitle,
+    this.stripBanner,
   });
 
   @override
@@ -109,7 +112,9 @@ class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with Si
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: HomeSectionTitle(
             theme: theme,
-            title: widget.localizedTitle,
+            title: (widget.category.bannerTitle != null && widget.category.bannerTitle!.trim().isNotEmpty)
+                ? widget.category.bannerTitle!
+                : widget.localizedTitle,
             onSeeAll: () {
               Navigator.push(
                 context,
@@ -124,6 +129,7 @@ class _HomeCategoryProductRowState extends State<HomeCategoryProductRow> with Si
             },
             seeAllLabel: widget.seeAllLabel,
             subtitle: widget.premiumSubtitle,
+            stripBanner: widget.stripBanner,
           ),
         ),
         SizedBox(
@@ -232,6 +238,7 @@ class HomeCategorySection extends StatelessWidget {
   final List<Product> products;
   final FavoriteService favoriteService;
   final String localizedTitle;
+  final BannerModel? stripBanner;
 
   const HomeCategorySection({
     super.key,
@@ -239,6 +246,7 @@ class HomeCategorySection extends StatelessWidget {
     required this.products,
     required this.favoriteService,
     required this.localizedTitle,
+    this.stripBanner,
   });
 
   @override
@@ -251,6 +259,7 @@ class HomeCategorySection extends StatelessWidget {
       premiumSubtitle: l10n.premiumFarmingEssentials,
       seeAllLabel: l10n.seeAll,
       localizedTitle: localizedTitle,
+      stripBanner: stripBanner,
     );
   }
 }

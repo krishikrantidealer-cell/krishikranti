@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:flutter_facebook_app_links/flutter_facebook_app_links.dart';
+import 'package:android_play_install_referrer/android_play_install_referrer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:krishikranti/core/network/http_service.dart';
@@ -14,6 +15,8 @@ class MetaAnalyticsService {
   /// Keys for SharedPreferences
   static const String _installSourceKey = 'meta_install_source';
   static const String _deepLinkUrlKey = 'meta_deeplink_url';
+
+  static Future<void>? _attributionFuture;
 
   /// Internal helper to push telemetry events directly to MongoDB database
   static Future<void> _logToDatabase(String eventName, Map<String, dynamic>? parameters) async {
@@ -78,61 +81,108 @@ class MetaAnalyticsService {
 
       final prefs = await SharedPreferences.getInstance();
 
-      // If we haven't successfully attributed to Meta Ads, try checking
+      // If we haven't successfully attributed an install source, check attribution
       if (prefs.getString(_installSourceKey) == null) {
-        // Await attribution check on first run to increase chance of success
-        await _checkAttribution();
+        await checkAttribution();
       }
     } catch (e, stackTrace) {
       debugPrint("❌ Meta SDK: Error during initialization: $e\n$stackTrace");
     }
   }
 
-  /// Private helper to fetch and save deferred deep links
+  /// Public trigger to ensure attribution check runs once and can be awaited
+  static Future<void> checkAttribution() async {
+    _attributionFuture ??= _checkAttribution();
+    await _attributionFuture;
+  }
+
+  /// Private helper to fetch and save deferred deep links & install referrer
   static Future<void> _checkAttribution() async {
     try {
-      // Fetch initial app link
-      String deepLinkUrl = await FlutterFacebookAppLinks.initFBLinks();
-
-      // For deferred deep links (new installs), we often need to call getDeepLink explicitly
-      // This works on both iOS and Android to fetch the ad-campaign data
-      if (deepLinkUrl.isEmpty) {
-        deepLinkUrl = await FlutterFacebookAppLinks.getDeepLink();
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getString(_installSourceKey) != null) {
+        return;
       }
 
-      if (deepLinkUrl.isNotEmpty) {
-        final prefs = await SharedPreferences.getInstance();
-        debugPrint(
-          "🎯 Meta SDK: Attribution source found! User came from ads/campaign. Deep Link: $deepLinkUrl",
-        );
+      // Step 1: Check Android Play Store Install Referrer (UTM parameters from Google Play)
+      if (!kIsWeb && Platform.isAndroid) {
+        try {
+          final ReferrerDetails referrerDetails = await AndroidPlayInstallReferrer.installReferrer;
+          final String? referrerUrl = referrerDetails.installReferrer;
+          if (referrerUrl != null && referrerUrl.isNotEmpty && referrerUrl != 'utm_source=(not%20set)&utm_medium=(not%20set)') {
+            debugPrint("🎯 Android Play Referrer URL: $referrerUrl");
+            final lowerReferrer = referrerUrl.toLowerCase();
+            String? derivedSource;
 
-        // Determine source name based on link content
-        String sourceName = 'Meta Ads';
-        final lowerLink = deepLinkUrl.toLowerCase();
-        if (lowerLink.contains('utm_source=google') || lowerLink.contains('gclid')) {
-          sourceName = 'Google Ads';
-        } else if (lowerLink.contains('utm_source=')) {
-          // Extract source from UTM if possible
-          final uri = Uri.tryParse(deepLinkUrl);
-          if (uri != null && uri.queryParameters.containsKey('utm_source')) {
-            sourceName = '${uri.queryParameters['utm_source']![0].toUpperCase()}${uri.queryParameters['utm_source']!.substring(1)} Ads';
+            if (lowerReferrer.contains('utm_source=facebook') ||
+                lowerReferrer.contains('utm_source=meta') ||
+                lowerReferrer.contains('utm_source=instagram') ||
+                lowerReferrer.contains('fbclid=')) {
+              derivedSource = 'Meta Ads';
+            } else if (lowerReferrer.contains('utm_source=google') ||
+                       lowerReferrer.contains('gclid=')) {
+              derivedSource = 'Google Ads';
+            } else if (lowerReferrer.contains('utm_source=')) {
+              final uri = Uri.tryParse('https://dummy.com/?$referrerUrl');
+              final sourceParam = uri?.queryParameters['utm_source'];
+              if (sourceParam != null && sourceParam.isNotEmpty) {
+                derivedSource = '${sourceParam[0].toUpperCase()}${sourceParam.substring(1)} Ads';
+              }
+            }
+
+            if (derivedSource != null) {
+              await prefs.setString(_installSourceKey, derivedSource);
+              await prefs.setString(_deepLinkUrlKey, referrerUrl);
+              debugPrint("🎯 Meta SDK: Install attributed via Play Referrer to: $derivedSource");
+              return;
+            }
           }
+        } catch (e) {
+          debugPrint("⚠️ Meta SDK: Error checking Android Play Install Referrer: $e");
+        }
+      }
+
+      // Step 2: Check Facebook App Links / Deferred Deep Links
+      try {
+        String deepLinkUrl = await FlutterFacebookAppLinks.initFBLinks();
+        if (deepLinkUrl.isEmpty) {
+          deepLinkUrl = await FlutterFacebookAppLinks.getDeepLink();
         }
 
-        await prefs.setString(_installSourceKey, sourceName);
-        await prefs.setString(_deepLinkUrlKey, deepLinkUrl);
+        if (deepLinkUrl.isNotEmpty) {
+          debugPrint(
+            "🎯 Meta SDK: Attribution source found via App Link! Deep Link: $deepLinkUrl",
+          );
 
-        // Log attribution event to Facebook
-        await _facebookAppEvents.logEvent(
-          name: 'meta_ad_install_attribution',
-          parameters: {
-            'deeplink': deepLinkUrl,
-            'derived_source': sourceName,
-          },
-        );
-      } else {
-        debugPrint("ℹ️ Meta SDK: No deep link attribution found yet.");
+          String sourceName = 'Meta Ads';
+          final lowerLink = deepLinkUrl.toLowerCase();
+          if (lowerLink.contains('utm_source=google') || lowerLink.contains('gclid')) {
+            sourceName = 'Google Ads';
+          } else if (lowerLink.contains('utm_source=')) {
+            final uri = Uri.tryParse(deepLinkUrl);
+            final utmSource = uri?.queryParameters['utm_source'];
+            if (utmSource != null && utmSource.isNotEmpty) {
+              sourceName = '${utmSource[0].toUpperCase()}${utmSource.substring(1)} Ads';
+            }
+          }
+
+          await prefs.setString(_installSourceKey, sourceName);
+          await prefs.setString(_deepLinkUrlKey, deepLinkUrl);
+
+          await _facebookAppEvents.logEvent(
+            name: 'meta_ad_install_attribution',
+            parameters: {
+              'deeplink': deepLinkUrl,
+              'derived_source': sourceName,
+            },
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint("⚠️ Meta SDK: Error checking FB app links: $e");
       }
+
+      debugPrint("ℹ️ Meta SDK: No ad campaign attribution found; install is Organic.");
     } catch (e) {
       debugPrint("⚠️ Meta SDK: Error checking attribution: $e");
     }
@@ -629,29 +679,18 @@ class MetaAnalyticsService {
     final prefs = await SharedPreferences.getInstance();
     String? currentSource = prefs.getString(_installSourceKey);
     
-    // If not decided yet, try checking one last time (e.g. during registration)
     if (currentSource == null) {
-      // Small delay to allow Meta SDK to complete attribution fetch if it's still running
-      await Future.delayed(const Duration(milliseconds: 500));
-      await _checkAttribution();
+      await checkAttribution();
       currentSource = prefs.getString(_installSourceKey);
-      
-      // If still not attributed after registration request, finalize as Organic
-      if (currentSource == null) {
-        // We don't want to set it permanently as Organic here yet, 
-        // to allow future retries during this session if needed.
-        // But for the caller, we return Organic.
-        return 'Organic';
-      }
     }
-    return currentSource;
+    return currentSource ?? 'Organic';
   }
 
   /// Helper to get cached deep link URL (if any)
   static Future<String?> getDeepLinkUrl() async {
     final prefs = await SharedPreferences.getInstance();
     if (!prefs.containsKey(_deepLinkUrlKey)) {
-      await _checkAttribution();
+      await checkAttribution();
     }
     return prefs.getString(_deepLinkUrlKey);
   }

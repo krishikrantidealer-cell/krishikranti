@@ -151,10 +151,13 @@ class _SplashPageState extends State<SplashPage> {
     );
     DynamicTranslationService().startBackgroundDownloadOfAllModels();
 
-    FlutterNativeSplash.remove();
+    // Trigger App Tracking Transparency dialog request on iOS first
+    await MetaAnalyticsService.requestATT();
 
-    // Trigger App Tracking Transparency dialog request on iOS
-    MetaAnalyticsService.requestATT();
+    // Trigger Meta & Play Store Install Referrer attribution check
+    MetaAnalyticsService.checkAttribution();
+
+    FlutterNativeSplash.remove();
   }
 
   @override

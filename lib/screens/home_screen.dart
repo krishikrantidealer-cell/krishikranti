@@ -57,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<BannerModel> _banners = [];
   List<BannerModel> _categoryCardBanners = [];
   List<BannerModel> _bestOffersBanners = [];
+  List<BannerModel> _stripBanners = [];
   bool _isDiscoveryLoading = true;
   String? _discoveryError;
   // Category-wise products for the "Shop by Category" section
@@ -108,6 +109,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               _banners = freshDiscovery.banners;
               _categoryCardBanners = freshDiscovery.categoryCardBanners;
               _bestOffersBanners = freshDiscovery.bestOffersBanners;
+              _stripBanners = freshDiscovery.stripBanners;
             });
             if (_categoryProducts.isEmpty) {
               _fetchCategoryProducts(freshDiscovery.categories);
@@ -148,6 +150,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  BannerModel? _findStripBanner(String key) {
+    String normalize(String input) {
+      return input
+          .toLowerCase()
+          .replaceAll(RegExp(r"['’]s\b"), '')
+          .replaceAll(RegExp(r"[^a-z0-9]"), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+    }
+
+    final cleanKey = normalize(key);
+    if (cleanKey.isEmpty) return null;
+
+    for (final banner in _stripBanners) {
+      final title = normalize(banner.title);
+      final target = normalize(banner.redirectTarget ?? '');
+
+      if (title == cleanKey || target == cleanKey) {
+        return banner;
+      }
+      if (title.isNotEmpty && (title.contains(cleanKey) || cleanKey.contains(title))) {
+        return banner;
+      }
+      if (target.isNotEmpty && (target.contains(cleanKey) || cleanKey.contains(target))) {
+        return banner;
+      }
+    }
+    return null;
+  }
+
   Future<void> _fetchDiscoveryData({bool forceRefresh = false}) async {
     if (forceRefresh) {
       if (mounted) {
@@ -170,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _banners = discovery.banners;
           _categoryCardBanners = discovery.categoryCardBanners;
           _bestOffersBanners = discovery.bestOffersBanners;
+          _stripBanners = discovery.stripBanners;
           _isDiscoveryLoading = false;
           _discoveryError = null;
         });
@@ -194,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _banners = freshDiscovery.banners;
             _categoryCardBanners = freshDiscovery.categoryCardBanners;
             _bestOffersBanners = freshDiscovery.bestOffersBanners;
+            _stripBanners = freshDiscovery.stripBanners;
           });
           if (_categoryProducts.isEmpty) {
             _fetchCategoryProducts(freshDiscovery.categories);
@@ -465,6 +499,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               },
                               seeAllLabel: l10n.seeAll,
                               subtitle: l10n.exploreTopSectors,
+                              stripBanner: _findStripBanner('categories') ?? _findStripBanner('category'),
                             ),
                           ),
                         ),
@@ -800,6 +835,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return HomeFeaturedSection(
       products: _featuredProducts,
       favoriteService: _favoriteService,
+      stripBanner: _findStripBanner('featured') ?? _findStripBanner('featured_products'),
     );
   }
 
@@ -868,7 +904,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // 1. Add first active collection (Shop by Crop)
     bool hasAddedFirstCollection = false;
     if (activeCollections.isNotEmpty) {
-      children.add(HomeCollectionRow(collection: activeCollections[0]));
+      final col = activeCollections[0];
+      final colTitleKey = col.bannerTitle?.trim() ?? '';
+      children.add(
+        HomeCollectionRow(
+          collection: col,
+          stripBanner: (colTitleKey.isNotEmpty ? _findStripBanner(colTitleKey) : null) ??
+              _findStripBanner(col.name) ??
+              _findStripBanner('crop') ??
+              _findStripBanner('shop_by_crop'),
+        ),
+      );
       hasAddedFirstCollection = true;
     }
 
@@ -877,11 +923,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (children.isNotEmpty) {
         children.add(const SizedBox(height: 36));
       }
+      final dealerTitleKey = dealerFirstChoice.bannerTitle?.trim() ?? '';
       children.add(
         HomeCollectionProductGrid(
           collection: dealerFirstChoice,
           favoriteService: _favoriteService,
           isDealerFirstChoice: true,
+          stripBanner: (dealerTitleKey.isNotEmpty ? _findStripBanner(dealerTitleKey) : null) ??
+              _findStripBanner('dealer_first_choice') ??
+              _findStripBanner('dealer first choice') ??
+              _findStripBanner('dealer') ??
+              _findStripBanner(dealerFirstChoice.name),
         ),
       );
     }
@@ -897,12 +949,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children.add(const SizedBox(height: 36));
         }
         final cat = activeCategories[catIdx];
+        final catTitleKey = cat.bannerTitle?.trim() ?? '';
         children.add(
           HomeCategorySection(
             category: cat,
             products: _categoryProducts[cat.id]!,
             favoriteService: _favoriteService,
             localizedTitle: _getLocalizedCategoryName(cat.name, l10n),
+            stripBanner: (catTitleKey.isNotEmpty ? _findStripBanner(catTitleKey) : null) ??
+                _findStripBanner(cat.name) ??
+                _findStripBanner(cat.id),
           ),
         );
         catIdx++;
@@ -913,7 +969,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (children.isNotEmpty) {
           children.add(const SizedBox(height: 36));
         }
-        children.add(HomeCollectionRow(collection: activeCollections[colIdx]));
+        final col = activeCollections[colIdx];
+        final colTitleKey = col.bannerTitle?.trim() ?? '';
+        children.add(
+          HomeCollectionRow(
+            collection: col,
+            stripBanner: (colTitleKey.isNotEmpty ? _findStripBanner(colTitleKey) : null) ??
+                _findStripBanner(col.name) ??
+                _findStripBanner(col.slug),
+          ),
+        );
         colIdx++;
       }
     }

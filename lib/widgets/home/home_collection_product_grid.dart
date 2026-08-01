@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/features/products/data/models/collection_model.dart';
 import 'package:krishikranti/features/products/data/models/product_model.dart';
+import 'package:krishikranti/features/products/data/models/banner_model.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/widgets/home/home_section_title.dart';
@@ -23,12 +24,14 @@ class HomeCollectionProductGrid extends StatelessWidget {
   final Collection collection;
   final FavoriteService favoriteService;
   final bool isDealerFirstChoice;
+  final BannerModel? stripBanner;
 
   const HomeCollectionProductGrid({
     super.key,
     required this.collection,
     required this.favoriteService,
     this.isDealerFirstChoice = false,
+    this.stripBanner,
   });
 
   @override
@@ -42,8 +45,11 @@ class HomeCollectionProductGrid extends StatelessWidget {
     return ListenableBuilder(
       listenable: DynamicTranslationService(),
       builder: (context, _) {
-        final titleStr = collection.name.isNotEmpty
-            ? collection.name
+        final rawTitle = (collection.bannerTitle != null && collection.bannerTitle!.trim().isNotEmpty)
+            ? collection.bannerTitle!
+            : collection.name;
+        final titleStr = rawTitle.isNotEmpty
+            ? rawTitle
             : l10n.collections;
         final translatedTitle = titleStr == l10n.collections
             ? titleStr
@@ -87,6 +93,7 @@ class HomeCollectionProductGrid extends StatelessWidget {
                 },
                 seeAllLabel: l10n.seeAll,
                 subtitle: translatedSubtitle,
+                stripBanner: stripBanner,
               ),
             ),
             Padding(
