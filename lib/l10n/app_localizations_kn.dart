@@ -380,7 +380,7 @@ class AppLocalizationsKn extends AppLocalizations {
   String get footerBadgeTrusted => 'ವಿಶ್ವಾಸಾರ್ಹ';
 
   @override
-  String get empoweringFarmers => '2026 ರಿಂದ ಭಾರತೀಯ ರೈತರ ಸಬಲೀಕರಣ.';
+  String get empoweringFarmers => '2026 ರಿಂದ ಭಾರತೀಯ ಡೀಲರ್‌ಗಳ ಸಬಲೀಕರಣ.';
 
   @override
   String get today => 'ಇಂದು';

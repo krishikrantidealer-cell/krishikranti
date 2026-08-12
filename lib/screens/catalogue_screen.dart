@@ -16,15 +16,13 @@ import 'package:krishikranti/features/products/data/models/category_model.dart';
 import 'package:krishikranti/features/products/data/models/collection_model.dart';
 import 'package:krishikranti/features/products/data/repositories/home_repository.dart';
 import 'package:krishikranti/features/products/data/models/banner_model.dart';
-import 'package:krishikranti/features/products/data/models/product_model.dart';
-import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:krishikranti/screens/product_detail_screen.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/notification_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:krishikranti/widgets/whatsapp_fab.dart';
+import 'package:krishikranti/core/utils/banner_redirect_handler.dart';
 
 class CatalogueScreen extends StatefulWidget {
   final bool isShowingCollections;
@@ -642,35 +640,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           itemBuilder: (context, index, realIndex) {
             final banner = _categoryBanners[index];
             return GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                if (banner.redirectType == 'category' &&
-                    banner.redirectTarget != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ProductListScreen(category: banner.redirectTarget!),
-                    ),
-                  );
-                } else if (banner.redirectType == 'product' &&
-                    banner.redirectTarget != null) {
-                  final placeholderProduct = Product(
-                    id: banner.redirectTarget!,
-                    title: banner.title,
-                    thumbnail: banner.imageUrl,
-                    variants: const [],
-                  );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProductDetailScreen(
-                        product: placeholderProduct,
-                        thumbnailUrl: banner.imageUrl,
-                      ),
-                    ),
-                  );
-                }
+              onTap: () async {
+                await BannerRedirectHandler.handleBannerClick(context, banner);
               },
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),

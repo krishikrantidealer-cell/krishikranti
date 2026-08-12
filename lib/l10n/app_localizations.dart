@@ -817,7 +817,7 @@ abstract class AppLocalizations {
   /// No description provided for @empoweringFarmers.
   ///
   /// In en, this message translates to:
-  /// **'Empowering Indian Farmers since 2026.'**
+  /// **'Empowering Indian Dealers since 2026.'**
   String get empoweringFarmers;
 
   /// No description provided for @today.

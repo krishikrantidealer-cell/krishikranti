@@ -377,7 +377,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get footerBadgeTrusted => 'विश्वसनीय';
 
   @override
-  String get empoweringFarmers => '2026 से भारतीय किसानों को सशक्त बनाना‌।';
+  String get empoweringFarmers => '2026 से भारतीय डीलरों को सशक्त बनाना‌।';
 
   @override
   String get today => 'आज';

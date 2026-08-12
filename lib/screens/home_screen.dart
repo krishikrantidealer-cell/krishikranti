@@ -1071,7 +1071,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         _buildSocialIcon(
                           "assets/icons/1725819461instagram-logo.png",
-                          "https://www.instagram.com/reel/DYEVPeiGg73/",
+                          "https://www.instagram.com/krishikranti_organics?igsh=MW83OTBpNjd0ODRxcA==",
                         ),
                         _buildSocialIcon(
                           "assets/icons/1701508703YouTube-Icon-PNG.png",

@@ -373,7 +373,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get footerBadgeTrusted => 'Trusted';
 
   @override
-  String get empoweringFarmers => 'Empowering Indian Farmers since 2026.';
+  String get empoweringFarmers => 'Empowering Indian Dealers since 2026.';
 
   @override
   String get today => 'Today';

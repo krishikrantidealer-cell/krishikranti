@@ -124,8 +124,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
         subId = _subCategories[_selectedMenuIndex - 1].id;
       }
 
+      final effectiveCategoryId = widget.categoryId ??
+          (!widget.isCollection &&
+                  widget.category != 'All' &&
+                  widget.category.trim().isNotEmpty
+              ? widget.category.trim()
+              : null);
+
       final result = await _productRepository.getProducts(
-        categoryId: widget.categoryId,
+        categoryId: effectiveCategoryId,
         subCategoryId: subId,
         collection: widget.collection,
         isFeatured: widget.isFeatured,
@@ -152,7 +159,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
       if (result['isFromCache'] == true) {
         final freshResult = await _productRepository.getProducts(
-          categoryId: widget.categoryId,
+          categoryId: effectiveCategoryId,
           subCategoryId: subId,
           collection: widget.collection,
           isFeatured: widget.isFeatured,

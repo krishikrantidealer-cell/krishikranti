@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/features/products/data/models/banner_model.dart';
-import 'package:krishikranti/screens/product_list_screen.dart';
+import 'package:krishikranti/core/utils/banner_redirect_handler.dart';
 
 /// Reusable section title row with a green accent bar, title, optional subtitle,
 /// and a "See All" pill button. If a [stripBanner] is provided, renders a header strip banner image instead.
@@ -33,30 +31,11 @@ class HomeSectionTitle extends StatelessWidget {
       final imageUrl = banner.imageUrl;
       return GestureDetector(
         onTap: () async {
-          HapticFeedback.lightImpact();
-          final target = banner.redirectTarget?.trim();
-          if (banner.redirectType == 'category' &&
-              target != null &&
-              target.isNotEmpty) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProductListScreen(category: target),
-              ),
-            );
-            return;
-          } else if (banner.redirectType == 'external' &&
-              target != null &&
-              target.isNotEmpty) {
-            try {
-              final uri = Uri.parse(target);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            } catch (_) {}
-            return;
-          }
-          onSeeAll();
+          await BannerRedirectHandler.handleBannerClick(
+            context,
+            banner,
+            fallback: onSeeAll,
+          );
         },
         child: Container(
           width: double.infinity,

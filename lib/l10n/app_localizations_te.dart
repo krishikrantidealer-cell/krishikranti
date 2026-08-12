@@ -380,7 +380,7 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get empoweringFarmers =>
-      '2026 నుండి భారతీయ రైతులకు సాధికారత కల్పిస్తోంది.';
+      '2026 నుండి భారతీయ డీలర్లకు సాధికారత కల్పిస్తోంది.';
 
   @override
   String get today => 'నేడు';

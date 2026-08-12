@@ -20,6 +20,7 @@ import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:krishikranti/screens/coupons_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -750,6 +751,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           const SizedBox(height: 16),
                           _buildOrderItemsSection(),
                           const SizedBox(height: 16),
+                          _buildCouponSection(),
+                          const SizedBox(height: 16),
                           _buildOrderSummary(),
                           if (discountAmount > 0 ||
                               selectedCoupon == "DEALERDHAMAKA") ...[
@@ -994,11 +997,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "₹${(item.price * item.qty).toStringAsFixed(0)}",
-                        style: const TextStyle(
+                        item.isFree
+                            ? "FREE"
+                            : "₹${(item.price * item.qty).toStringAsFixed(0)}",
+                        style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 13.5,
-                          color: Colors.black87,
+                          color: item.isFree ? primaryGreen : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -1038,6 +1043,140 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCouponSection() {
+    final cartService = Provider.of<CartService>(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isApplied = cartService.appliedCoupon != null;
+
+    return GestureDetector(
+      onTap: cartService.isCouponLoading
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CouponsScreen()),
+              );
+            },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isApplied
+                ? primaryGreen.withValues(alpha: 0.25)
+                : Colors.grey.shade200,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: primaryGreen.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isApplied
+                    ? CupertinoIcons.checkmark_seal_fill
+                    : CupertinoIcons.ticket_fill,
+                color: primaryGreen,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isApplied
+                        ? l10n.couponAppliedTitle
+                        : l10n.offersAndBenefits,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14.5,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isApplied
+                        ? (cartService.appliedCoupon == "DEALERDHAMAKA"
+                            ? l10n.freeGiftMessage
+                            : l10n.couponSavedMessage(
+                                cartService.discountAmount.toStringAsFixed(0),
+                                cartService.appliedCoupon ?? "",
+                              ))
+                        : l10n.viewCouponsAndOffers,
+                    style: TextStyle(
+                      color: isApplied
+                          ? primaryGreen.withValues(alpha: 0.85)
+                          : Colors.grey.shade500,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (cartService.isCouponLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              )
+            else if (isApplied)
+              TextButton(
+                onPressed: cartService.isCouponLoading
+                    ? null
+                    : () async {
+                        HapticFeedback.mediumImpact();
+                        try {
+                          await cartService.removeCoupon();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
+                        }
+                      },
+                child: Text(
+                  l10n.removeLabel,
+                  style: TextStyle(
+                    color: cartService.isCouponLoading
+                        ? Colors.grey
+                        : const Color(0xFFED4337),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              )
+            else
+              Icon(
+                CupertinoIcons.chevron_right,
+                size: 16,
+                color: Colors.grey.shade400,
+              ),
+          ],
+        ),
       ),
     );
   }

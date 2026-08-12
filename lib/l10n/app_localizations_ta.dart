@@ -381,7 +381,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get empoweringFarmers =>
-      '2026 முதல் இந்திய விவசாயிகளுக்கு அதிகாரமளித்தல்.';
+      '2026 முதல் இந்திய டீலர்களுக்கு அதிகாரமளித்தல்.';
 
   @override
   String get today => 'இன்று';

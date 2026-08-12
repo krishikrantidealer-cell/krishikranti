@@ -517,6 +517,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ),
             ],
           ),
+          if (_currentOrder!.courierStatus?.isNotEmpty == true) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.radar_rounded, size: 13, color: Colors.blue.shade700),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      "Live Status: ${_currentOrder!.courierStatus!}",
+                      style: TextStyle(
+                        color: Colors.blue.shade900,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           _buildDashedDivider(),
           const SizedBox(height: 18),
