@@ -20,3 +20,12 @@
 # Flutter Downloader
 -keep class vn.hunghd.flutterdownloader.** { *; }
 
+# Firebase Messaging & Cloud Messaging
+-keep class com.google.firebase.messaging.** { *; }
+-keep class io.flutter.plugins.firebase.messaging.** { *; }
+-dontwarn com.google.firebase.messaging.**
+
+# Flutter Local Notifications
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-dontwarn com.dexterous.flutterlocalnotifications.**
+

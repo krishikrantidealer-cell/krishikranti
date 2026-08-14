@@ -135,11 +135,14 @@ class NotificationService {
       importance: Importance.high,
     );
 
-    await _localNotificationsPlugin
+    final androidPlugin = _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(channel);
+        >();
+    await androidPlugin?.createNotificationChannel(channel);
+    if (Platform.isAndroid) {
+      await androidPlugin?.requestNotificationsPermission();
+    }
 
     // 5. Listen to Foreground Messages (When app is active on screen)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
@@ -217,7 +220,24 @@ class NotificationService {
       }
     });
 
-    // 8. Get FCM Token and sync with server
+    // 8. Listen to token refreshes to keep server token always valid
+    _firebaseMessaging.onTokenRefresh.listen((newToken) async {
+      debugPrint("📱 FCM Token refreshed: $newToken");
+      final loggedIn = await AuthService.isLoggedIn();
+      if (loggedIn) {
+        try {
+          await HttpService.post(
+            ApiConstants.fcmToken,
+            body: {"fcmToken": newToken},
+          );
+          debugPrint("✅ Refreshed FCM Token synced with server.");
+        } catch (e) {
+          debugPrint("❌ Error syncing refreshed FCM Token: $e");
+        }
+      }
+    });
+
+    // 9. Get FCM Token and sync with server
     syncToken();
   }
 
