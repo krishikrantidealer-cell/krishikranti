@@ -40,6 +40,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   List<Collection> _collections = [];
   List<BannerModel> _categoryBanners = [];
   List<BannerModel> _categoryCardBanners = [];
+  BannerModel? _categoryTrustBanner;
   final HomeRepository _homeRepository = HomeRepository();
   bool _routeIsCurrent = false;
   int _currentHintIndex = 0;
@@ -52,7 +53,8 @@ class _CatalogueScreenState extends State<CatalogueScreen>
 
   // --- Download Progress Tracking ---
   final ReceivePort _port = ReceivePort();
-  final Map<String, int> _downloadProgress = {}; // categoryName -> progress (0-100)
+  final Map<String, int> _downloadProgress =
+      {}; // categoryName -> progress (0-100)
   final Map<String, String> _taskIdToCategory = {}; // taskId -> categoryName
 
   @override
@@ -111,12 +113,15 @@ class _CatalogueScreenState extends State<CatalogueScreen>
 
       if (categoryName != null && mounted) {
         setState(() {
-          if (status == 2) { // 2 = DownloadTaskStatus.running
+          if (status == 2) {
+            // 2 = DownloadTaskStatus.running
             _downloadProgress[categoryName!] = progress;
-          } else if (status == 3) { // 3 = DownloadTaskStatus.complete
+          } else if (status == 3) {
+            // 3 = DownloadTaskStatus.complete
             _downloadProgress.remove(categoryName);
             _checkDownloadedCatalogues();
-          } else if (status == 4 || status == 5) { // 4 = failed, 5 = canceled
+          } else if (status == 4 || status == 5) {
+            // 4 = failed, 5 = canceled
             _downloadProgress.remove(categoryName);
           }
         });
@@ -194,6 +199,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
               _collections = freshDiscovery.collections;
               _categoryBanners = freshDiscovery.categoryBanners;
               _categoryCardBanners = freshDiscovery.categoryCardBanners;
+              _categoryTrustBanner = freshDiscovery.categoryTrustBanner;
             });
             _checkDownloadedCatalogues();
           }
@@ -212,6 +218,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           _collections = discovery.collections;
           _categoryBanners = discovery.categoryBanners;
           _categoryCardBanners = discovery.categoryCardBanners;
+          _categoryTrustBanner = discovery.categoryTrustBanner;
           _isLoading = false;
         });
       }
@@ -225,6 +232,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           _collections = freshDiscovery.collections;
           _categoryBanners = freshDiscovery.categoryBanners;
           _categoryCardBanners = freshDiscovery.categoryCardBanners;
+          _categoryTrustBanner = freshDiscovery.categoryTrustBanner;
         });
       }
     } catch (e) {
@@ -245,6 +253,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           _categories = discovery.categories;
           _categoryBanners = discovery.categoryBanners;
           _categoryCardBanners = discovery.categoryCardBanners;
+          _categoryTrustBanner = discovery.categoryTrustBanner;
           _isLoading = false;
         });
         _checkDownloadedCatalogues();
@@ -259,6 +268,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           _categories = freshDiscovery.categories;
           _categoryBanners = freshDiscovery.categoryBanners;
           _categoryCardBanners = freshDiscovery.categoryCardBanners;
+          _categoryTrustBanner = freshDiscovery.categoryTrustBanner;
         });
         _checkDownloadedCatalogues();
       }
@@ -310,71 +320,68 @@ class _CatalogueScreenState extends State<CatalogueScreen>
   }
 
   String _getImageForCategory(Category cat, int index) {
-    if (cat.bannerImage != null && cat.bannerImage!.isNotEmpty) {
-      return cat.bannerImage!;
+    String clean(String? text) {
+      if (text == null) return "";
+      return text
+          .trim()
+          .toLowerCase()
+          .replaceAll("-", "")
+          .replaceAll("_", "")
+          .replaceAll(" ", "");
     }
-    final String name = cat.name;
+
+    final String catId = cat.id.trim();
+    final String catName = clean(cat.name);
+    final String catSlug = clean(cat.slug);
+
+    // 1. Primary: Search _categoryCardBanners for explicit category matches
     if (_categoryCardBanners.isNotEmpty) {
-      final String cleanName = name.trim().toLowerCase();
-      final String cleanNameNoHyphen = cleanName
-          .replaceAll('-', '')
-          .replaceAll(' ', '');
-
-      // 1. Match by redirect target (ID or Category Name)
+      // Direct match by redirectTarget (matching Category ID, slug, or name)
       for (final banner in _categoryCardBanners) {
-        final String? target = banner.redirectTarget?.trim().toLowerCase();
-        if (target != null && (target == cat.id || target == cleanName)) {
-          return banner.imageUrl;
+        if (!banner.isActive) continue;
+        final target = (banner.redirectTarget ?? "").trim();
+        final cleanTarget = clean(target);
+        if (cleanTarget.isNotEmpty) {
+          if (target == catId ||
+              cleanTarget == catName ||
+              (catSlug.isNotEmpty && cleanTarget == catSlug)) {
+            return banner.imageUrl;
+          }
         }
       }
 
-      // 2. Match by banner title containing Category Name
+      // Direct match by banner title matching category name or slug
       for (final banner in _categoryCardBanners) {
-        final String title = banner.title.trim().toLowerCase();
-        if (title.contains(cleanName) || title.contains(cleanNameNoHyphen)) {
-          return banner.imageUrl;
+        if (!banner.isActive) continue;
+        final title = clean(banner.title);
+        if (title.isNotEmpty) {
+          if (title == catName ||
+              (catSlug.isNotEmpty && title == catSlug) ||
+              title.contains(catName) ||
+              catName.contains(title)) {
+            return banner.imageUrl;
+          }
         }
       }
 
-      // 3. Match by array-index formatting ("_card_index", "Category Card Banner {index + 1}")
+      // Fallback to image URL path keywords matching category name
       for (final banner in _categoryCardBanners) {
-        final String bannerId = banner.id;
-        final String bannerTitle = banner.title;
-        if (bannerId.endsWith('_card_$index') ||
-            bannerTitle == 'Category Card Banner ${index + 1}' ||
-            banner.priority == index) {
+        if (!banner.isActive) continue;
+        final String cleanUrl = clean(banner.imageUrl);
+        if (cleanUrl.contains(catName) ||
+            (catSlug.isNotEmpty && cleanUrl.contains(catSlug))) {
           return banner.imageUrl;
         }
-      }
-
-      // 4. Fallback to image URL keyword matching
-      for (final banner in _categoryCardBanners) {
-        final String cleanUrl = banner.imageUrl.toLowerCase();
-        if (cleanUrl.contains('/$cleanName.') ||
-            cleanUrl.contains('/$cleanName%') ||
-            cleanUrl.contains('_$cleanName') ||
-            cleanUrl.contains(cleanName) ||
-            cleanUrl.contains(cleanNameNoHyphen)) {
-          return banner.imageUrl;
-        }
-      }
-
-      // 5. Ultimate fallback: Match strictly 1-to-1 by order in the list
-      if (index < _categoryCardBanners.length) {
-        return _categoryCardBanners[index].imageUrl;
       }
     }
-    return _getFallbackImageForCategory(name);
-  }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _hintTimer?.cancel();
-    _notificationSubscription?.cancel();
-    IsolateNameServer.removePortNameMapping('downloader_send_port');
-    _port.close();
-    super.dispose();
+    // 2. If category has a direct bannerImage configured, use it
+    if (cat.bannerImage != null && cat.bannerImage!.trim().isNotEmpty) {
+      return cat.bannerImage!.trim();
+    }
+
+    // 3. Default static assets/Unsplash fallback URLs
+    return _getFallbackImageForCategory(cat.name);
   }
 
   @override
@@ -387,15 +394,26 @@ class _CatalogueScreenState extends State<CatalogueScreen>
       floatingActionButton: const WhatsAppFab(mini: true),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.dark,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // REFINED MODERN APP BAR (Matched with Notification - Carefully Padded)
-            SliverAppBar(
-              expandedHeight: 120.0,
-              toolbarHeight: 60.0,
-              floating: false,
-              pinned: true,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            _silentRefresh();
+            if (widget.isShowingCollections) {
+              await _fetchCollections();
+            } else {
+              await _fetchCategories();
+            }
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              // REFINED MODERN APP BAR (Matched with Notification - Carefully Padded)
+              SliverAppBar(
+                expandedHeight: 120.0,
+                toolbarHeight: 60.0,
+                floating: false,
+                pinned: true,
               elevation: 0,
               centerTitle: true,
               backgroundColor: Colors.white,
@@ -617,7 +635,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                   const SizedBox(height: 32),
 
                   // MINIMAL FEATURE LIST
-                  _buildMinimalFeatures(theme),
+                  _buildMinimalFeatures(),
 
                   const SizedBox(height: 40),
                 ],
@@ -626,8 +644,9 @@ class _CatalogueScreenState extends State<CatalogueScreen>
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBanner(BuildContext context, ThemeData theme) {
     if (_categoryBanners.isEmpty) {
@@ -670,7 +689,10 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                           placeholder: (context, url) =>
                               Container(color: const Color(0xFFF5F5F5)),
                           errorWidget: (context, url, error) => const Center(
-                            child: Icon(Icons.image_outlined, color: Colors.grey),
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
                       ),
@@ -1013,45 +1035,33 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     );
   }
 
-  Widget _buildMinimalFeatures(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _minimalBadge(Icons.verified_rounded, l10n.badgeGenuine, theme),
-          _minimalBadge(Icons.science_rounded, l10n.badgeTested, theme),
-          _minimalBadge(Icons.local_shipping_rounded, l10n.badgeExpress, theme),
-        ],
-      ),
-    );
-  }
-
-  Widget _minimalBadge(IconData icon, String label, ThemeData theme) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 16,
-          color: theme.colorScheme.primary.withValues(alpha: 0.6),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: Colors.grey.shade600,
+  Widget _buildMinimalFeatures() {
+    if (_categoryTrustBanner != null && _categoryTrustBanner!.imageUrl.isNotEmpty) {
+      return GestureDetector(
+        onTap: () {
+          BannerRedirectHandler.handleBannerClick(context, _categoryTrustBanner!);
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: CachedNetworkImage(
+            imageUrl: _categoryTrustBanner!.imageUrl,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            placeholder: (context, url) => Image.asset(
+              'assets/images/category_trust.png',
+              fit: BoxFit.cover,
+            ),
+            errorWidget: (context, url, error) => Image.asset(
+              'assets/images/category_trust.png',
+              fit: BoxFit.cover,
+            ),
           ),
         ),
-      ],
+      );
+    }
+    return Image.asset(
+      'assets/images/category_trust.png',
+      fit: BoxFit.cover,
     );
   }
 }
@@ -1238,7 +1248,8 @@ class _CategoryListTileState extends State<CategoryListTile> {
                 padding: const EdgeInsets.all(6),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(26),
-                  child: (widget.category.iconImage != null &&
+                  child:
+                      (widget.category.iconImage != null &&
                           widget.category.iconImage!.isNotEmpty)
                       ? CachedNetworkImage(
                           imageUrl: widget.category.iconImage!,
@@ -1296,8 +1307,9 @@ class _CategoryListTileState extends State<CategoryListTile> {
                         child: CircularProgressIndicator(
                           value: widget.downloadProgress! / 100,
                           strokeWidth: 3,
-                          backgroundColor: theme.colorScheme.primary
-                              .withValues(alpha: 0.1),
+                          backgroundColor: theme.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           valueColor: AlwaysStoppedAnimation<Color>(
                             theme.colorScheme.primary,
                           ),

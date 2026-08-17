@@ -9,6 +9,8 @@ class HomeDiscovery {
   final List<BannerModel> categoryCardBanners;
   final List<BannerModel> bestOffersBanners;
   final List<BannerModel> stripBanners;
+  final BannerModel? homeTrustBanner;
+  final BannerModel? categoryTrustBanner;
   final List<Category> categories;
   final List<Product> featuredProducts;
   final List<Collection> collections;
@@ -19,6 +21,8 @@ class HomeDiscovery {
     required this.categoryCardBanners,
     required this.bestOffersBanners,
     required this.stripBanners,
+    this.homeTrustBanner,
+    this.categoryTrustBanner,
     required this.categories,
     required this.featuredProducts,
     required this.collections,
@@ -48,6 +52,12 @@ class HomeDiscovery {
       stripBanners: (json['stripBanners'] as List? ?? [])
           .map((item) => BannerModel.fromJson(item))
           .toList(),
+      homeTrustBanner: json['homeTrustBanner'] != null
+          ? BannerModel.fromJson(json['homeTrustBanner'])
+          : null,
+      categoryTrustBanner: json['categoryTrustBanner'] != null
+          ? BannerModel.fromJson(json['categoryTrustBanner'])
+          : null,
       categories: (json['categories'] as List? ?? [])
           .map((item) => Category.fromJson(item))
           .toList(),

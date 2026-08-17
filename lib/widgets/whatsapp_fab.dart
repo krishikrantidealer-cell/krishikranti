@@ -4,11 +4,13 @@ import 'package:url_launcher/url_launcher.dart';
 class WhatsAppFab extends StatelessWidget {
   final bool mini;
   final EdgeInsets? padding;
+  final Object? heroTag;
 
   const WhatsAppFab({
     super.key,
     this.mini = false,
     this.padding,
+    this.heroTag,
   });
 
   Future<void> _launchWhatsApp() async {
@@ -21,6 +23,7 @@ class WhatsAppFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget fab = FloatingActionButton(
+      heroTag: heroTag,
       onPressed: _launchWhatsApp,
       backgroundColor: const Color(0xFF25D366),
       elevation: 6,

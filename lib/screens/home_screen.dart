@@ -15,6 +15,7 @@ import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/core/utils/guest_barrier_util.dart';
+import 'package:krishikranti/core/utils/banner_redirect_handler.dart';
 import 'package:krishikranti/widgets/kyc_barrier_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -58,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<BannerModel> _categoryCardBanners = [];
   List<BannerModel> _bestOffersBanners = [];
   List<BannerModel> _stripBanners = [];
+  BannerModel? _homeTrustBanner;
   bool _isDiscoveryLoading = true;
   String? _discoveryError;
   // Category-wise products for the "Shop by Category" section
@@ -126,22 +128,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// multiple rebuilds that cause scroll flicker.
   Future<void> _fetchCategoryProducts(List<Category> categories) async {
     final Map<String, List<Product>> newCategoryProducts = {};
-    
-    await Future.wait(categories.map((cat) async {
-      try {
-        final result = await _productRepository.getProducts(
-          categoryId: cat.id,
-          limit: 10,
-        );
-        final List<Product> allProducts = (result['products'] as List<Product>? ?? []);
-        Product.sortProducts(allProducts, cat.id);
-        final displayProducts = allProducts.take(4).toList();
 
-        if (displayProducts.isNotEmpty) {
-          newCategoryProducts[cat.id] = displayProducts;
-        }
-      } catch (_) {}
-    }));
+    await Future.wait(
+      categories.map((cat) async {
+        try {
+          final result = await _productRepository.getProducts(
+            categoryId: cat.id,
+            limit: 10,
+          );
+          final List<Product> allProducts =
+              (result['products'] as List<Product>? ?? []);
+          Product.sortProducts(allProducts, cat.id);
+          final displayProducts = allProducts.take(4).toList();
+
+          if (displayProducts.isNotEmpty) {
+            newCategoryProducts[cat.id] = displayProducts;
+          }
+        } catch (_) {}
+      }),
+    );
 
     if (mounted && newCategoryProducts.isNotEmpty) {
       setState(() {
@@ -170,10 +175,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (title == cleanKey || target == cleanKey) {
         return banner;
       }
-      if (title.isNotEmpty && (title.contains(cleanKey) || cleanKey.contains(title))) {
+      if (title.isNotEmpty &&
+          (title.contains(cleanKey) || cleanKey.contains(title))) {
         return banner;
       }
-      if (target.isNotEmpty && (target.contains(cleanKey) || cleanKey.contains(target))) {
+      if (target.isNotEmpty &&
+          (target.contains(cleanKey) || cleanKey.contains(target))) {
         return banner;
       }
     }
@@ -203,9 +210,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _categoryCardBanners = discovery.categoryCardBanners;
           _bestOffersBanners = discovery.bestOffersBanners;
           _stripBanners = discovery.stripBanners;
+          _homeTrustBanner = discovery.homeTrustBanner;
           _isDiscoveryLoading = false;
           _discoveryError = null;
         });
+        debugPrint('[HomeScreen] Loaded _homeTrustBanner: ${_homeTrustBanner?.imageUrl}');
         // Start loading category products in background
         if (_categoryProducts.isEmpty) {
           _fetchCategoryProducts(discovery.categories);
@@ -228,7 +237,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _categoryCardBanners = freshDiscovery.categoryCardBanners;
             _bestOffersBanners = freshDiscovery.bestOffersBanners;
             _stripBanners = freshDiscovery.stripBanners;
+            _homeTrustBanner = freshDiscovery.homeTrustBanner;
           });
+          debugPrint('[HomeScreen] SWR fresh _homeTrustBanner: ${_homeTrustBanner?.imageUrl}');
           if (_categoryProducts.isEmpty) {
             _fetchCategoryProducts(freshDiscovery.categories);
           }
@@ -347,63 +358,68 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   String _getImageForCategory(Category cat, int index) {
-    if (cat.bannerImage != null && cat.bannerImage!.isNotEmpty) {
-      return cat.bannerImage!;
+    String clean(String? text) {
+      if (text == null) return "";
+      return text
+          .trim()
+          .toLowerCase()
+          .replaceAll("-", "")
+          .replaceAll("_", "")
+          .replaceAll(" ", "");
     }
-    final String name = cat.name;
+
+    final String catId = cat.id.trim();
+    final String catName = clean(cat.name);
+    final String catSlug = clean(cat.slug);
+
+    // 1. Primary: Search _categoryCardBanners for explicit category matches
     if (_categoryCardBanners.isNotEmpty) {
-      final String cleanName = name.trim().toLowerCase();
-      final String cleanNameNoHyphen = cleanName
-          .replaceAll('-', '')
-          .replaceAll(' ', '');
-
-      // 1. Match by redirect target (ID or Category Name)
+      // Direct match by redirectTarget (matching Category ID, slug, or name)
       for (final banner in _categoryCardBanners) {
-        final String? target = banner.redirectTarget?.trim().toLowerCase();
-        if (target != null && (target == cat.id || target == cleanName)) {
-          return banner.imageUrl;
+        if (!banner.isActive) continue;
+        final target = (banner.redirectTarget ?? "").trim();
+        final cleanTarget = clean(target);
+        if (cleanTarget.isNotEmpty) {
+          if (target == catId ||
+              cleanTarget == catName ||
+              (catSlug.isNotEmpty && cleanTarget == catSlug)) {
+            return banner.imageUrl;
+          }
         }
       }
 
-      // 2. Match by banner title containing Category Name
+      // Direct match by banner title matching category name or slug
       for (final banner in _categoryCardBanners) {
-        final String title = banner.title.trim().toLowerCase();
-        if (title.contains(cleanName) || title.contains(cleanNameNoHyphen)) {
-          return banner.imageUrl;
+        if (!banner.isActive) continue;
+        final title = clean(banner.title);
+        if (title.isNotEmpty) {
+          if (title == catName ||
+              (catSlug.isNotEmpty && title == catSlug) ||
+              title.contains(catName) ||
+              catName.contains(title)) {
+            return banner.imageUrl;
+          }
         }
       }
 
-      // 3. Match by array-index formatting ("_card_index", "Category Card Banner {index + 1}")
+      // Fallback to image URL path keywords matching category name
       for (final banner in _categoryCardBanners) {
-        final String bannerId = banner.id;
-        final String bannerTitle = banner.title;
-        if (bannerId.endsWith('_card_$index') ||
-            bannerTitle == 'Category Card Banner ${index + 1}' ||
-            banner.priority == index) {
+        if (!banner.isActive) continue;
+        final String cleanUrl = clean(banner.imageUrl);
+        if (cleanUrl.contains(catName) ||
+            (catSlug.isNotEmpty && cleanUrl.contains(catSlug))) {
           return banner.imageUrl;
         }
-      }
-
-      // 4. Fallback to image URL keyword matching
-      for (final banner in _categoryCardBanners) {
-        final String cleanUrl = banner.imageUrl.toLowerCase();
-        if (cleanUrl.contains('/$cleanName.') ||
-            cleanUrl.contains('/$cleanName%') ||
-            cleanUrl.contains('_$cleanName') ||
-            cleanUrl.contains(cleanName) ||
-            cleanUrl.contains(cleanNameNoHyphen)) {
-          return banner.imageUrl;
-        }
-      }
-
-      // 5. Ultimate fallback: Match strictly 1-to-1 by order in the list
-      if (index < _categoryCardBanners.length) {
-        return _categoryCardBanners[index].imageUrl;
       }
     }
 
-    // Default static assets/Unsplash fallback URLs if no database category banners are matched
-    return _getFallbackImageForCategory(name);
+    // 2. If category has a direct bannerImage configured, use it
+    if (cat.bannerImage != null && cat.bannerImage!.trim().isNotEmpty) {
+      return cat.bannerImage!.trim();
+    }
+
+    // 3. Default static assets/Unsplash fallback URLs
+    return _getFallbackImageForCategory(cat.name);
   }
 
   @override
@@ -449,9 +465,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   await Future.wait([
                     _fetchDiscoveryData(forceRefresh: true),
                     if (mounted)
-                      Provider.of<ProfileService>(context, listen: false)
-                          .fetchProfileFromServer()
-                          .catchError((_) => null),
+                      Provider.of<ProfileService>(
+                        context,
+                        listen: false,
+                      ).fetchProfileFromServer().catchError((_) => null),
                   ]);
                 },
                 color: theme.colorScheme.primary,
@@ -499,7 +516,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               },
                               seeAllLabel: l10n.seeAll,
                               subtitle: l10n.exploreTopSectors,
-                              stripBanner: _findStripBanner('categories') ?? _findStripBanner('category'),
+                              stripBanner:
+                                  _findStripBanner('categories') ??
+                                  _findStripBanner('category'),
                             ),
                           ),
                         ),
@@ -571,10 +590,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.white,
-                      Colors.white.withValues(alpha: 0.8),
-                    ],
+                    colors: [Colors.white, Colors.white.withValues(alpha: 0.8)],
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -835,7 +851,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return HomeFeaturedSection(
       products: _featuredProducts,
       favoriteService: _favoriteService,
-      stripBanner: _findStripBanner('featured') ?? _findStripBanner('featured_products'),
+      stripBanner:
+          _findStripBanner('featured') ?? _findStripBanner('featured_products'),
     );
   }
 
@@ -895,7 +912,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _categoryProducts[cat.id]!.isNotEmpty;
     }).toList();
 
-    if (activeCollections.isEmpty && activeCategories.isEmpty && dealerFirstChoice == null) {
+    if (activeCollections.isEmpty &&
+        activeCategories.isEmpty &&
+        dealerFirstChoice == null) {
       return const SizedBox.shrink();
     }
 
@@ -909,7 +928,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       children.add(
         HomeCollectionRow(
           collection: col,
-          stripBanner: (colTitleKey.isNotEmpty ? _findStripBanner(colTitleKey) : null) ??
+          stripBanner:
+              (colTitleKey.isNotEmpty ? _findStripBanner(colTitleKey) : null) ??
               _findStripBanner(col.name) ??
               _findStripBanner('crop') ??
               _findStripBanner('shop_by_crop'),
@@ -929,7 +949,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           collection: dealerFirstChoice,
           favoriteService: _favoriteService,
           isDealerFirstChoice: true,
-          stripBanner: (dealerTitleKey.isNotEmpty ? _findStripBanner(dealerTitleKey) : null) ??
+          stripBanner:
+              (dealerTitleKey.isNotEmpty
+                  ? _findStripBanner(dealerTitleKey)
+                  : null) ??
               _findStripBanner('dealer_first_choice') ??
               _findStripBanner('dealer first choice') ??
               _findStripBanner('dealer') ??
@@ -942,7 +965,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int catIdx = 0;
     int colIdx = hasAddedFirstCollection ? 1 : 0;
 
-    while (catIdx < activeCategories.length || colIdx < activeCollections.length) {
+    while (catIdx < activeCategories.length ||
+        colIdx < activeCollections.length) {
       // Add a category
       if (catIdx < activeCategories.length) {
         if (children.isNotEmpty) {
@@ -956,7 +980,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             products: _categoryProducts[cat.id]!,
             favoriteService: _favoriteService,
             localizedTitle: _getLocalizedCategoryName(cat.name, l10n),
-            stripBanner: (catTitleKey.isNotEmpty ? _findStripBanner(catTitleKey) : null) ??
+            stripBanner:
+                (catTitleKey.isNotEmpty
+                    ? _findStripBanner(catTitleKey)
+                    : null) ??
                 _findStripBanner(cat.name) ??
                 _findStripBanner(cat.id),
           ),
@@ -974,7 +1001,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         children.add(
           HomeCollectionRow(
             collection: col,
-            stripBanner: (colTitleKey.isNotEmpty ? _findStripBanner(colTitleKey) : null) ??
+            stripBanner:
+                (colTitleKey.isNotEmpty
+                    ? _findStripBanner(colTitleKey)
+                    : null) ??
                 _findStripBanner(col.name) ??
                 _findStripBanner(col.slug),
           ),
@@ -1004,42 +1034,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
       child: Column(
         children: [
-          // Trust Badges - Larger & More Visual
-          Row(
-            children: [
-              Expanded(
-                child: _buildTrustItem(
-                  Icons.security_outlined,
-                  l10n.footerBadgeSecure,
-                  Colors.green.shade600,
+          // Trust Banner (Dynamic from Admin Panel with local fallback)
+          if (_homeTrustBanner != null && _homeTrustBanner!.imageUrl.isNotEmpty)
+            GestureDetector(
+              onTap: () {
+                BannerRedirectHandler.handleBannerClick(context, _homeTrustBanner!);
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CachedNetworkImage(
+                  imageUrl: _homeTrustBanner!.imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  placeholder: (context, url) => Image.asset(
+                    'assets/images/home_trust.png',
+                    fit: BoxFit.cover,
+                  ),
+                  errorWidget: (context, url, error) => Image.asset(
+                    'assets/images/home_trust.png',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTrustItem(
-                  Icons.local_shipping_outlined,
-                  l10n.footerBadgeFast,
-                  Colors.blue.shade600,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTrustItem(
-                  Icons.workspace_premium_outlined,
-                  l10n.footerBadgeOrganic,
-                  Colors.orange.shade600,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTrustItem(
-                  Icons.verified_user_outlined,
-                  l10n.footerBadgeTrusted,
-                  Colors.purple.shade600,
-                ),
-              ),
-            ],
-          ),
+            )
+          else
+            Image.asset('assets/images/home_trust.png', fit: BoxFit.cover),
 
           const SizedBox(height: 20),
 
@@ -1087,7 +1106,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 flex: 4,
                 child: InkWell(
                   onTap: () async {
-                    MetaAnalyticsService.logContactSupport(contactMethod: 'WhatsApp Home Footer');
+                    MetaAnalyticsService.logContactSupport(
+                      contactMethod: 'WhatsApp Home Footer',
+                    );
                     final url = Uri.parse("https://wa.me/919399022060");
                     if (!await launchUrl(
                       url,
