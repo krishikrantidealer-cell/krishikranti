@@ -384,6 +384,19 @@ class _CatalogueScreenState extends State<CatalogueScreen>
     return _getFallbackImageForCategory(cat.name);
   }
 
+  String _getSectionTitle(AppLocalizations l10n) {
+    if (widget.isShowingCollections) {
+      return l10n.shopByCrop;
+    }
+    final locale = l10n.localeName;
+    if (locale.startsWith('hi')) return 'कैटलॉग डाउनलोड करें';
+    if (locale.startsWith('mr')) return 'कॅटलॉग डाउनलोड करा';
+    if (locale.startsWith('ta')) return 'பட்டியல் பதிவிறக்கு';
+    if (locale.startsWith('te')) return 'కేటలాగ్ డౌన్‌లోడ్ చేయండి';
+    if (locale.startsWith('kn')) return 'ಕ್ಯಾಟಲಾಗ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ';
+    return 'Download Catalogue';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -559,9 +572,7 @@ class _CatalogueScreenState extends State<CatalogueScreen>
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          widget.isShowingCollections
-                              ? l10n.shopByCrop
-                              : l10n.browseCategories,
+                          _getSectionTitle(l10n),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -1294,46 +1305,13 @@ class _CategoryListTileState extends State<CategoryListTile> {
                 ),
               ),
               if (widget.onDownloadTap != null)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.downloadProgress != null &&
-                        widget.downloadProgress! > 0 &&
-                        widget.downloadProgress! < 100)
-                      Container(
-                        width: 28,
-                        height: 28,
-                        padding: const EdgeInsets.all(4),
-                        child: CircularProgressIndicator(
-                          value: widget.downloadProgress! / 100,
-                          strokeWidth: 3,
-                          backgroundColor: theme.colorScheme.primary.withValues(
-                            alpha: 0.1,
-                          ),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            theme.colorScheme.primary,
-                          ),
-                        ),
-                      )
-                    else ...[
-                      if (widget.isDownloaded)
-                        _buildActionButton(
-                          icon: Icons.menu_book_rounded,
-                          color: Colors.blue.shade700,
-                          onTap: widget.onDownloadTap!,
-                        ),
-                      if (widget.isDownloaded) const SizedBox(width: 8),
-                      _buildActionButton(
-                        icon: widget.isDownloaded
-                            ? Icons.file_download_done_rounded
-                            : Icons.download_for_offline_rounded,
-                        color: widget.isDownloaded
-                            ? Colors.green.shade700
-                            : theme.colorScheme.primary,
-                        onTap: widget.onDownloadTap!,
-                      ),
-                    ],
-                  ],
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    widget.onDownloadTap!();
+                  },
+                  child: _buildProminentDownloadButton(theme, l10n),
                 )
               else
                 Icon(
@@ -1348,25 +1326,150 @@ class _CategoryListTileState extends State<CategoryListTile> {
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.all(4),
+  Widget _buildProminentDownloadButton(
+    ThemeData theme,
+    AppLocalizations? l10n,
+  ) {
+    if (widget.downloadProgress != null &&
+        widget.downloadProgress! > 0 &&
+        widget.downloadProgress! < 100) {
+      return Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
+          color: theme.colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
-        child: Icon(icon, size: 14, color: color),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                value: widget.downloadProgress! / 100,
+                strokeWidth: 2.5,
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${widget.downloadProgress}%',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (widget.isDownloaded) {
+      return Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: const Color(0xFF81C784),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              size: 16,
+              color: Color(0xFF2E7D32),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              _getOpenButtonText(l10n),
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2E7D32),
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.download_rounded,
+            size: 18,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            _getDownloadButtonText(l10n),
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _getDownloadButtonText(AppLocalizations? l10n) {
+    final locale = l10n?.localeName ?? 'en';
+    if (locale.startsWith('hi')) return 'डाउनलोड';
+    if (locale.startsWith('mr')) return 'डाउनलोड';
+    if (locale.startsWith('ta')) return 'பதிவிறக்கு';
+    if (locale.startsWith('te')) return 'డౌన్‌లోడ్';
+    if (locale.startsWith('kn')) return 'ಡೌನ್‌ಲೋಡ್';
+    return 'Download';
+  }
+
+  String _getOpenButtonText(AppLocalizations? l10n) {
+    final locale = l10n?.localeName ?? 'en';
+    if (locale.startsWith('hi')) return 'खोलें';
+    if (locale.startsWith('mr')) return 'उघडा';
+    if (locale.startsWith('ta')) return 'திறக்க';
+    if (locale.startsWith('te')) return 'తెరవండి';
+    if (locale.startsWith('kn')) return 'ತೆರೆಯಿರಿ';
+    return 'Open PDF';
   }
 }
 
