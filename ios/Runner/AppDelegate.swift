@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import Firebase
+import flutter_downloader
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -12,23 +13,8 @@ import Firebase
         FirebaseApp.configure()
     }
 
-    let controller : FlutterViewController = window?.rootViewController as! FlutterViewController
-    let voiceChannel = FlutterMethodChannel(name: "com.krishi.dealer.retailer/voice_search",
-                                              binaryMessenger: controller.binaryMessenger)
-
-    voiceChannel.setMethodCallHandler({
-      (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-      if call.method == "startVoiceSearch" {
-        // iOS doesn't have a built-in system voice search UI like Android's RecognizerIntent.
-        // You can use the 'speech_to_text' package already in your pubspec.yaml
-        // for a cross-platform implementation.
-        result(FlutterError(code: "UNAVAILABLE",
-                            message: "Voice search UI is not available on iOS. Use speech_to_text plugin instead.",
-                            details: nil))
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    })
+    GeneratedPluginRegistrant.register(with: self)
+    FlutterDownloaderPlugin.setPluginRegistrantCallback(registerPlugins)
 
     if #available(iOS 10.0, *) {
       UNUserNotificationCenter.current().delegate = self as UNUserNotificationCenterDelegate
@@ -36,13 +22,33 @@ import Firebase
 
     application.registerForRemoteNotifications()
 
-    GeneratedPluginRegistrant.register(with: self)
     let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let voiceChannel = FlutterMethodChannel(name: "com.krishi.dealer.retailer/voice_search",
+                                                binaryMessenger: controller.binaryMessenger)
+
+      voiceChannel.setMethodCallHandler({
+        (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
+        if call.method == "startVoiceSearch" {
+          result(FlutterError(code: "UNAVAILABLE",
+                              message: "Voice search UI is not available on iOS. Use speech_to_text plugin instead.",
+                              details: nil))
+        } else {
+          result(FlutterMethodNotImplemented)
+        }
+      })
+    }
     
     return result
   }
 }
 
+private func registerPlugins(registry: FlutterPluginRegistry) {
+    if (!registry.hasPlugin("FlutterDownloaderPlugin")) {
+       FlutterDownloaderPlugin.register(with: registry.registrar(forPlugin: "FlutterDownloaderPlugin")!)
+    }
+}
 
 extension AppDelegate {
     override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -50,3 +56,4 @@ extension AppDelegate {
         super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
     }
 }
+

@@ -66,19 +66,19 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to upload license images for KYC verification.</string>
+	<string>Krishi Kranti requires camera access to take photos of KYC documents and business licenses for dealer verification.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs location access to automatically fetch your delivery address.</string>
+	<string>Krishi Kranti needs your location to automatically detect your delivery address for wholesale dispatch.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs location access to automatically fetch your delivery address even when the app is in background.</string>
+	<string>Krishi Kranti needs your location to accurately detect delivery addresses and service coverage areas.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app needs location access to automatically fetch your delivery address.</string>
+	<string>Krishi Kranti needs your location to accurately detect delivery addresses and service coverage areas.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs microphone access for voice search.</string>
+	<string>Krishi Kranti needs microphone access for voice-based product and catalog search.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs photo library access to upload license images from your gallery for KYC verification.</string>
+	<string>Krishi Kranti requires photo library access to upload license images and KYC verification documents from your gallery.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app needs speech recognition access for voice search.</string>
+	<string>Krishi Kranti needs speech recognition access to understand voice search queries.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

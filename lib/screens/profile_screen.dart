@@ -17,6 +17,7 @@ import 'package:krishikranti/core/constants/api_constants.dart';
 import 'package:krishikranti/core/favorite_service.dart';
 import 'package:krishikranti/core/utils/translatable_text.dart';
 import 'package:krishikranti/core/websocket_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -74,6 +75,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
   }
 
   @override
@@ -472,6 +484,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   builder: (_) => const AboutUsScreen(),
                                 ),
                               ),
+                            ),
+                            _ActionTile(
+                              icon: CupertinoIcons.lock_shield_fill,
+                              title: "Privacy Policy",
+                              color: Colors.blueGrey,
+                              onTap: () => _launchUrl('https://krishikrantiorganics.com/privacy-policy'),
+                            ),
+                            _ActionTile(
+                              icon: CupertinoIcons.doc_plaintext,
+                              title: "Terms & Conditions",
+                              color: Colors.deepPurple,
+                              onTap: () => _launchUrl('https://krishikrantiorganics.com/terms-and-conditions'),
                               showDivider: false,
                             ),
                           ],

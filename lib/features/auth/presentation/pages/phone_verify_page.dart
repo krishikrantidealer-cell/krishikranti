@@ -10,6 +10,8 @@ import 'package:provider/provider.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:krishikranti/core/utils/device_utils.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:krishikranti/core/websocket_service.dart';
 
 class PhoneVerifyPage extends StatefulWidget {
@@ -397,8 +399,17 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                                   style: Theme.of(context).textTheme.labelLarge
                                       ?.copyWith(
                                         fontSize: 13,
+                                        color: const Color(0xFF2E7D32),
                                         decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.bold,
                                       ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () async {
+                                      final url = Uri.parse('https://krishikrantiorganics.com/privacy-policy');
+                                      if (await canLaunchUrl(url)) {
+                                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                                      }
+                                    },
                                 ),
                               ],
                             ),

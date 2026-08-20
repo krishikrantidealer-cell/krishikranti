@@ -169,6 +169,27 @@ class AboutUsScreen extends StatelessWidget {
                       _launchUrl('tel:+917471121210');
                     },
                   ),
+                  const SizedBox(height: 14),
+                  _buildClickableContactRow(
+                    Icons.language_outlined,
+                    'Official Website',
+                    'krishikrantiorganics.com',
+                    () => _launchUrl('https://krishikrantiorganics.com'),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildClickableContactRow(
+                    Icons.privacy_tip_outlined,
+                    'Privacy Policy',
+                    'View Privacy Policy',
+                    () => _launchUrl('https://krishikrantiorganics.com/privacy-policy'),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildClickableContactRow(
+                    Icons.description_outlined,
+                    'Terms & Conditions',
+                    'View Terms & Conditions',
+                    () => _launchUrl('https://krishikrantiorganics.com/terms-and-conditions'),
+                  ),
                 ],
               ),
             ),
