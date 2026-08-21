@@ -123,7 +123,11 @@ class NotificationService {
     await _localNotificationsPlugin.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        handleNotificationTap(response.payload);
+        if (response.actionId != null && response.actionId!.isNotEmpty) {
+          handleNotificationAction(response.actionId!, response.payload);
+        } else {
+          handleNotificationTap(response.payload);
+        }
       },
     );
 
@@ -180,6 +184,7 @@ class NotificationService {
           category: message.data['category'] == 'marketing'
               ? NotificationCategory.marketing
               : NotificationCategory.utility,
+          showSystemNotification: true, // Keeps the notification in phone's notification tray
         );
 
         if (titleLower.contains('kyc') ||
@@ -336,6 +341,7 @@ class NotificationService {
     bool indeterminate = false,
     String? imageUrl,
     bool saveToHistory = true,
+    bool showSystemNotification = true,
   }) async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'krishikranti_high_importance_channel',
@@ -413,51 +419,100 @@ class NotificationService {
       }
     }
 
-    // Show the actual system notification
-    await _localNotificationsPlugin.show(
-      id: notifId,
-      title: title,
-      body: body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          channel.id,
-          channel.name,
-          channelDescription: channel.description,
-          icon: '@mipmap/ic_launcher',
-          importance: Importance.high,
-          priority: Priority.high,
-          color: const Color(0xFF2E7D32),
-          showProgress: showProgress,
-          maxProgress: maxProgress ?? 100,
-          progress: progress ?? 0,
-          indeterminate: indeterminate,
-          onlyAlertOnce: true, // Prevents notification alert noise/buzz on every progress tick
-          largeIcon:
-              bigPicturePath != null
-                  ? FilePathAndroidBitmap(bigPicturePath)
-                  : null,
-          styleInformation:
-              bigPicturePath != null
-                  ? BigPictureStyleInformation(
-                    FilePathAndroidBitmap(bigPicturePath),
-                    largeIcon: FilePathAndroidBitmap(bigPicturePath),
-                    contentTitle: title,
-                    summaryText: body,
-                  )
-                  : null,
+    // Configure 1-tap quick action buttons matching the segment/category
+    List<AndroidNotificationAction>? actions;
+    if (resolvedCategory == NotificationCategory.kyc) {
+      actions = const [
+        AndroidNotificationAction(
+          'action_kyc',
+          '⚡ Complete KYC',
+          showsUserInterface: true,
+          cancelNotification: true,
         ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-          attachments:
-              bigPicturePath != null
-                  ? [DarwinNotificationAttachment(bigPicturePath)]
-                  : null,
+        AndroidNotificationAction(
+          'action_help',
+          '📞 Help',
+          showsUserInterface: true,
+          cancelNotification: true,
         ),
-      ),
-      payload: payload,
-    );
+      ];
+    } else if (resolvedCategory == NotificationCategory.cart) {
+      actions = const [
+        AndroidNotificationAction(
+          'action_cart',
+          '🛒 Open Cart',
+          showsUserInterface: true,
+          cancelNotification: true,
+        ),
+      ];
+    } else if (resolvedCategory == NotificationCategory.order) {
+      actions = const [
+        AndroidNotificationAction(
+          'action_orders',
+          '📦 View Orders',
+          showsUserInterface: true,
+          cancelNotification: true,
+        ),
+      ];
+    } else {
+      actions = const [
+        AndroidNotificationAction(
+          'action_explore',
+          '🌾 Explore Deals',
+          showsUserInterface: true,
+          cancelNotification: true,
+        ),
+      ];
+    }
+
+    // Show the actual system notification if requested (e.g. background/standalone)
+    if (showSystemNotification) {
+      await _localNotificationsPlugin.show(
+        id: notifId,
+        title: title,
+        body: body,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            channel.id,
+            channel.name,
+            channelDescription: channel.description,
+            icon: '@mipmap/ic_launcher',
+            importance: Importance.max,
+            priority: Priority.max,
+            color: const Color(0xFF2E7D32),
+            showProgress: showProgress,
+            maxProgress: maxProgress ?? 100,
+            progress: progress ?? 0,
+            indeterminate: indeterminate,
+            onlyAlertOnce: true, // Prevents notification alert noise/buzz on every progress tick
+            largeIcon:
+                bigPicturePath != null
+                    ? FilePathAndroidBitmap(bigPicturePath)
+                    : null,
+            styleInformation:
+                bigPicturePath != null
+                    ? BigPictureStyleInformation(
+                      FilePathAndroidBitmap(bigPicturePath),
+                      hideExpandedLargeIcon: true,
+                      contentTitle: title,
+                      summaryText: body,
+                    )
+                    : null,
+            actions: actions,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            attachments:
+                bigPicturePath != null
+                    ? [DarwinNotificationAttachment(bigPicturePath)]
+                    : null,
+          ),
+        ),
+        payload: payload,
+      );
+    }
   }
 
   static Future<String> _downloadAndSaveFile(
@@ -587,6 +642,27 @@ class NotificationService {
     } catch (e) {
       debugPrint("Error saving notification: $e");
       return null;
+    }
+  }
+
+  /// Handles quick action button clicks from the notification tray
+  static void handleNotificationAction(String actionId, String? payload) async {
+    debugPrint("Notification Action Clicked: $actionId");
+    if (actionId == 'action_kyc') {
+      navigatorKey.currentState?.pushNamed('/kyc');
+    } else if (actionId == 'action_help') {
+      final Uri uri = Uri.parse('tel:+918800000000');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } else if (actionId == 'action_cart') {
+      navigatorKey.currentState?.pushNamed('/cart');
+    } else if (actionId == 'action_orders') {
+      navigatorKey.currentState?.pushNamed('/dashboard');
+    } else if (actionId == 'action_explore') {
+      navigatorKey.currentState?.pushNamed('/dashboard');
+    } else {
+      handleNotificationTap(payload);
     }
   }
 
