@@ -33,6 +33,15 @@ import 'package:krishikranti/core/cart_service.dart';
 import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/address_service.dart';
 import 'package:krishikranti/screens/order_detail_screen.dart';
+import 'package:krishikranti/screens/catalogue_screen.dart';
+import 'package:krishikranti/screens/coupons_screen.dart';
+import 'package:krishikranti/screens/favorites_screen.dart';
+import 'package:krishikranti/screens/my_orders_screen.dart';
+import 'package:krishikranti/screens/notification_screen.dart';
+import 'package:krishikranti/screens/profile_screen.dart';
+import 'package:krishikranti/screens/edit_profile_screen.dart';
+import 'package:krishikranti/screens/shipping_address_screen.dart';
+import 'package:krishikranti/screens/about_us_screen.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 
 // Top-level callback required by flutter_downloader (runs in a background isolate).
@@ -146,9 +155,36 @@ class MyApp extends StatelessWidget {
             const ChooseLanguagePage(isSettings: true),
         '/contact': (context) => const ContactUsScreen(),
       },
-      onGenerateRoute: (settings) {
+            onGenerateRoute: (settings) {
         if (settings.name == '/cart') {
           return MaterialPageRoute(builder: (context) => const CartScreen());
+        }
+        if (settings.name == '/products' || settings.name == '/catalogue') {
+          return MaterialPageRoute(builder: (context) => const CatalogueScreen());
+        }
+        if (settings.name == '/orders' || settings.name == '/my_orders') {
+          return MaterialPageRoute(builder: (context) => const MyOrdersScreen());
+        }
+        if (settings.name == '/coupons' || settings.name == '/offers') {
+          return MaterialPageRoute(builder: (context) => const CouponsScreen());
+        }
+        if (settings.name == '/favorites' || settings.name == '/wishlist') {
+          return MaterialPageRoute(builder: (context) => const FavoritesScreen());
+        }
+        if (settings.name == '/notifications' || settings.name == '/inbox') {
+          return MaterialPageRoute(builder: (context) => const NotificationScreen());
+        }
+        if (settings.name == '/profile') {
+          return MaterialPageRoute(builder: (context) => const ProfileScreen());
+        }
+        if (settings.name == '/edit-profile') {
+          return MaterialPageRoute(builder: (context) => const EditProfileScreen());
+        }
+        if (settings.name == '/shipping-address' || settings.name == '/addresses') {
+          return MaterialPageRoute(builder: (context) => const ShippingAddressScreen());
+        }
+        if (settings.name == '/about-us') {
+          return MaterialPageRoute(builder: (context) => const AboutUsScreen());
         }
         if (settings.name != null &&
             settings.name!.startsWith('/order_details/')) {
