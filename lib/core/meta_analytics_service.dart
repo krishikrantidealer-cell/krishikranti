@@ -93,7 +93,11 @@ class MetaAnalyticsService {
   /// Public trigger to ensure attribution check runs once and can be awaited
   static Future<void> checkAttribution() async {
     _attributionFuture ??= _checkAttribution();
-    await _attributionFuture;
+    try {
+      await _attributionFuture!.timeout(const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint("⚠️ Meta SDK: Attribution check timed out or errored: $e");
+    }
   }
 
   /// Private helper to fetch and save deferred deep links & install referrer
@@ -676,14 +680,19 @@ class MetaAnalyticsService {
 
   /// Helper to get cached install source ('Meta Ads' or 'Organic')
   static Future<String> getInstallSource() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? currentSource = prefs.getString(_installSourceKey);
-    
-    if (currentSource == null) {
-      await checkAttribution();
-      currentSource = prefs.getString(_installSourceKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? currentSource = prefs.getString(_installSourceKey);
+      
+      if (currentSource == null) {
+        await checkAttribution();
+        currentSource = prefs.getString(_installSourceKey);
+      }
+      return currentSource ?? 'Organic';
+    } catch (e) {
+      debugPrint("⚠️ Meta SDK: Error getting install source: $e");
+      return 'Organic';
     }
-    return currentSource ?? 'Organic';
   }
 
   /// Helper to get cached deep link URL (if any)

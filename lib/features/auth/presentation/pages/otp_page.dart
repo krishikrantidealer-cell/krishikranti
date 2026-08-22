@@ -1,17 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:krishikranti/core/network/auth_service.dart';
 import 'package:pinput/pinput.dart';
 import 'package:smart_auth/smart_auth.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
 import 'package:krishikranti/core/network/http_service.dart';
 import 'package:krishikranti/core/constants/api_constants.dart';
-import 'dart:convert';
 import 'package:krishikranti/core/utils/haptic_util.dart';
 import 'package:krishikranti/core/utils/device_utils.dart';
-import 'package:provider/provider.dart';
-import 'package:krishikranti/core/profile_service.dart';
 import 'package:krishikranti/core/notification_service.dart';
 import 'package:krishikranti/core/meta_analytics_service.dart';
 import 'package:krishikranti/core/websocket_service.dart';
@@ -47,7 +46,7 @@ class _OtpPageState extends State<OtpPage> {
     try {
       final deviceId = await DeviceUtils.getUniqueId();
       final installSource = await MetaAnalyticsService.getInstallSource();
-      
+
       final response = await HttpService.post(
         ApiConstants.verifyOtp,
         body: {
@@ -58,8 +57,15 @@ class _OtpPageState extends State<OtpPage> {
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      final isSuccess = response.statusCode >= 200 && response.statusCode < 300;
+      Map<String, dynamic> data = {};
+      try {
+        if (response.body.isNotEmpty) {
+          data = jsonDecode(response.body);
+        }
+      } catch (_) {}
+
+      if (isSuccess && (data['success'] == null || data['success'] == true)) {
         if (data['accessToken'] != null && data['refreshToken'] != null) {
           await AuthService.saveTokens(
             data['accessToken'],
@@ -96,7 +102,6 @@ class _OtpPageState extends State<OtpPage> {
           }
         }
       } else {
-        final data = jsonDecode(response.body);
         if (mounted) {
           setState(() {
             _errorText = data['message'] ?? 'Invalid OTP';
@@ -108,9 +113,12 @@ class _OtpPageState extends State<OtpPage> {
       }
     } catch (e) {
       if (mounted) {
+        final String errorMsg = e is TimeoutException
+            ? 'Connection timed out. Please check your internet connection and try again.'
+            : 'Network error: $e';
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Network error: $e')));
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     } finally {
       if (mounted) {
@@ -127,9 +135,21 @@ class _OtpPageState extends State<OtpPage> {
         ApiConstants.sendOtp,
         body: {'phoneNumber': phoneNumber},
       );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final newCooldown = data['cooldown'] ?? 60;
+      final isSuccess = response.statusCode >= 200 && response.statusCode < 300;
+      Map<String, dynamic> data = {};
+      try {
+        if (response.body.isNotEmpty) {
+          data = jsonDecode(response.body);
+        }
+      } catch (_) {}
+
+      if (isSuccess && (data['success'] == null || data['success'] == true)) {
+        int newCooldown = 60;
+        if (data['cooldown'] is num) {
+          newCooldown = (data['cooldown'] as num).toInt();
+        } else if (data['cooldown'] != null) {
+          newCooldown = int.tryParse(data['cooldown'].toString()) ?? 60;
+        }
         _startTimer(newCooldown);
         if (mounted) {
           setState(() {
@@ -142,12 +162,21 @@ class _OtpPageState extends State<OtpPage> {
             const SnackBar(content: Text('OTP Resent Successfully')),
           );
         }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to resend OTP')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
+        final String errorMsg = e is TimeoutException
+            ? 'Connection timed out. Please try again.'
+            : 'Error: $e';
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     } finally {
       if (mounted) {
@@ -161,15 +190,17 @@ class _OtpPageState extends State<OtpPage> {
     super.initState();
     smsRetriever = SmsRetrieverImpl(SmartAuth.instance);
 
-    // Automatically retrieve and log Android App Signature Hash to debug console
-    SmartAuth.instance
-        .getAppSignature()
-        .then((signature) {
-          debugPrint('[SMS-RETRIEVER] Android App Signature Hash: $signature');
-        })
-        .catchError((error) {
-          debugPrint('[SMS-RETRIEVER] Error getting app signature: $error');
-        });
+    if (!kIsWeb && Platform.isAndroid) {
+      // Automatically retrieve and log Android App Signature Hash to debug console
+      SmartAuth.instance
+          .getAppSignature()
+          .then((signature) {
+            debugPrint('[SMS-RETRIEVER] Android App Signature Hash: $signature');
+          })
+          .catchError((error) {
+            debugPrint('[SMS-RETRIEVER] Error getting app signature: $error');
+          });
+    }
   }
 
   @override
@@ -178,8 +209,13 @@ class _OtpPageState extends State<OtpPage> {
     if (!_initialized) {
       final args = ModalRoute.of(context)?.settings.arguments;
       int cooldown = 60;
-      if (args is Map<String, dynamic>) {
-        cooldown = args['cooldown'] ?? 60;
+      if (args is Map) {
+        final rawCooldown = args['cooldown'];
+        if (rawCooldown is num) {
+          cooldown = rawCooldown.toInt();
+        } else if (rawCooldown != null) {
+          cooldown = int.tryParse(rawCooldown.toString()) ?? 60;
+        }
       }
       _startTimer(cooldown);
       _initialized = true;
@@ -203,7 +239,9 @@ class _OtpPageState extends State<OtpPage> {
     _pinController.dispose();
     _pinFocusNode.dispose();
     _timer?.cancel(); // Always cancel the timer to prevent memory leaks
-    SmartAuth.instance.removeSmsRetrieverApiListener();
+    try {
+      SmartAuth.instance.removeSmsRetrieverApiListener();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -214,8 +252,8 @@ class _OtpPageState extends State<OtpPage> {
     String phoneNumber = '9876543210';
     if (args is String) {
       phoneNumber = args;
-    } else if (args is Map<String, dynamic>) {
-      phoneNumber = args['phoneNumber'] ?? '9876543210';
+    } else if (args is Map) {
+      phoneNumber = args['phoneNumber']?.toString() ?? '9876543210';
     }
 
     // Premium Pinput Theme (Unified globally)
@@ -530,7 +568,9 @@ class SmsRetrieverImpl implements SmsRetriever {
       // This shows the native Google "Allow" bottom sheet when the SMS arrives.
       final res = await smartAuth.getSmsWithUserConsentApi();
       if (res.hasData && res.requireData.code != null) {
-        debugPrint('[SMS-RETRIEVER] Code received via User Consent: ${res.requireData.code}');
+        debugPrint(
+          '[SMS-RETRIEVER] Code received via User Consent: ${res.requireData.code}',
+        );
         return res.requireData.code;
       }
     } catch (e) {

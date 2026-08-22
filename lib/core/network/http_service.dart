@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -9,8 +10,13 @@ import 'package:krishikranti/core/websocket_service.dart';
 import 'package:krishikranti/main.dart'; // Import navigatorKey
 
 class HttpService {
-  static final dio.Dio _dio = dio.Dio();
-  static final http.Client _client = http.Client();
+  static const Duration requestTimeout = Duration(seconds: 30);
+  static final dio.Dio _dio = dio.Dio(
+    dio.BaseOptions(
+      connectTimeout: requestTimeout,
+      receiveTimeout: requestTimeout,
+    ),
+  );
 
   static Future<void> forceLogout() async {
     await AuthService.logout();
@@ -34,12 +40,38 @@ class HttpService {
     return false;
   }
 
-  static Future<Map<String, String>> _getHeaders() async {
-    final token = await AuthService.getToken();
+  static bool _isAuthUrl(String url) {
+    return url.contains('/api/auth/send-otp') ||
+        url.contains('/api/auth/verify-otp') ||
+        url.contains('/api/auth/refresh');
+  }
+
+  static Future<Map<String, String>> _getHeaders({String? url}) async {
+    final bool isAuth = url != null && _isAuthUrl(url);
+    final token = isAuth ? null : await AuthService.getToken();
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  static Future<http.Response> _sendWithRetry(
+    Future<http.Response> Function() requestFn,
+  ) async {
+    try {
+      return await requestFn();
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (e is http.ClientException ||
+          msg.contains('socketexception') ||
+          msg.contains('connection closed') ||
+          msg.contains('connection reset') ||
+          msg.contains('broken pipe')) {
+        debugPrint('[HttpService] Retrying request due to stale connection: $e');
+        return await requestFn();
+      }
+      rethrow;
+    }
   }
 
   static Future<http.Response> get(
@@ -47,30 +79,31 @@ class HttpService {
     Map<String, String>? headers,
   }) async {
     try {
-      final defaultHeaders = await _getHeaders();
-      var response = await _client.get(
-        Uri.parse(url),
-        headers: {...defaultHeaders, ...?headers},
-      );
+      final defaultHeaders = await _getHeaders(url: url);
+      var response = await _sendWithRetry(() => http.get(
+            Uri.parse(url),
+            headers: {...defaultHeaders, ...?headers},
+          ).timeout(requestTimeout));
 
       if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
         return response;
       }
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
+      if (!_isAuthUrl(url) && (response.statusCode == 401 || response.statusCode == 403)) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
-          final newHeaders = await _getHeaders();
-          response = await _client.get(
-            Uri.parse(url),
-            headers: {...newHeaders, ...?headers},
-          );
+          final newHeaders = await _getHeaders(url: url);
+          response = await _sendWithRetry(() => http.get(
+                Uri.parse(url),
+                headers: {...newHeaders, ...?headers},
+              ).timeout(requestTimeout));
         } else if (!(await AuthService.isLoggedIn())) {
           await forceLogout();
         }
       }
       return response;
     } catch (e) {
+      debugPrint('[HttpService] GET error for $url: $e');
       rethrow;
     }
   }
@@ -81,32 +114,33 @@ class HttpService {
     dynamic body,
   }) async {
     try {
-      final defaultHeaders = await _getHeaders();
-      var response = await _client.post(
-        Uri.parse(url),
-        headers: {...defaultHeaders, ...?headers},
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final defaultHeaders = await _getHeaders(url: url);
+      var response = await _sendWithRetry(() => http.post(
+            Uri.parse(url),
+            headers: {...defaultHeaders, ...?headers},
+            body: body != null ? jsonEncode(body) : null,
+          ).timeout(requestTimeout));
 
       if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
         return response;
       }
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
+      if (!_isAuthUrl(url) && (response.statusCode == 401 || response.statusCode == 403)) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
-          final newHeaders = await _getHeaders();
-          response = await _client.post(
-            Uri.parse(url),
-            headers: {...newHeaders, ...?headers},
-            body: body != null ? jsonEncode(body) : null,
-          );
+          final newHeaders = await _getHeaders(url: url);
+          response = await _sendWithRetry(() => http.post(
+                Uri.parse(url),
+                headers: {...newHeaders, ...?headers},
+                body: body != null ? jsonEncode(body) : null,
+              ).timeout(requestTimeout));
         } else if (!(await AuthService.isLoggedIn())) {
           await forceLogout();
         }
       }
       return response;
     } catch (e) {
+      debugPrint('[HttpService] POST error for $url: $e');
       rethrow;
     }
   }
@@ -117,32 +151,33 @@ class HttpService {
     dynamic body,
   }) async {
     try {
-      final defaultHeaders = await _getHeaders();
-      var response = await _client.patch(
-        Uri.parse(url),
-        headers: {...defaultHeaders, ...?headers},
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final defaultHeaders = await _getHeaders(url: url);
+      var response = await _sendWithRetry(() => http.patch(
+            Uri.parse(url),
+            headers: {...defaultHeaders, ...?headers},
+            body: body != null ? jsonEncode(body) : null,
+          ).timeout(requestTimeout));
 
       if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
         return response;
       }
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
+      if (!_isAuthUrl(url) && (response.statusCode == 401 || response.statusCode == 403)) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
-          final newHeaders = await _getHeaders();
-          response = await _client.patch(
-            Uri.parse(url),
-            headers: {...newHeaders, ...?headers},
-            body: body != null ? jsonEncode(body) : null,
-          );
+          final newHeaders = await _getHeaders(url: url);
+          response = await _sendWithRetry(() => http.patch(
+                Uri.parse(url),
+                headers: {...newHeaders, ...?headers},
+                body: body != null ? jsonEncode(body) : null,
+              ).timeout(requestTimeout));
         } else if (!(await AuthService.isLoggedIn())) {
           await forceLogout();
         }
       }
       return response;
     } catch (e) {
+      debugPrint('[HttpService] PATCH error for $url: $e');
       rethrow;
     }
   }
@@ -153,32 +188,33 @@ class HttpService {
     dynamic body,
   }) async {
     try {
-      final defaultHeaders = await _getHeaders();
-      var response = await _client.delete(
-        Uri.parse(url),
-        headers: {...defaultHeaders, ...?headers},
-        body: body != null ? jsonEncode(body) : null,
-      );
+      final defaultHeaders = await _getHeaders(url: url);
+      var response = await _sendWithRetry(() => http.delete(
+            Uri.parse(url),
+            headers: {...defaultHeaders, ...?headers},
+            body: body != null ? jsonEncode(body) : null,
+          ).timeout(requestTimeout));
 
       if (await _checkAndHandleBlockedUser(response.statusCode, response.body)) {
         return response;
       }
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
+      if (!_isAuthUrl(url) && (response.statusCode == 401 || response.statusCode == 403)) {
         final refreshed = await AuthService.refreshAccessToken();
         if (refreshed) {
-          final newHeaders = await _getHeaders();
-          response = await _client.delete(
-            Uri.parse(url),
-            headers: {...newHeaders, ...?headers},
-            body: body != null ? jsonEncode(body) : null,
-          );
+          final newHeaders = await _getHeaders(url: url);
+          response = await _sendWithRetry(() => http.delete(
+                Uri.parse(url),
+                headers: {...newHeaders, ...?headers},
+                body: body != null ? jsonEncode(body) : null,
+              ).timeout(requestTimeout));
         } else if (!(await AuthService.isLoggedIn())) {
           await forceLogout();
         }
       }
       return response;
     } catch (e) {
+      debugPrint('[HttpService] DELETE error for $url: $e');
       rethrow;
     }
   }

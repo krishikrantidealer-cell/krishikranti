@@ -49,6 +49,51 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotificationService {
+  static String? pendingRoute;
+
+  static void navigateToRoute(String target) {
+    if (target.isEmpty) return;
+    pendingRoute = target;
+    if (navigatorKey.currentState != null) {
+      _executeRoute(target);
+    }
+  }
+
+  static void _executeRoute(String target) {
+    pendingRoute = null;
+    if (navigatorKey.currentState == null) return;
+    debugPrint("🚀 Executing deep link navigation to: $target");
+    if (target == "/orders" || target == "/my_orders") {
+      navigatorKey.currentState!.pushNamed("/orders");
+    } else if (target == "/products" || target == "/catalogue") {
+      navigatorKey.currentState!.pushNamed("/products");
+    } else if (target == "/cart") {
+      navigatorKey.currentState!.pushNamed("/cart");
+    } else if (target == "/kyc") {
+      navigatorKey.currentState!.pushNamed("/kyc");
+    } else if (target == "/coupons" || target == "/offers") {
+      navigatorKey.currentState!.pushNamed("/coupons");
+    } else if (target == "/favorites" || target == "/wishlist") {
+      navigatorKey.currentState!.pushNamed("/favorites");
+    } else if (target == "/notifications" || target == "/inbox") {
+      navigatorKey.currentState!.pushNamed("/notifications");
+    } else if (target == "/search") {
+      navigatorKey.currentState!.pushNamed("/search");
+    } else if (target == "/profile") {
+      navigatorKey.currentState!.pushNamed("/profile");
+    } else if (target == "/edit-profile") {
+      navigatorKey.currentState!.pushNamed("/edit-profile");
+    } else if (target == "/shipping-address" || target == "/addresses") {
+      navigatorKey.currentState!.pushNamed("/shipping-address");
+    } else if (target == "/contact") {
+      navigatorKey.currentState!.pushNamed("/contact");
+    } else if (target == "/about-us") {
+      navigatorKey.currentState!.pushNamed("/about-us");
+    } else if (target != "/" && target != "/dashboard") {
+      navigatorKey.currentState!.pushNamed(target);
+    }
+  }
+
   static final FirebaseMessaging _firebaseMessaging =
       FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
@@ -419,50 +464,61 @@ class NotificationService {
       }
     }
 
-    // Configure 1-tap quick action buttons matching the segment/category
-    List<AndroidNotificationAction>? actions;
-    if (resolvedCategory == NotificationCategory.kyc) {
-      actions = const [
+    // Configure 1-tap quick action buttons matching dynamic payload or segment
+    Map<String, dynamic> payloadData = {};
+    if (payload != null && payload.isNotEmpty) {
+      try {
+        payloadData = jsonDecode(payload) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+
+    final String? customBtn1 = payloadData['btn1_text'] ?? payloadData['btn1Text'] ?? payloadData['customBtn1Text'];
+    final String? customBtn2 = payloadData['btn2_text'] ?? payloadData['btn2Text'] ?? payloadData['customBtn2Text'];
+
+    List<AndroidNotificationAction> actions = [];
+    if (customBtn1 != null && customBtn1.trim().isNotEmpty) {
+      actions.add(
         AndroidNotificationAction(
-          'action_kyc',
-          '⚡ Complete KYC',
+          'action_btn_1',
+          customBtn1.trim(),
           showsUserInterface: true,
           cancelNotification: true,
         ),
+      );
+    }
+    if (customBtn2 != null && customBtn2.trim().isNotEmpty) {
+      actions.add(
         AndroidNotificationAction(
-          'action_help',
-          '📞 Help',
+          'action_btn_2',
+          customBtn2.trim(),
           showsUserInterface: true,
           cancelNotification: true,
         ),
-      ];
-    } else if (resolvedCategory == NotificationCategory.cart) {
-      actions = const [
-        AndroidNotificationAction(
-          'action_cart',
-          '🛒 Open Cart',
-          showsUserInterface: true,
-          cancelNotification: true,
-        ),
-      ];
-    } else if (resolvedCategory == NotificationCategory.order) {
-      actions = const [
-        AndroidNotificationAction(
-          'action_orders',
-          '📦 View Orders',
-          showsUserInterface: true,
-          cancelNotification: true,
-        ),
-      ];
-    } else {
-      actions = const [
-        AndroidNotificationAction(
-          'action_explore',
-          '🌾 Explore Deals',
-          showsUserInterface: true,
-          cancelNotification: true,
-        ),
-      ];
+      );
+    }
+
+    if (actions.isEmpty) {
+      if (resolvedCategory == NotificationCategory.kyc) {
+        actions = const [
+          AndroidNotificationAction('action_kyc', '⚡ Complete KYC', showsUserInterface: true, cancelNotification: true),
+          AndroidNotificationAction('action_help', '📞 Help', showsUserInterface: true, cancelNotification: true),
+        ];
+      } else if (resolvedCategory == NotificationCategory.cart) {
+        actions = const [
+          AndroidNotificationAction('action_cart', '🛒 Open Cart', showsUserInterface: true, cancelNotification: true),
+          AndroidNotificationAction('action_help', '📞 Help', showsUserInterface: true, cancelNotification: true),
+        ];
+      } else if (resolvedCategory == NotificationCategory.order) {
+        actions = const [
+          AndroidNotificationAction('action_orders', '📦 View Orders', showsUserInterface: true, cancelNotification: true),
+          AndroidNotificationAction('action_help', '📞 Help', showsUserInterface: true, cancelNotification: true),
+        ];
+      } else {
+        actions = const [
+          AndroidNotificationAction('action_btn_1', '⚡ Open Offer', showsUserInterface: true, cancelNotification: true),
+          AndroidNotificationAction('action_btn_2', '📞 Call Support', showsUserInterface: true, cancelNotification: true),
+        ];
+      }
     }
 
     // Show the actual system notification if requested (e.g. background/standalone)
@@ -647,23 +703,29 @@ class NotificationService {
 
   /// Handles quick action button clicks from the notification tray
   static void handleNotificationAction(String actionId, String? payload) async {
-    debugPrint("Notification Action Clicked: $actionId");
+    debugPrint("Notification Action Clicked: $actionId, payload: $payload");
+    if (actionId == 'action_btn_2' || actionId == 'action_help') {
+      if (navigatorKey.currentState != null) {
+        navigatorKey.currentState!.pushNamed('/contact');
+      } else {
+        final Uri uri = Uri.parse('tel:+918800000000');
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+      return;
+    }
     if (actionId == 'action_kyc') {
       navigatorKey.currentState?.pushNamed('/kyc');
-    } else if (actionId == 'action_help') {
-      final Uri uri = Uri.parse('tel:+918800000000');
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      return;
     } else if (actionId == 'action_cart') {
       navigatorKey.currentState?.pushNamed('/cart');
+      return;
     } else if (actionId == 'action_orders') {
-      navigatorKey.currentState?.pushNamed('/dashboard');
-    } else if (actionId == 'action_explore') {
-      navigatorKey.currentState?.pushNamed('/dashboard');
-    } else {
-      handleNotificationTap(payload);
+      navigatorKey.currentState?.pushNamed('/orders');
+      return;
     }
+    handleNotificationTap(payload);
   }
 
   /// Handles routing logic when a notification is tapped (both system tray and inside the app inbox)
@@ -720,10 +782,9 @@ class NotificationService {
       }
 
       // 2. Handle Action Route Redirects
-      final route = data['action_route'];
-      if (route != null && navigatorKey.currentState != null) {
-        debugPrint("Redirecting user to: $route");
-        navigatorKey.currentState!.pushNamed(route);
+      final route = data['action_route'] ?? data['actionRoute'] ?? data['customActionRoute'];
+      if (route != null && route.toString().trim().isNotEmpty) {
+        navigateToRoute(route.toString().trim());
       }
     } catch (e) {
       debugPrint("Error parsing notification payload: $e");

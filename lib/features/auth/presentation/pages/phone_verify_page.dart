@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:krishikranti/l10n/app_localizations.dart';
@@ -54,16 +55,35 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
     setState(() => _isLoading = true);
 
     try {
+      debugPrint('[AUTH] Initiating sendOtp for $phoneNumber to ${ApiConstants.sendOtp}');
       final response = await HttpService.post(
         ApiConstants.sendOtp,
         body: {'phoneNumber': phoneNumber},
       );
+      debugPrint('[AUTH] sendOtp received status ${response.statusCode}, body: ${response.body}');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final cooldown = data['cooldown'] ?? 60;
+      final bool isSuccessStatus =
+          response.statusCode >= 200 && response.statusCode < 300;
+      Map<String, dynamic> data = {};
+      try {
+        if (response.body.isNotEmpty) {
+          data = jsonDecode(response.body);
+        }
+      } catch (e) {
+        debugPrint('[AUTH] Error parsing response JSON: $e');
+      }
+
+      if (isSuccessStatus && (data['success'] == null || data['success'] == true)) {
+        int cooldown = 60;
+        if (data['cooldown'] is num) {
+          cooldown = (data['cooldown'] as num).toInt();
+        } else if (data['cooldown'] != null) {
+          cooldown = int.tryParse(data['cooldown'].toString()) ?? 60;
+        }
+
         if (mounted) {
           HapticUtil.success();
+          debugPrint('[AUTH] Navigating to /otp with phoneNumber: $phoneNumber, cooldown: $cooldown');
           Navigator.pushNamed(
             context,
             '/otp',
@@ -71,18 +91,23 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
           );
         }
       } else {
-        final data = jsonDecode(response.body);
         if (mounted) {
+          final errorMsg = data['message'] ?? 'Failed to send OTP (${response.statusCode})';
+          debugPrint('[AUTH] sendOtp failed with message: $errorMsg');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Failed to send OTP')),
+            SnackBar(content: Text(errorMsg)),
           );
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('[AUTH] Exception in _sendOtp: $e\n$stack');
       if (mounted) {
+        final String errorMsg = e is TimeoutException
+            ? 'Connection timed out. Please check your internet connection.'
+            : 'Network error: $e';
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Network error: $e')));
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     } finally {
       if (mounted) {
@@ -155,8 +180,11 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
       }
     } catch (e) {
       if (mounted) {
+        final String errorMsg = e is TimeoutException
+            ? 'Connection timed out. Please check your internet connection.'
+            : 'Network error: $e';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Network error: $e')),
+          SnackBar(content: Text(errorMsg)),
         );
       }
     } finally {
