@@ -358,6 +358,10 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
                           child: TextField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
+                            autofillHints: const [
+                              AutofillHints.telephoneNumber,
+                              AutofillHints.telephoneNumberNational,
+                            ],
                             maxLength: 10,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,

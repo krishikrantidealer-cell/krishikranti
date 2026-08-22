@@ -387,6 +387,10 @@ class _OtpPageState extends State<OtpPage> {
                       controller: _pinController,
                       focusNode: _pinFocusNode,
                       autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        signed: false,
+                        decimal: false,
+                      ),
                       defaultPinTheme: defaultPinTheme,
                       focusedPinTheme: focusedPinTheme,
                       submittedPinTheme: submittedPinTheme,
@@ -394,7 +398,8 @@ class _OtpPageState extends State<OtpPage> {
                       errorText: _errorText,
                       forceErrorState: _errorText != null,
                       autofillHints: const [AutofillHints.oneTimeCode],
-                      smsRetriever: smsRetriever,
+                      smsRetriever:
+                          (!kIsWeb && Platform.isAndroid) ? smsRetriever : null,
                       onCompleted: (pin) => _verifyOtp(phoneNumber),
                       onChanged: (val) {
                         if (_errorText != null) {
@@ -558,14 +563,18 @@ class SmsRetrieverImpl implements SmsRetriever {
 
   @override
   Future<void> dispose() {
-    return smartAuth.removeSmsRetrieverApiListener();
+    if (!kIsWeb && Platform.isAndroid) {
+      return smartAuth.removeSmsRetrieverApiListener();
+    }
+    return Future.value();
   }
 
   @override
   Future<String?> getSmsCode() async {
+    if (kIsWeb || !Platform.isAndroid) return null;
     try {
-      // Using User Consent API as the primary method for DLT compatibility.
-      // This shows the native Google "Allow" bottom sheet when the SMS arrives.
+      // Using User Consent API as the primary method for DLT compatibility on Android.
+      // On iOS, iOS autofill handles OTP suggestions automatically.
       final res = await smartAuth.getSmsWithUserConsentApi();
       if (res.hasData && res.requireData.code != null) {
         debugPrint(
